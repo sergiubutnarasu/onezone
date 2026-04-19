@@ -82,6 +82,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         taskId,
         ts: Date.now(),
       });
+    } else if (role === MessageRole.User) {
+      // Send already-connected agents to this newly joined user
+      const ts = Date.now();
+      for (const m of this.socketMeta.values()) {
+        if (m.taskId === taskId && m.role === MessageRole.Agent && m.agentId) {
+          client.emit("agent:connected", {
+            agentId: m.agentId,
+            agentName: m.agentName || m.agentId,
+            taskId,
+            ts,
+          });
+        }
+      }
     }
   }
 
