@@ -1,27 +1,28 @@
 import {
-  WebSocketGateway,
-  WebSocketServer,
-  SubscribeMessage,
-  MessageBody,
   ConnectedSocket,
+  MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
-} from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
-import { MessagesService } from '../messages/messages.service';
-import { TasksService } from '../tasks/tasks.service';
+  SubscribeMessage,
+  WebSocketGateway,
+  WebSocketServer,
+} from "@nestjs/websockets";
+import { EventCommands, MessageRole, MessageStream } from "@onezone/shared";
+import { Server, Socket } from "socket.io";
+import { MessagesService } from "../messages/messages.service";
+import { TasksService } from "../tasks/tasks.service";
 
 interface AgentSocketMeta {
   taskId: string;
-  role: 'user' | 'agent';
+  role: Omit<MessageRole, "system">;
   agentId?: string;
   agentName?: string;
 }
 
 @WebSocketGateway({
-  namespace: '/chat',
+  namespace: "/chat",
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5025',
+    origin: process.env.CORS_ORIGIN || "http://localhost:5025",
     credentials: true,
   },
 })
@@ -46,7 +47,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     };
 
     const taskId = auth?.taskId;
-    const role = (auth?.role as 'user' | 'agent') || 'user';
+    const role =
+      (auth?.role as Omit<MessageRole, "system">) || MessageRole.User;
 
     if (!taskId) {
       client.disconnect();
@@ -72,8 +74,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     };
     this.socketMeta.set(client.id, meta);
 
-    if (role === 'agent' && auth.agentId) {
-      this.server.to(roomId).emit('agent:connected', {
+    if (role === MessageRole.Agent && auth.agentId) {
+      this.server.to(roomId).emit("agent:connected", {
         agentId: auth.agentId,
         agentName: auth.agentName || auth.agentId,
         taskId,
@@ -84,9 +86,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleDisconnect(client: Socket) {
     const meta = this.socketMeta.get(client.id);
-    if (meta && meta.role === 'agent' && meta.agentId) {
+    if (meta && meta.role === MessageRole.Agent && meta.agentId) {
       const roomId = `task:${meta.taskId}`;
-      this.server.to(roomId).emit('agent:disconnected', {
+      this.server.to(roomId).emit("agent:disconnected", {
         agentId: meta.agentId,
         agentName: meta.agentName || meta.agentId,
         taskId: meta.taskId,
@@ -96,27 +98,29 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.socketMeta.delete(client.id);
   }
 
-  @SubscribeMessage('chat:message')
+  @SubscribeMessage("chat:message")
   async handleChatMessage(
     @MessageBody() data: { roomId: string; content: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const taskId = data.roomId.replace('task:', '');
+    const taskId = data.roomId.replace("task:", "");
     const ts = Date.now();
 
     const message = await this.messagesService.create({
       roomId: data.roomId,
       taskId,
-      role: 'user',
+      role: MessageRole.User,
       content: data.content,
       ts,
     });
 
-    this.server.to(data.roomId).emit('chat:message', { ...message, ts: Number(message.ts) });
-    return { status: 'ok' };
+    this.server
+      .to(data.roomId)
+      .emit("chat:message", { ...message, ts: Number(message.ts) });
+    return { status: "ok" };
   }
 
-  @SubscribeMessage('output:line')
+  @SubscribeMessage("output:line")
   async handleOutputLine(
     @MessageBody()
     data: {
@@ -125,17 +129,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       agentName: string;
       jobId?: string;
       command?: string;
-      stream: 'stdout' | 'stderr';
+      stream: MessageStream;
       content: string;
     },
   ) {
-    const taskId = data.roomId.replace('task:', '');
+    const taskId = data.roomId.replace("task:", "");
     const ts = Date.now();
 
     const message = await this.messagesService.create({
       roomId: data.roomId,
       taskId,
-      role: 'agent',
+      role:  MessageRole.Agent,
       agentId: data.agentId,
       agentName: data.agentName,
       jobId: data.jobId,
@@ -145,35 +149,43 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       ts,
     });
 
-    this.server.to(data.roomId).emit('output:line', { ...message, ts: Number(message.ts) });
-    return { status: 'ok' };
+    this.server
+      .to(data.roomId)
+      .emit("output:line", { ...message, ts: Number(message.ts) });
+    return { status: "ok" };
   }
 
-  @SubscribeMessage('agent:connected')
+  @SubscribeMessage("agent:connected")
   handleAgentConnected(
     @MessageBody() data: { roomId: string; agentId: string; agentName: string },
   ) {
-    this.server.to(data.roomId).emit('agent:connected', {
+    this.server.to(data.roomId).emit(EventCommands.AgentConnected, {
       agentId: data.agentId,
       agentName: data.agentName,
-      taskId: data.roomId.replace('task:', ''),
+      taskId: data.roomId.replace("task:", ""),
       ts: Date.now(),
     });
-    return { status: 'ok' };
+    return { status: "ok" };
   }
 
-  @SubscribeMessage('agent:command:start')
+  @SubscribeMessage("agent:command:start")
   async handleCommandStart(
     @MessageBody()
-    data: { roomId: string; agentId: string; agentName: string; jobId: string; command: string },
+    data: {
+      roomId: string;
+      agentId: string;
+      agentName: string;
+      jobId: string;
+      command: string;
+    },
   ) {
-    const taskId = data.roomId.replace('task:', '');
+    const taskId = data.roomId.replace("task:", "");
     const ts = Date.now();
 
     await this.messagesService.create({
       roomId: data.roomId,
       taskId,
-      role: 'system',
+      role: MessageRole.System,
       agentId: data.agentId,
       agentName: data.agentName,
       jobId: data.jobId,
@@ -182,22 +194,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       ts,
     });
 
-    this.server.to(data.roomId).emit('agent:command:start', {
+    this.server.to(data.roomId).emit(EventCommands.AgentCommandStart, {
       agentId: data.agentId,
       agentName: data.agentName,
       jobId: data.jobId,
       command: data.command,
       ts,
     });
-    return { status: 'ok' };
+    return { status: "ok" };
   }
 
-  @SubscribeMessage('agent:command:exit')
+  @SubscribeMessage("agent:command:exit")
   async handleCommandExit(
     @MessageBody()
-    data: { roomId: string; agentId: string; jobId: string; command: string; exitCode: number },
+    data: {
+      roomId: string;
+      agentId: string;
+      jobId: string;
+      command: string;
+      exitCode: number;
+    },
   ) {
-    const taskId = data.roomId.replace('task:', '');
+    const taskId = data.roomId.replace("task:", "");
     const ts = Date.now();
 
     const meta = [...this.socketMeta.values()].find(
@@ -207,7 +225,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.messagesService.create({
       roomId: data.roomId,
       taskId,
-      role: 'system',
+      role:  MessageRole.System,
       agentId: data.agentId,
       agentName: meta?.agentName,
       jobId: data.jobId,
@@ -216,13 +234,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       ts,
     });
 
-    this.server.to(data.roomId).emit('agent:command:exit', {
+    this.server.to(data.roomId).emit(EventCommands.AgentCommandExit, {
       agentId: data.agentId,
       jobId: data.jobId,
       command: data.command,
       exitCode: data.exitCode,
       ts,
     });
-    return { status: 'ok' };
+    return { status: "ok" };
   }
 }

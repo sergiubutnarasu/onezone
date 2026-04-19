@@ -1,3 +1,4 @@
+import { MessageRole } from '@onezone/shared';
 import { io, Socket } from 'socket.io-client';
 
 export interface AgentSocketOptions {
@@ -13,11 +14,11 @@ export function createAgentSocket(options: AgentSocketOptions): Socket {
   const socket = io(`${serverUrl}/chat`, {
     auth: {
       taskId,
-      role: 'agent',
+      role: MessageRole.Agent,
       agentId,
       agentName,
     },
-    reconnection: false,
+    reconnection: true,
   });
 
   return socket;

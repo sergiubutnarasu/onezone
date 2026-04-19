@@ -23,6 +23,9 @@ importers:
       '@oclif/core':
         specifier: ^4.0.27
         version: 4.10.5
+      '@onezone/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       socket.io-client:
         specifier: ^4.8.0
         version: 4.8.3

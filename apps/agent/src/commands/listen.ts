@@ -1,21 +1,14 @@
 import { Command, Flags } from "@oclif/core";
-import { hostname } from "node:os";
+import { EventCommands, MessageRole, MessageStream } from "@onezone/shared";
 import { randomUUID } from "node:crypto";
-import { createAgentSocket } from "../lib/socket-client.js";
+import { hostname } from "node:os";
 import { runProcess } from "../lib/process-runner.js";
+import { createAgentSocket } from "../lib/socket-client.js";
+import { stripAnsi } from "../lib/helper.js";
 
 interface ChatMessage {
-  role: "user" | "agent" | "system";
+  role: MessageRole;
   content: string;
-}
-
-// Strip ANSI escape sequences and simulate \r overwrite so chat output is readable
-function stripAnsi(str: string): string {
-  // Split on \r to simulate terminal overwrite — take the last segment
-  // (spinner lines like "⠙ \r⠹ \r⠸ \r" become empty and get filtered out)
-  const segments = str.split('\r');
-  const visible = segments[segments.length - 1] ?? str;
-  return visible.replace(/\x1B\[[0-9;?]*[A-Za-z]|\x1B[A-Za-z]/g, '').trim();
 }
 
 export default class Listen extends Command {
@@ -69,18 +62,22 @@ export default class Listen extends Command {
         );
       });
 
-      socket.on("chat:message", (message: ChatMessage) => {
+      socket.on(EventCommands.ChatMessage, (message: ChatMessage) => {
         // Only react to user messages
-        if (message.role !== "user") return;
+        if (message.role !== MessageRole.User) {
+          return;
+        }
 
         const content = message.content.trim();
-        if (!content) return;
+        if (!content) {
+          return;
+        }
 
         this.log(`[${agentName}] Spawning: ${content}`);
 
         const jobId = randomUUID();
 
-        socket.emit("agent:command:start", {
+        socket.emit(EventCommands.AgentCommandStart, {
           roomId,
           agentId,
           agentName,
@@ -90,6 +87,7 @@ export default class Listen extends Command {
 
         // Run with shell=true so quoted args and shell syntax work correctly
         const stderrBuffer: string[] = [];
+
         const proc = runProcess(
           content,
           [],
@@ -97,12 +95,13 @@ export default class Listen extends Command {
             const clean = stripAnsi(line);
             if (!clean) return; // skip lines that were pure escape sequences
 
-            if (stream === 'stderr') {
+            if (stream === MessageStream.Stderr) {
               // Buffer stderr — only emit if the process fails
               stderrBuffer.push(clean);
               return;
             }
-            socket.emit("output:line", {
+
+            socket.emit(EventCommands.OutputLine, {
               roomId,
               agentId,
               agentName,
@@ -118,26 +117,26 @@ export default class Listen extends Command {
             // Flush stderr only on failure
             if (exitCode !== 0) {
               for (const line of stderrBuffer) {
-                socket.emit("output:line", {
+                socket.emit(EventCommands.OutputLine, {
                   roomId,
                   agentId,
                   agentName,
                   jobId,
                   command: content,
-                  stream: 'stderr',
+                  stream: MessageStream.Stderr,
                   content: line,
                 });
               }
             }
 
-            socket.emit("agent:command:exit", {
+            socket.emit(EventCommands.AgentCommandExit, {
               roomId,
               agentId,
               jobId,
               command: content,
               exitCode,
             });
-            const badge = exitCode === 0 ? '✔ done' : `✖ error (${exitCode})`;
+            const badge = exitCode === 0 ? "✔ done" : `✖ error (${exitCode})`;
             this.log(`[${agentName}] ${badge}: "${content}"`);
           },
           true, // shell

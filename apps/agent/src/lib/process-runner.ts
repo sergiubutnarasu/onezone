@@ -1,7 +1,6 @@
-import { spawn, ChildProcess } from "node:child_process";
+import { MessageStream } from "@onezone/shared";
+import { ChildProcess, spawn } from "node:child_process";
 import { createInterface } from "node:readline";
-
-export type StreamType = "stdout" | "stderr";
 
 // Track all active child processes so we can clean them up on exit.
 const activeProcs = new Set<ChildProcess>();
@@ -24,7 +23,7 @@ process.on("SIGTERM", () => process.exit(0));
 export function runProcess(
   cmd: string,
   args: string[],
-  onLine: (stream: StreamType, line: string) => void,
+  onLine: (stream: MessageStream, line: string) => void,
   onExit: (code: number) => void,
   shell = false,
 ): ChildProcess {
@@ -37,11 +36,14 @@ export function runProcess(
   });
   activeProcs.add(proc);
 
+  // Use readline to read the child's stdout and stderr line by line.
   createInterface({ input: proc.stdout }).on("line", (line) =>
-    onLine("stdout", line),
+    onLine(MessageStream.Stdout, line),
   );
+
+  // Buffer stderr and only emit it on exit, to avoid interleaving with stdout lines.
   createInterface({ input: proc.stderr }).on("line", (line) =>
-    onLine("stderr", line),
+    onLine(MessageStream.Stderr, line),
   );
 
   // Node always emits 'close' after 'error', so guard against double-calling onExit.
@@ -55,7 +57,7 @@ export function runProcess(
 
   proc.on("close", (code) => finish(code ?? -1));
   proc.on("error", (err) => {
-    onLine("stderr", `Process error: ${err.message}`);
+    onLine(MessageStream.Stderr, `Process error: ${err.message}`);
     finish(-1);
   });
 
