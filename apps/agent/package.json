@@ -1,0 +1,31 @@
+{
+  "name": "@onezone/agent",
+  "version": "0.0.1",
+  "private": true,
+  "description": "OneZone Agent CLI",
+  "type": "module",
+  "bin": {
+    "onezone-agent": "./bin/run.js"
+  },
+  "oclif": {
+    "bin": "onezone-agent",
+    "dirname": "onezone-agent",
+    "commands": "./dist/commands",
+    "topicSeparator": " "
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "node --loader ts-node/esm ./bin/dev.js",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@oclif/core": "^4.0.27",
+    "socket.io-client": "^4.8.0"
+  },
+  "devDependencies": {
+    "@onezone/tsconfig": "workspace:*",
+    "@types/node": "^22.5.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
+  }
+}
