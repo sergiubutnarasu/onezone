@@ -42,7 +42,7 @@ export function CommandGroup({ group }: { group: CommandGroupData }) {
                 : 'bg-green-900 text-green-300'
             }`}
           >
-            {failed ? `✖ Error (${group.exitCode})` : '✔ Done'}
+            {group.exitCode === -1 ? '✖ Interrupted' : failed ? `✖ Error (${group.exitCode})` : '✔ Done'}
           </span>
         )}
       </button>

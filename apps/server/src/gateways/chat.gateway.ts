@@ -8,6 +8,7 @@ import {
   WebSocketServer,
 } from "@nestjs/websockets";
 import { EventCommands, MessageRole, MessageStream } from "@onezone/shared";
+import { MessageType } from "@prisma/client";
 import { Server, Socket } from "socket.io";
 import { MessagesService } from "../messages/messages.service";
 import { TasksService } from "../tasks/tasks.service";
@@ -190,6 +191,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       agentName: data.agentName,
       jobId: data.jobId,
       command: data.command,
+      messageType: MessageType.COMMAND_START,
       content: `[${data.agentName}] started: ${data.command}`,
       ts,
     });
@@ -230,6 +232,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       agentName: meta?.agentName,
       jobId: data.jobId,
       command: data.command,
+      messageType: MessageType.COMMAND_EXIT,
       content: `[${data.agentId}] exited with code ${data.exitCode}: ${data.command}`,
       ts,
     });

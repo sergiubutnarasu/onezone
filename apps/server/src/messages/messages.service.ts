@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { MessageType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface CreateMessageDto {
@@ -10,6 +11,7 @@ export interface CreateMessageDto {
   jobId?: string;
   command?: string;
   stream?: string;
+  messageType?: MessageType;
   content: string;
   ts: number;
 }

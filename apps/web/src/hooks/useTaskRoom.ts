@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { MessageType } from '@onezone/shared';
 
 export interface RoomMessage {
   id?: string;
@@ -14,6 +15,7 @@ export interface RoomMessage {
   stream?: 'stdout' | 'stderr' | null;
   exitCode?: number | null;
   content: string;
+  messageType?: string | null;
   ts: number;
 }
 
@@ -65,6 +67,7 @@ export function useTaskRoom(taskId: string) {
             jobId: payload.jobId,
             command: payload.command,
             content: `[${payload.agentName}] started: ${payload.command}`,
+            messageType: MessageType.CommandStart,
             ts: payload.ts,
           },
         ]);
@@ -115,17 +118,48 @@ export function useTaskRoom(taskId: string) {
         next.delete(info.agentId);
         return next;
       });
-      setMessages((prev) => [
-        ...prev,
-        {
-          roomId: `task:${taskId}`,
-          role: 'system',
-          agentId: info.agentId,
-          agentName: info.agentName,
-          content: `${info.agentName} disconnected`,
-          ts: info.ts,
-        },
-      ]);
+      setMessages((prev) => {
+        // Inject synthetic exit messages for any commands that started but never exited
+        const startedJobs = new Map<string, { command?: string | null; roomId: string }>();
+        const completedJobs = new Set<string>();
+        for (const msg of prev) {
+          if (msg.agentId !== info.agentId || !msg.jobId) continue;
+          if (msg.messageType === MessageType.CommandStart) {
+            startedJobs.set(msg.jobId, { command: msg.command, roomId: msg.roomId });
+          }
+          if (msg.exitCode != null) {
+            completedJobs.add(msg.jobId);
+          }
+        }
+        const syntheticExits: RoomMessage[] = [];
+        for (const [jobId, { command, roomId }] of startedJobs) {
+          if (!completedJobs.has(jobId)) {
+            syntheticExits.push({
+              roomId,
+              role: 'system',
+              agentId: info.agentId,
+              agentName: info.agentName,
+              jobId,
+              command,
+              exitCode: -1,
+              content: command ?? jobId,
+              ts: info.ts,
+            });
+          }
+        }
+        return [
+          ...prev,
+          ...syntheticExits,
+          {
+            roomId: `task:${taskId}`,
+            role: 'system',
+            agentId: info.agentId,
+            agentName: info.agentName,
+            content: `${info.agentName} disconnected`,
+            ts: info.ts,
+          },
+        ];
+      });
     });
 
     return () => {

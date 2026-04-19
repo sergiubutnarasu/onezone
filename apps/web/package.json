@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@onezone/shared": "workspace:*",
     "@tanstack/react-query": "^5.59.0",
     "next": "16.2.4",
     "react": "19.2.4",

@@ -7,7 +7,6 @@ export enum EventCommands {
   AgentCommandExit = "agent:command:exit",
 }
 
-
 export enum MessageRole {
   User = "user",
   Agent = "agent",
@@ -17,4 +16,9 @@ export enum MessageRole {
 export enum MessageStream {
   Stdout = "stdout",
   Stderr = "stderr",
+}
+
+export enum MessageType {
+  CommandStart = "COMMAND_START",
+  CommandExit = "COMMAND_EXIT",
 }

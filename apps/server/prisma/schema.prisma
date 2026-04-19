@@ -7,6 +7,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum MessageType {
+  COMMAND_START
+  COMMAND_EXIT
+}
+
 model Project {
   id          String   @id @default(uuid())
   name        String
@@ -40,8 +45,9 @@ model Message {
   agentName String?
   jobId     String?
   command   String?
-  stream    String?
-  content   String   @db.Text
+  stream      String?
+  messageType MessageType?
+  content     String   @db.Text
   ts        BigInt
   createdAt DateTime @default(now())
 

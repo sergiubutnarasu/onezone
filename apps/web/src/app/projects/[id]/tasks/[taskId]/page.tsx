@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { fetchTask, fetchMessages } from '@/lib/api';
 import { useTaskRoom } from '@/hooks/useTaskRoom';
+import { MessageType } from '@onezone/shared';
 import { MessageLine } from '@/components/MessageLine';
 import { CommandGroup, type CommandGroupData } from '@/components/CommandGroup';
 import { AgentStatusBar } from '@/components/AgentStatusBar';
@@ -23,7 +24,7 @@ function buildChatItems(messages: RoomMessage[]): ChatItem[] {
   for (const msg of messages) {
     if (msg.jobId) {
       // system start message → show as timeline event + create group
-      if (msg.role === 'system' && msg.content.includes('started:')) {
+      if (msg.messageType === MessageType.CommandStart) {
         const group: CommandGroupData = {
           jobId: msg.jobId,
           command: msg.command ?? msg.content,
