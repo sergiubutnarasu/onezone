@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { MessageType } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, Logger } from "@nestjs/common";
+import { MessageType } from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
 
 export interface CreateMessageDto {
   roomId: string;
@@ -18,9 +18,15 @@ export interface CreateMessageDto {
 
 @Injectable()
 export class MessagesService {
+  private readonly logger = new Logger(MessagesService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateMessageDto) {
+    this.logger.log(
+      `Creating message for task ${dto.taskId} with role ${dto.role}`,
+    );
+
     return this.prisma.message.create({
       data: {
         ...dto,
@@ -32,7 +38,7 @@ export class MessagesService {
   async findByTask(taskId: string) {
     const messages = await this.prisma.message.findMany({
       where: { taskId },
-      orderBy: { ts: 'asc' },
+      orderBy: { ts: "asc" },
     });
     // Convert BigInt ts to number for JSON serialization
     return messages.map((m) => ({ ...m, ts: Number(m.ts) }));

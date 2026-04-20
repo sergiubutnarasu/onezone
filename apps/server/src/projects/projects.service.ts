@@ -1,12 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class ProjectsService {
+  private readonly logger = new Logger(ProjectsService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async create(data: { name: string; description?: string }) {
-    return this.prisma.project.create({ data });
+    const project = await this.prisma.project.create({ data });
+    this.logger.log(`Created project ${project.id}`);
+    return project;
   }
 
   async findAll() {
@@ -23,6 +27,8 @@ export class ProjectsService {
 
   async remove(id: string) {
     await this.findOne(id);
-    return this.prisma.project.delete({ where: { id } });
+    const project = await this.prisma.project.delete({ where: { id } });
+    this.logger.log(`Deleted project ${id}`);
+    return project;
   }
 }

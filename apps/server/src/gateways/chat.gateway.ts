@@ -7,7 +7,13 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from "@nestjs/websockets";
-import { EventCommands, MessageRole, MessageStream } from "@onezone/shared";
+import { Logger } from "@nestjs/common";
+import {
+  EventCommands,
+  MessageRole,
+  MessageStream,
+  SocketAuthSchema,
+} from "@onezone/shared";
 import { MessageType } from "@prisma/client";
 import { Server, Socket } from "socket.io";
 import { MessagesService } from "../messages/messages.service";
@@ -15,7 +21,7 @@ import { TasksService } from "../tasks/tasks.service";
 
 interface AgentSocketMeta {
   taskId: string;
-  role: Omit<MessageRole, "system">;
+  role: Exclude<MessageRole, MessageRole.System>;
   agentId?: string;
   agentName?: string;
 }
@@ -31,8 +37,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
 
-  // Track agent metadata by socket id
-  private socketMeta = new Map<string, AgentSocketMeta>();
+  private readonly logger = new Logger(ChatGateway.name);
+  private readonly socketMeta = new Map<string, AgentSocketMeta>();
 
   constructor(
     private readonly messagesService: MessagesService,
@@ -40,26 +46,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {}
 
   async handleConnection(client: Socket) {
-    const auth = client.handshake.auth as {
-      taskId?: string;
-      role?: string;
-      agentId?: string;
-      agentName?: string;
-    };
+    const result = SocketAuthSchema.safeParse(client.handshake.auth);
 
-    const taskId = auth?.taskId;
-    const role =
-      (auth?.role as Omit<MessageRole, "system">) || MessageRole.User;
-
-    if (!taskId) {
+    if (!result.success) {
+      this.logger.warn(
+        `Socket ${client.id} rejected: invalid auth — ${result.error.message}`,
+      );
+      client.emit("error", { message: "Invalid connection parameters" });
       client.disconnect();
       return;
     }
 
-    // Validate task exists
+    const { taskId, agentId, agentName } = result.data;
+    const role = result.data.role as Exclude<MessageRole, MessageRole.System>;
+
     try {
       await this.tasksService.findOne(taskId);
-    } catch {
+    } catch (error) {
+      this.logger.warn(
+        `Socket ${client.id} rejected: task ${taskId} not found`,
+        error,
+      );
+      client.emit("error", { message: "Task not found" });
       client.disconnect();
       return;
     }
@@ -67,29 +75,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const roomId = `task:${taskId}`;
     await client.join(roomId);
 
-    const meta: AgentSocketMeta = {
-      taskId,
-      role,
-      agentId: auth.agentId,
-      agentName: auth.agentName,
-    };
-    this.socketMeta.set(client.id, meta);
+    this.socketMeta.set(client.id, { taskId, role, agentId, agentName });
 
-    if (role === MessageRole.Agent && auth.agentId) {
-      this.server.to(roomId).emit("agent:connected", {
-        agentId: auth.agentId,
-        agentName: auth.agentName || auth.agentId,
+    if (role === MessageRole.Agent && agentId) {
+      this.server.to(roomId).emit(EventCommands.AgentConnected, {
+        agentId,
+        agentName: agentName ?? agentId,
         taskId,
         ts: Date.now(),
       });
     } else if (role === MessageRole.User) {
-      // Send already-connected agents to this newly joined user
       const ts = Date.now();
       for (const m of this.socketMeta.values()) {
         if (m.taskId === taskId && m.role === MessageRole.Agent && m.agentId) {
           client.emit("agent:connected", {
             agentId: m.agentId,
-            agentName: m.agentName || m.agentId,
+            agentName: m.agentName ?? m.agentId,
             taskId,
             ts,
           });
@@ -102,9 +103,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const meta = this.socketMeta.get(client.id);
     if (meta && meta.role === MessageRole.Agent && meta.agentId) {
       const roomId = `task:${meta.taskId}`;
-      this.server.to(roomId).emit("agent:disconnected", {
+      this.server.to(roomId).emit(EventCommands.AgentDisconnected, {
         agentId: meta.agentId,
-        agentName: meta.agentName || meta.agentId,
+        agentName: meta.agentName ?? meta.agentId,
         taskId: meta.taskId,
         ts: Date.now(),
       });
@@ -117,21 +118,27 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { roomId: string; content: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const taskId = data.roomId.replace("task:", "");
-    const ts = Date.now();
+    try {
+      const taskId = this.extractTaskId(data.roomId);
+      const ts = Date.now();
 
-    const message = await this.messagesService.create({
-      roomId: data.roomId,
-      taskId,
-      role: MessageRole.User,
-      content: data.content,
-      ts,
-    });
+      const message = await this.messagesService.create({
+        roomId: data.roomId,
+        taskId,
+        role: MessageRole.User,
+        content: data.content,
+        ts,
+      });
 
-    this.server
-      .to(data.roomId)
-      .emit("chat:message", { ...message, ts: Number(message.ts) });
-    return { status: "ok" };
+      this.server
+        .to(data.roomId)
+        .emit("chat:message", { ...message, ts: Number(message.ts) });
+      return { status: "ok" };
+    } catch (error) {
+      this.logger.error("Failed to handle chat:message", error);
+      client.emit("error", { message: "Failed to save message" });
+      return { status: "error" };
+    }
   }
 
   @SubscribeMessage("output:line")
@@ -146,40 +153,34 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       stream: MessageStream;
       content: string;
     },
+    @ConnectedSocket() client: Socket,
   ) {
-    const taskId = data.roomId.replace("task:", "");
-    const ts = Date.now();
+    try {
+      const taskId = this.extractTaskId(data.roomId);
+      const ts = Date.now();
 
-    const message = await this.messagesService.create({
-      roomId: data.roomId,
-      taskId,
-      role:  MessageRole.Agent,
-      agentId: data.agentId,
-      agentName: data.agentName,
-      jobId: data.jobId,
-      command: data.command,
-      stream: data.stream,
-      content: data.content,
-      ts,
-    });
+      const message = await this.messagesService.create({
+        roomId: data.roomId,
+        taskId,
+        role: MessageRole.Agent,
+        agentId: data.agentId,
+        agentName: data.agentName,
+        jobId: data.jobId,
+        command: data.command,
+        stream: data.stream,
+        content: data.content,
+        ts,
+      });
 
-    this.server
-      .to(data.roomId)
-      .emit("output:line", { ...message, ts: Number(message.ts) });
-    return { status: "ok" };
-  }
-
-  @SubscribeMessage("agent:connected")
-  handleAgentConnected(
-    @MessageBody() data: { roomId: string; agentId: string; agentName: string },
-  ) {
-    this.server.to(data.roomId).emit(EventCommands.AgentConnected, {
-      agentId: data.agentId,
-      agentName: data.agentName,
-      taskId: data.roomId.replace("task:", ""),
-      ts: Date.now(),
-    });
-    return { status: "ok" };
+      this.server
+        .to(data.roomId)
+        .emit("output:line", { ...message, ts: Number(message.ts) });
+      return { status: "ok" };
+    } catch (error) {
+      this.logger.error("Failed to handle output:line", error);
+      client.emit("error", { message: "Failed to save output line" });
+      return { status: "error" };
+    }
   }
 
   @SubscribeMessage("agent:command:start")
@@ -192,31 +193,38 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       jobId: string;
       command: string;
     },
+    @ConnectedSocket() client: Socket,
   ) {
-    const taskId = data.roomId.replace("task:", "");
-    const ts = Date.now();
+    try {
+      const taskId = this.extractTaskId(data.roomId);
+      const ts = Date.now();
 
-    await this.messagesService.create({
-      roomId: data.roomId,
-      taskId,
-      role: MessageRole.System,
-      agentId: data.agentId,
-      agentName: data.agentName,
-      jobId: data.jobId,
-      command: data.command,
-      messageType: MessageType.COMMAND_START,
-      content: `[${data.agentName}] started: ${data.command}`,
-      ts,
-    });
+      await this.messagesService.create({
+        roomId: data.roomId,
+        taskId,
+        role: MessageRole.System,
+        agentId: data.agentId,
+        agentName: data.agentName,
+        jobId: data.jobId,
+        command: data.command,
+        messageType: MessageType.COMMAND_START,
+        content: `[${data.agentName}] started: ${data.command}`,
+        ts,
+      });
 
-    this.server.to(data.roomId).emit(EventCommands.AgentCommandStart, {
-      agentId: data.agentId,
-      agentName: data.agentName,
-      jobId: data.jobId,
-      command: data.command,
-      ts,
-    });
-    return { status: "ok" };
+      this.server.to(data.roomId).emit(EventCommands.AgentCommandStart, {
+        agentId: data.agentId,
+        agentName: data.agentName,
+        jobId: data.jobId,
+        command: data.command,
+        ts,
+      });
+      return { status: "ok" };
+    } catch (error) {
+      this.logger.error("Failed to handle agent:command:start", error);
+      client.emit("error", { message: "Failed to save command start" });
+      return { status: "error" };
+    }
   }
 
   @SubscribeMessage("agent:command:exit")
@@ -229,34 +237,45 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       command: string;
       exitCode: number;
     },
+    @ConnectedSocket() client: Socket,
   ) {
-    const taskId = data.roomId.replace("task:", "");
-    const ts = Date.now();
+    try {
+      const taskId = this.extractTaskId(data.roomId);
+      const ts = Date.now();
 
-    const meta = [...this.socketMeta.values()].find(
-      (m) => m.agentId === data.agentId,
-    );
+      const meta = [...this.socketMeta.values()].find(
+        (m) => m.agentId === data.agentId,
+      );
 
-    await this.messagesService.create({
-      roomId: data.roomId,
-      taskId,
-      role:  MessageRole.System,
-      agentId: data.agentId,
-      agentName: meta?.agentName,
-      jobId: data.jobId,
-      command: data.command,
-      messageType: MessageType.COMMAND_EXIT,
-      content: `[${data.agentId}] exited with code ${data.exitCode}: ${data.command}`,
-      ts,
-    });
+      await this.messagesService.create({
+        roomId: data.roomId,
+        taskId,
+        role: MessageRole.System,
+        agentId: data.agentId,
+        agentName: meta?.agentName,
+        jobId: data.jobId,
+        command: data.command,
+        messageType: MessageType.COMMAND_EXIT,
+        content: `[${data.agentId}] exited with code ${data.exitCode}: ${data.command}`,
+        ts,
+      });
 
-    this.server.to(data.roomId).emit(EventCommands.AgentCommandExit, {
-      agentId: data.agentId,
-      jobId: data.jobId,
-      command: data.command,
-      exitCode: data.exitCode,
-      ts,
-    });
-    return { status: "ok" };
+      this.server.to(data.roomId).emit(EventCommands.AgentCommandExit, {
+        agentId: data.agentId,
+        jobId: data.jobId,
+        command: data.command,
+        exitCode: data.exitCode,
+        ts,
+      });
+      return { status: "ok" };
+    } catch (error) {
+      this.logger.error("Failed to handle agent:command:exit", error);
+      client.emit("error", { message: "Failed to save command exit" });
+      return { status: "error" };
+    }
+  }
+
+  private extractTaskId(roomId: string): string {
+    return roomId.replace("task:", "");
   }
 }
