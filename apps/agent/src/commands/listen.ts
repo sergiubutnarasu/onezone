@@ -150,7 +150,14 @@ export default class Listen extends Command {
       });
 
       socket.on("disconnect", (reason) => {
-        reject(new Error(`Disconnected: ${reason}`));
+        // "io server disconnect" is an intentional kick — treat as fatal.
+        // All other reasons (ping timeout, transport close, etc.) are transient;
+        // socket.io will reconnect automatically so we just log and wait.
+        if (reason === "io server disconnect") {
+          reject(new Error(`Disconnected: ${reason}`));
+        } else {
+          this.log(`[${agentName}] Disconnected (${reason}), reconnecting...`);
+        }
       });
     });
   }
