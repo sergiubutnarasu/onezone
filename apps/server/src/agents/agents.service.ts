@@ -24,7 +24,7 @@ export class AgentsService implements OnModuleInit {
 
   findAll() {
     return this.prisma.agent.findMany({
-      orderBy: { lastSeenAt: 'desc' },
+      orderBy: [{ isConnected: 'desc' }, { name: 'asc' }],
     });
   }
 
