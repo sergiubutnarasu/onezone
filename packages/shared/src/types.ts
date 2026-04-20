@@ -23,6 +23,42 @@ export enum MessageType {
   CommandExit = "COMMAND_EXIT",
 }
 
+export enum TaskStatus {
+  BACKLOG = "BACKLOG",
+  TODO = "TODO",
+  IN_PROGRESS = "IN_PROGRESS",
+  IN_REVIEW = "IN_REVIEW",
+  TESTING = "TESTING",
+  DONE = "DONE",
+}
+
+export const TASK_STATUS_COLUMNS = [
+  TaskStatus.BACKLOG,
+  TaskStatus.TODO,
+  TaskStatus.IN_PROGRESS,
+  TaskStatus.IN_REVIEW,
+  TaskStatus.TESTING,
+  TaskStatus.DONE,
+] as const;
+
+export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
+  [TaskStatus.BACKLOG]: "Backlog",
+  [TaskStatus.TODO]: "To Do",
+  [TaskStatus.IN_PROGRESS]: "In Progress",
+  [TaskStatus.IN_REVIEW]: "In Review",
+  [TaskStatus.TESTING]: "Testing",
+  [TaskStatus.DONE]: "Done",
+};
+
+export interface Task {
+  id: string;
+  projectId: string;
+  name: string;
+  description?: string | null;
+  status: TaskStatus;
+  createdAt: string;
+}
+
 // --- Chat message ---
 
 export interface ChatMessage {

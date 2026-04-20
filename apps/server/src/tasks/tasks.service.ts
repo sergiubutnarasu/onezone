@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { TaskStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -25,6 +26,13 @@ export class TasksService {
   async findOne(id: string) {
     const task = await this.prisma.task.findUnique({ where: { id } });
     if (!task) throw new NotFoundException(`Task ${id} not found`);
+    return task;
+  }
+
+  async updateStatus(id: string, status: TaskStatus) {
+    await this.findOne(id);
+    const task = await this.prisma.task.update({ where: { id }, data: { status } });
+    this.logger.log(`Updated task ${id} status to ${status}`);
     return task;
   }
 

@@ -1,3 +1,5 @@
+import { TaskStatus } from '@onezone/shared';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5026';
 
 export async function fetchProjects() {
@@ -55,5 +57,15 @@ export async function fetchTask(taskId: string) {
 export async function fetchMessages(taskId: string) {
   const res = await fetch(`${API_BASE}/tasks/${taskId}/messages`);
   if (!res.ok) throw new Error('Failed to fetch messages');
+  return res.json();
+}
+
+export async function updateTaskStatus(taskId: string, status: TaskStatus) {
+  const res = await fetch(`${API_BASE}/tasks/${taskId}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error('Failed to update task status');
   return res.json();
 }

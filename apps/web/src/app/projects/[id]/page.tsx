@@ -5,6 +5,8 @@ import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { fetchProject, fetchTasks, createTask } from '@/lib/api';
+import { KanbanBoard } from '@/components/kanban/KanbanBoard';
+import type { Task } from '@onezone/shared';
 
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,7 +38,7 @@ export default function ProjectPage() {
   if (projectLoading || tasksLoading) return <div className="p-8">Loading...</div>;
 
   return (
-    <div className="p-8 max-w-3xl mx-auto">
+    <div className="p-8">
       <div className="mb-4">
         <Link href="/" className="text-blue-600 hover:underline text-sm">
           ← Projects
@@ -82,22 +84,7 @@ export default function ProjectPage() {
         </div>
       )}
 
-      {tasks.length === 0 ? (
-        <p className="text-gray-500">No tasks yet. Create one to get started.</p>
-      ) : (
-        <ul className="space-y-3">
-          {tasks.map((t: { id: string; name: string; description?: string; createdAt: string }) => (
-            <li key={t.id} className="border rounded p-4 hover:bg-gray-50">
-              <Link href={`/projects/${id}/tasks/${t.id}`} className="block">
-                <div className="font-medium text-blue-700">{t.name}</div>
-                {t.description && (
-                  <div className="text-sm text-gray-500">{t.description}</div>
-                )}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+      <KanbanBoard tasks={tasks as Task[]} projectId={id} />
     </div>
   );
 }

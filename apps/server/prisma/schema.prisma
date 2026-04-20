@@ -12,6 +12,15 @@ enum MessageType {
   COMMAND_EXIT
 }
 
+enum TaskStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  TESTING
+  DONE
+}
+
 model Project {
   id          String   @id @default(uuid())
   name        String
@@ -28,6 +37,7 @@ model Task {
   project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   name        String
   description String?
+  status      TaskStatus @default(BACKLOG)
   createdAt   DateTime  @default(now())
   messages    Message[]
 
