@@ -2,6 +2,11 @@ import { TaskStatus } from '@onezone/shared';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5026';
 
+export interface TaskOrderItem {
+  id: string;
+  status: TaskStatus;
+  order: number;
+}
 export async function fetchProjects() {
   const res = await fetch(`${API_BASE}/projects`);
   if (!res.ok) throw new Error('Failed to fetch projects');
@@ -73,5 +78,15 @@ export async function updateTaskStatus(taskId: string, status: TaskStatus) {
 export async function fetchAgents() {
   const res = await fetch(`${API_BASE}/agents`);
   if (!res.ok) throw new Error('Failed to fetch agents');
+  return res.json();
+}
+
+export async function reorderTasks(projectId: string, tasks: TaskOrderItem[]) {
+  const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/reorder`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tasks }),
+  });
+  if (!res.ok) throw new Error('Failed to reorder tasks');
   return res.json();
 }

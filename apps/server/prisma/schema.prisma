@@ -38,6 +38,7 @@ model Task {
   name        String
   description String?
   status      TaskStatus @default(BACKLOG)
+  order       Int        @default(0)
   createdAt   DateTime  @default(now())
   messages    Message[]
 

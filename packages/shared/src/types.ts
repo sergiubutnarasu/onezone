@@ -56,6 +56,7 @@ export interface Task {
   name: string;
   description?: string | null;
   status: TaskStatus;
+  order: number;
   createdAt: string;
 }
 
