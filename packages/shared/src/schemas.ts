@@ -15,6 +15,7 @@ export const SocketAuthSchema = z.object({
   role: z.enum(['user', 'agent']),
   agentId: z.string().optional(),
   agentName: z.string().optional(),
+  agentHostname: z.string().optional(),
 });
 
 export type CreateProjectInput = z.infer<typeof CreateProjectSchema>;

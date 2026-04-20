@@ -5,6 +5,8 @@ import { hostname } from "node:os";
 import { registerCleanupHandlers, runProcess } from "../lib/process-runner.js";
 import { createAgentSocket } from "../lib/socket-client.js";
 import { stripAnsi } from "../lib/helper.js";
+import { getOrCreateAgentIdentity } from "../lib/agent-identity.js";
+import { acquireLock, getLockFilePath, releaseLock } from "../lib/agent-lock.js";
 
 export default class Listen extends Command {
   static description =
@@ -28,20 +30,35 @@ export default class Listen extends Command {
       description: "Agent name (defaults to hostname)",
       default: hostname(),
     }),
-    "agent-id": Flags.string({
-      description: "Agent ID (defaults to a random UUID)",
-    }),
   };
 
   async run(): Promise<void> {
     const { flags } = await this.parse(Listen);
 
-    registerCleanupHandlers();
+    // Acquire single-instance lock
+    const lockPath = getLockFilePath(this.config.dataDir);
+    if (!acquireLock(lockPath)) {
+      this.error(
+        "Another agent is already running on this device. Stop it before starting a new one.",
+        { exit: 1 },
+      );
+    }
 
-    const agentId = flags["agent-id"] || randomUUID();
+    // Release lock on exit
+    const cleanup = () => releaseLock(lockPath);
+    process.once("exit", cleanup);
+    process.once("SIGINT", () => { cleanup(); process.exit(0); });
+    process.once("SIGTERM", () => { cleanup(); process.exit(0); });
+
+    const identity = getOrCreateAgentIdentity(this.config.dataDir);
+    const agentId = identity.agentId;
     const agentName = flags.name;
     const taskId = flags.task;
     const roomId = `task:${taskId}`;
+
+    this.log(`[${agentName}] Agent ID: ${agentId}`);
+
+    registerCleanupHandlers();
 
     const socket = createAgentSocket({
       serverUrl: flags.server,

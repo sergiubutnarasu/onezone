@@ -1,4 +1,5 @@
 import { ClientToServerEvents, MessageRole, ServerToClientEvents } from '@onezone/shared';
+import { hostname } from 'node:os';
 import { io, Socket } from 'socket.io-client';
 
 export interface AgentSocketOptions {
@@ -17,6 +18,7 @@ export function createAgentSocket(options: AgentSocketOptions): Socket<ServerToC
       role: MessageRole.Agent,
       agentId,
       agentName,
+      agentHostname: hostname(),
     },
     reconnection: true,
   });

@@ -67,3 +67,14 @@ model Message {
   @@index([jobId])
   @@map("messages")
 }
+
+model Agent {
+  id          String    @id
+  name        String
+  hostname    String
+  isConnected Boolean   @default(false)
+  lastSeenAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@map("agents")
+}

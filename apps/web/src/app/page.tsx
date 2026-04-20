@@ -32,12 +32,17 @@ export default function ProjectsPage() {
     <div className="p-8 max-w-3xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Projects</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          New Project
-        </button>
+        <div className="flex gap-2">
+          <Link href="/agents" className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded border hover:bg-gray-50">
+            Agents
+          </Link>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            New Project
+          </button>
+        </div>
       </div>
 
       {showForm && (

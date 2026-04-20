@@ -69,3 +69,9 @@ export async function updateTaskStatus(taskId: string, status: TaskStatus) {
   if (!res.ok) throw new Error('Failed to update task status');
   return res.json();
 }
+
+export async function fetchAgents() {
+  const res = await fetch(`${API_BASE}/agents`);
+  if (!res.ok) throw new Error('Failed to fetch agents');
+  return res.json();
+}

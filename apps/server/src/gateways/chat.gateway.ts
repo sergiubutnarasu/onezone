@@ -18,12 +18,14 @@ import { MessageType } from "@prisma/client";
 import { Server, Socket } from "socket.io";
 import { MessagesService } from "../messages/messages.service";
 import { TasksService } from "../tasks/tasks.service";
+import { AgentsService } from "../agents/agents.service";
 
 interface AgentSocketMeta {
   taskId: string;
   role: Exclude<MessageRole, MessageRole.System>;
   agentId?: string;
   agentName?: string;
+  agentHostname?: string;
 }
 
 @WebSocketGateway({
@@ -43,6 +45,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly messagesService: MessagesService,
     private readonly tasksService: TasksService,
+    private readonly agentsService: AgentsService,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -58,6 +61,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     const { taskId, agentId, agentName } = result.data;
+    const agentHostname = result.data.agentHostname;
     const role = result.data.role as Exclude<MessageRole, MessageRole.System>;
 
     try {
@@ -75,9 +79,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const roomId = `task:${taskId}`;
     await client.join(roomId);
 
-    this.socketMeta.set(client.id, { taskId, role, agentId, agentName });
+    this.socketMeta.set(client.id, { taskId, role, agentId, agentName, agentHostname });
 
     if (role === MessageRole.Agent && agentId) {
+      await this.agentsService.registerConnected({
+        agentId,
+        name: agentName ?? agentId,
+        hostname: agentHostname ?? "unknown",
+      });
+
       this.server.to(roomId).emit(EventCommands.AgentConnected, {
         agentId,
         agentName: agentName ?? agentId,
@@ -103,6 +113,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const meta = this.socketMeta.get(client.id);
     if (meta && meta.role === MessageRole.Agent && meta.agentId) {
       const roomId = `task:${meta.taskId}`;
+
+      await this.agentsService.markDisconnected(meta.agentId);
+
       this.server.to(roomId).emit(EventCommands.AgentDisconnected, {
         agentId: meta.agentId,
         agentName: meta.agentName ?? meta.agentId,

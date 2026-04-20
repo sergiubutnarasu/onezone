@@ -59,6 +59,15 @@ export interface Task {
   createdAt: string;
 }
 
+export interface Agent {
+  id: string;
+  name: string;
+  hostname: string;
+  isConnected: boolean;
+  lastSeenAt: string | null;
+  createdAt: string;
+}
+
 // --- Chat message ---
 
 export interface ChatMessage {
