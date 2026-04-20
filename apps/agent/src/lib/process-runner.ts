@@ -15,10 +15,12 @@ function killAll() {
   }
 }
 
-// Register cleanup handlers once, not once per runProcess call.
-process.on("exit", killAll);
-process.on("SIGINT", () => process.exit(0));
-process.on("SIGTERM", () => process.exit(0));
+// Call once at the application entry point to register process cleanup handlers.
+export function registerCleanupHandlers(): void {
+  process.on("exit", killAll);
+  process.on("SIGINT", () => process.exit(0));
+  process.on("SIGTERM", () => process.exit(0));
+}
 
 export function runProcess(
   cmd: string,

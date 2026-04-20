@@ -1,15 +1,10 @@
 import { Command, Flags } from "@oclif/core";
-import { EventCommands, MessageRole, MessageStream } from "@onezone/shared";
+import { ChatMessage, EventCommands, MessageRole, MessageStream } from "@onezone/shared";
 import { randomUUID } from "node:crypto";
 import { hostname } from "node:os";
-import { runProcess } from "../lib/process-runner.js";
+import { registerCleanupHandlers, runProcess } from "../lib/process-runner.js";
 import { createAgentSocket } from "../lib/socket-client.js";
 import { stripAnsi } from "../lib/helper.js";
-
-interface ChatMessage {
-  role: MessageRole;
-  content: string;
-}
 
 export default class Listen extends Command {
   static description =
@@ -40,6 +35,8 @@ export default class Listen extends Command {
 
   async run(): Promise<void> {
     const { flags } = await this.parse(Listen);
+
+    registerCleanupHandlers();
 
     const agentId = flags["agent-id"] || randomUUID();
     const agentName = flags.name;
@@ -76,14 +73,9 @@ export default class Listen extends Command {
         this.log(`[${agentName}] Spawning: ${content}`);
 
         const jobId = randomUUID();
+        const basePayload = { roomId, agentId, agentName, jobId, command: content };
 
-        socket.emit(EventCommands.AgentCommandStart, {
-          roomId,
-          agentId,
-          agentName,
-          jobId,
-          command: content,
-        });
+        socket.emit(EventCommands.AgentCommandStart, basePayload);
 
         // Run with shell=true so quoted args and shell syntax work correctly
         const stderrBuffer: string[] = [];
@@ -101,15 +93,7 @@ export default class Listen extends Command {
               return;
             }
 
-            socket.emit(EventCommands.OutputLine, {
-              roomId,
-              agentId,
-              agentName,
-              jobId,
-              command: content,
-              stream,
-              content: clean,
-            });
+            socket.emit(EventCommands.OutputLine, { ...basePayload, stream, content: clean });
           },
           (exitCode) => {
             activeProcesses.delete(jobId);
@@ -118,24 +102,14 @@ export default class Listen extends Command {
             if (exitCode !== 0) {
               for (const line of stderrBuffer) {
                 socket.emit(EventCommands.OutputLine, {
-                  roomId,
-                  agentId,
-                  agentName,
-                  jobId,
-                  command: content,
+                  ...basePayload,
                   stream: MessageStream.Stderr,
                   content: line,
                 });
               }
             }
 
-            socket.emit(EventCommands.AgentCommandExit, {
-              roomId,
-              agentId,
-              jobId,
-              command: content,
-              exitCode,
-            });
+            socket.emit(EventCommands.AgentCommandExit, { ...basePayload, exitCode });
             const badge = exitCode === 0 ? "✔ done" : `✖ error (${exitCode})`;
             this.log(`[${agentName}] ${badge}: "${content}"`);
           },

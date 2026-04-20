@@ -1,4 +1,4 @@
-import { MessageRole } from '@onezone/shared';
+import { ClientToServerEvents, MessageRole, ServerToClientEvents } from '@onezone/shared';
 import { io, Socket } from 'socket.io-client';
 
 export interface AgentSocketOptions {
@@ -8,7 +8,7 @@ export interface AgentSocketOptions {
   agentName: string;
 }
 
-export function createAgentSocket(options: AgentSocketOptions): Socket {
+export function createAgentSocket(options: AgentSocketOptions): Socket<ServerToClientEvents, ClientToServerEvents> {
   const { serverUrl, taskId, agentId, agentName } = options;
 
   const socket = io(`${serverUrl}/chat`, {
