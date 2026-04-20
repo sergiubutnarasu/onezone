@@ -5,6 +5,7 @@ export enum EventCommands {
   AgentDisconnected = "agent:disconnected",
   AgentCommandStart = "agent:command:start",
   AgentCommandExit = "agent:command:exit",
+  AgentHeartbeat = "agent:heartbeat",
 }
 
 export enum MessageRole {
@@ -116,4 +117,5 @@ export interface ClientToServerEvents {
   [EventCommands.AgentCommandStart]: (payload: CommandStartPayload) => void;
   [EventCommands.OutputLine]: (payload: OutputLinePayload) => void;
   [EventCommands.AgentCommandExit]: (payload: CommandExitPayload) => void;
+  [EventCommands.AgentHeartbeat]: () => void;
 }

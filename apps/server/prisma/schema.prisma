@@ -71,7 +71,7 @@ model Message {
 
 model Agent {
   id          String    @id
-  name        String
+  name        String    @unique
   hostname    String
   isConnected Boolean   @default(false)
   lastSeenAt  DateTime?

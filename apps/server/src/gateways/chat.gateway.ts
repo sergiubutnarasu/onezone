@@ -82,11 +82,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.socketMeta.set(client.id, { taskId, role, agentId, agentName, agentHostname });
 
     if (role === MessageRole.Agent && agentId) {
-      await this.agentsService.registerConnected({
-        agentId,
-        name: agentName ?? agentId,
-        hostname: agentHostname ?? "unknown",
-      });
+      await this.agentsService.markConnected(agentId);
 
       this.server.to(roomId).emit(EventCommands.AgentConnected, {
         agentId,
@@ -124,6 +120,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
     }
     this.socketMeta.delete(client.id);
+  }
+
+  @SubscribeMessage(EventCommands.AgentHeartbeat)
+  async handleAgentHeartbeat(@ConnectedSocket() client: Socket) {
+    const meta = this.socketMeta.get(client.id);
+    if (meta?.agentId) {
+      await this.agentsService.updateHeartbeat(meta.agentId);
+    }
   }
 
   @SubscribeMessage("chat:message")

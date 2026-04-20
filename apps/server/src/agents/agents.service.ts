@@ -1,17 +1,26 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface RegisterAgentInput {
-  agentId: string;
   name: string;
   hostname: string;
 }
 
+/** Agents are considered stale if no heartbeat is received within this window. */
+const STALE_THRESHOLD_MS = 90_000; // 90 seconds
+
 @Injectable()
-export class AgentsService {
+export class AgentsService implements OnModuleInit {
   private readonly logger = new Logger(AgentsService.name);
 
   constructor(private readonly prisma: PrismaService) {}
+
+  onModuleInit() {
+    // Reset any agents left as connected from a previous server run.
+    void this.markStaleAgentsDisconnected();
+  }
 
   findAll() {
     return this.prisma.agent.findMany({
@@ -19,22 +28,60 @@ export class AgentsService {
     });
   }
 
-  async registerConnected(input: RegisterAgentInput) {
-    const agent = await this.prisma.agent.upsert({
-      where: { id: input.agentId },
-      create: {
-        id: input.agentId,
+  /**
+   * Registers an agent by name. If an agent with the same name already exists
+   * and is currently connected, throws a ConflictException. Otherwise returns
+   * the existing agent record or creates a new one.
+   */
+  async registerByName(input: RegisterAgentInput) {
+    const existing = await this.prisma.agent.findUnique({ where: { name: input.name } });
+
+    if (existing?.isConnected) {
+      throw new ConflictException(
+        `Agent "${input.name}" is already connected. Stop the running agent before starting a new one.`,
+      );
+    }
+
+    if (existing) {
+      this.logger.log(`Agent re-registered: ${existing.id} (${existing.name})`);
+      return existing;
+    }
+
+    const agent = await this.prisma.agent.create({
+      data: {
+        id: randomUUID(),
         name: input.name,
         hostname: input.hostname,
-        isConnected: true,
-        lastSeenAt: new Date(),
+        isConnected: false,
       },
-      update: {
-        name: input.name,
-        hostname: input.hostname,
-        isConnected: true,
-        lastSeenAt: new Date(),
-      },
+    });
+    this.logger.log(`Agent created: ${agent.id} (${agent.name})`);
+    return agent;
+  }
+
+  async updateHeartbeat(agentId: string) {
+    await this.prisma.agent.update({
+      where: { id: agentId },
+      data: { lastSeenAt: new Date() },
+    });
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async markStaleAgentsDisconnected() {
+    const threshold = new Date(Date.now() - STALE_THRESHOLD_MS);
+    const { count } = await this.prisma.agent.updateMany({
+      where: { isConnected: true, lastSeenAt: { lt: threshold } },
+      data: { isConnected: false },
+    });
+    if (count > 0) {
+      this.logger.warn(`Marked ${count} stale agent(s) as disconnected`);
+    }
+  }
+
+  async markConnected(agentId: string) {
+    const agent = await this.prisma.agent.update({
+      where: { id: agentId },
+      data: { isConnected: true, lastSeenAt: new Date() },
     });
     this.logger.log(`Agent connected: ${agent.id} (${agent.name})`);
     return agent;

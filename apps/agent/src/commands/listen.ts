@@ -5,8 +5,8 @@ import { hostname } from "node:os";
 import { registerCleanupHandlers, runProcess } from "../lib/process-runner.js";
 import { createAgentSocket } from "../lib/socket-client.js";
 import { stripAnsi } from "../lib/helper.js";
-import { getOrCreateAgentIdentity } from "../lib/agent-identity.js";
-import { acquireLock, getLockFilePath, releaseLock } from "../lib/agent-lock.js";
+
+const HEARTBEAT_INTERVAL_MS = 30_000; // Must be less than AgentsService.STALE_THRESHOLD_MS in server to avoid false positives
 
 export default class Listen extends Command {
   static description =
@@ -27,7 +27,7 @@ export default class Listen extends Command {
       default: "http://localhost:5026",
     }),
     name: Flags.string({
-      description: "Agent name (defaults to hostname)",
+      description: "Agent name — must be unique across all running agents",
       default: hostname(),
     }),
   };
@@ -35,27 +35,13 @@ export default class Listen extends Command {
   async run(): Promise<void> {
     const { flags } = await this.parse(Listen);
 
-    // Acquire single-instance lock
-    const lockPath = getLockFilePath(this.config.dataDir);
-    if (!acquireLock(lockPath)) {
-      this.error(
-        "Another agent is already running on this device. Stop it before starting a new one.",
-        { exit: 1 },
-      );
-    }
-
-    // Release lock on exit
-    const cleanup = () => releaseLock(lockPath);
-    process.once("exit", cleanup);
-    process.once("SIGINT", () => { cleanup(); process.exit(0); });
-    process.once("SIGTERM", () => { cleanup(); process.exit(0); });
-
-    const identity = getOrCreateAgentIdentity(this.config.dataDir);
-    const agentId = identity.agentId;
     const agentName = flags.name;
     const taskId = flags.task;
     const roomId = `task:${taskId}`;
 
+    // Register with the server by name. The server enforces uniqueness and
+    // rejects the request if an agent with this name is already connected.
+    const agentId = await this.registerAgent(flags.server, agentName);
     this.log(`[${agentName}] Agent ID: ${agentId}`);
 
     registerCleanupHandlers();
@@ -69,11 +55,16 @@ export default class Listen extends Command {
 
     await new Promise<void>((_, reject) => {
       const activeProcesses = new Map<string, ReturnType<typeof runProcess>>();
+      let heartbeatTimer: NodeJS.Timeout | undefined;
 
       socket.on("connect", () => {
         this.log(
           `[${agentName}] Connected to ${flags.server} | room: ${roomId} | Listening for commands...`,
         );
+
+        heartbeatTimer = setInterval(() => {
+          socket.emit(EventCommands.AgentHeartbeat);
+        }, HEARTBEAT_INTERVAL_MS);
       });
 
       socket.on(EventCommands.ChatMessage, (message: ChatMessage) => {
@@ -133,14 +124,15 @@ export default class Listen extends Command {
           true, // shell
         );
         activeProcesses.set(jobId, proc);
-        // No disconnect — commands run in parallel and the agent stays open
       });
 
       socket.on("connect_error", (err) => {
+        clearInterval(heartbeatTimer);
         reject(new Error(`Connection failed: ${err.message}`));
       });
 
       socket.on("disconnect", (reason) => {
+        clearInterval(heartbeatTimer);
         // "io server disconnect" is an intentional kick — treat as fatal.
         // All other reasons (ping timeout, transport close, etc.) are transient;
         // socket.io will reconnect automatically so we just log and wait.
@@ -151,5 +143,33 @@ export default class Listen extends Command {
         }
       });
     });
+  }
+
+  private async registerAgent(serverUrl: string, name: string): Promise<string> {
+    const url = `${serverUrl}/agents/register`;
+    let response: Response;
+
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, hostname: hostname() }),
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.error(`Could not reach server at ${serverUrl}: ${message}`, { exit: 1 });
+    }
+
+    if (response.status === 409) {
+      const body = await response.json().catch(() => ({})) as { message?: string };
+      this.error(body.message ?? `Agent "${name}" is already connected.`, { exit: 1 });
+    }
+
+    if (!response.ok) {
+      this.error(`Server registration failed (HTTP ${response.status})`, { exit: 1 });
+    }
+
+    const agent = await response.json() as { id: string };
+    return agent.id;
   }
 }
