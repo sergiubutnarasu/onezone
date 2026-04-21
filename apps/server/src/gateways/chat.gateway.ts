@@ -3,6 +3,7 @@ import {
   MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
@@ -14,6 +15,8 @@ import {
   MessageStream,
   SocketAuthSchema,
 } from "@onezone/shared";
+import { AgentRegistryService } from "./agent-registry.service";
+import { SYSTEM_AGENTS_ROOM } from "./constants";
 import { MessageType } from "@prisma/client";
 import { Server, Socket } from "socket.io";
 import { MessagesService } from "../messages/messages.service";
@@ -21,7 +24,7 @@ import { TasksService } from "../tasks/tasks.service";
 import { AgentsService } from "../agents/agents.service";
 
 interface AgentSocketMeta {
-  taskId: string;
+  taskId?: string;
   role: Exclude<MessageRole, MessageRole.System>;
   agentId?: string;
   agentName?: string;
@@ -35,7 +38,7 @@ interface AgentSocketMeta {
     credentials: true,
   },
 })
-export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
 
@@ -46,7 +49,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly messagesService: MessagesService,
     private readonly tasksService: TasksService,
     private readonly agentsService: AgentsService,
+    private readonly agentRegistry: AgentRegistryService,
   ) {}
+
+  afterInit(server: Server): void {
+    this.agentRegistry.setServer(server);
+  }
 
   async handleConnection(client: Socket) {
     const result = SocketAuthSchema.safeParse(client.handshake.auth);
@@ -64,42 +72,62 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const agentHostname = result.data.agentHostname;
     const role = result.data.role as Exclude<MessageRole, MessageRole.System>;
 
-    try {
-      await this.tasksService.findOne(taskId);
-    } catch (error) {
-      this.logger.warn(
-        `Socket ${client.id} rejected: task ${taskId} not found`,
-        error,
-      );
-      client.emit("error", { message: "Task not found" });
-      client.disconnect();
-      return;
-    }
+    if (taskId) {
+      // Connecting to a specific task room — validate the task exists
+      try {
+        await this.tasksService.findOne(taskId);
+      } catch (error) {
+        this.logger.warn(
+          `Socket ${client.id} rejected: task ${taskId} not found`,
+          error,
+        );
+        client.emit("error", { message: "Task not found" });
+        client.disconnect();
+        return;
+      }
 
-    const roomId = `task:${taskId}`;
-    await client.join(roomId);
+      const roomId = `task:${taskId}`;
+      await client.join(roomId);
 
-    this.socketMeta.set(client.id, { taskId, role, agentId, agentName, agentHostname });
+      this.socketMeta.set(client.id, { taskId, role, agentId, agentName, agentHostname });
 
-    if (role === MessageRole.Agent && agentId) {
-      await this.agentsService.markConnected(agentId);
+      if (role === MessageRole.Agent && agentId) {
+        this.agentRegistry.registerTaskSocket(taskId, client.id);
 
-      this.server.to(roomId).emit(EventCommands.AgentConnected, {
-        agentId,
-        agentName: agentName ?? agentId,
-        taskId,
-        ts: Date.now(),
-      });
-    } else if (role === MessageRole.User) {
-      const ts = Date.now();
-      for (const m of this.socketMeta.values()) {
-        if (m.taskId === taskId && m.role === MessageRole.Agent && m.agentId) {
-          client.emit("agent:connected", {
-            agentId: m.agentId,
-            agentName: m.agentName ?? m.agentId,
-            taskId,
-            ts,
-          });
+        await this.agentsService.markConnected(agentId);
+
+        this.server.to(roomId).emit(EventCommands.AgentConnected, {
+          agentId,
+          agentName: agentName ?? agentId,
+          taskId,
+          ts: Date.now(),
+        });
+      } else if (role === MessageRole.User) {
+        const ts = Date.now();
+        for (const m of this.socketMeta.values()) {
+          if (m.taskId === taskId && m.role === MessageRole.Agent && m.agentId) {
+            client.emit("agent:connected", {
+              agentId: m.agentId,
+              agentName: m.agentName ?? m.agentId,
+              taskId,
+              ts,
+            });
+          }
+        }
+      }
+    } else {
+      // No taskId — agent joins the system lobby and waits for assignment
+      await client.join(SYSTEM_AGENTS_ROOM);
+      this.socketMeta.set(client.id, { role, agentId, agentName, agentHostname });
+
+      if (role === MessageRole.Agent && agentId) {
+        this.agentRegistry.register(agentId, client.id);
+        await this.agentsService.markConnected(agentId);
+        this.logger.log(`Agent ${agentId} (${agentName}) joined system lobby`);
+
+        const assignedTasks = await this.tasksService.findByAgent(agentId);
+        for (const task of assignedTasks) {
+          this.agentRegistry.assignTask(agentId, task.id);
         }
       }
     }
@@ -108,16 +136,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleDisconnect(client: Socket) {
     const meta = this.socketMeta.get(client.id);
     if (meta && meta.role === MessageRole.Agent && meta.agentId) {
-      const roomId = `task:${meta.taskId}`;
-
-      await this.agentsService.markDisconnected(meta.agentId);
-
-      this.server.to(roomId).emit(EventCommands.AgentDisconnected, {
-        agentId: meta.agentId,
-        agentName: meta.agentName ?? meta.agentId,
-        taskId: meta.taskId,
-        ts: Date.now(),
-      });
+      if (meta.taskId) {
+        // Task socket closed — notify room but don't touch the registry or DB connected state,
+        // because the agent's lobby socket may still be alive.
+        this.agentRegistry.deregisterTaskSocket(meta.taskId, client.id);
+        const roomId = `task:${meta.taskId}`;
+        this.server.to(roomId).emit(EventCommands.AgentDisconnected, {
+          agentId: meta.agentId,
+          agentName: meta.agentName ?? meta.agentId,
+          taskId: meta.taskId,
+          ts: Date.now(),
+        });
+      } else {
+        // Lobby socket closed — agent is truly gone.
+        this.agentRegistry.deregister(meta.agentId);
+        await this.agentsService.markDisconnected(meta.agentId);
+      }
     }
     this.socketMeta.delete(client.id);
   }
@@ -260,16 +294,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const taskId = this.extractTaskId(data.roomId);
       const ts = Date.now();
 
-      const meta = [...this.socketMeta.values()].find(
-        (m) => m.agentId === data.agentId,
-      );
+      const agentName = this.socketMeta.get(client.id)?.agentName;
 
       await this.messagesService.create({
         roomId: data.roomId,
         taskId,
         role: MessageRole.System,
         agentId: data.agentId,
-        agentName: meta?.agentName,
+        agentName,
         jobId: data.jobId,
         command: data.command,
         messageType: MessageType.COMMAND_EXIT,

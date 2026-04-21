@@ -127,7 +127,7 @@ export function useTaskRoom(taskId: string) {
           if (msg.messageType === MessageType.CommandStart) {
             startedJobs.set(msg.jobId, { command: msg.command, roomId: msg.roomId });
           }
-          if (msg.exitCode != null) {
+          if (msg.exitCode != null || msg.messageType === MessageType.CommandExit) {
             completedJobs.add(msg.jobId);
           }
         }

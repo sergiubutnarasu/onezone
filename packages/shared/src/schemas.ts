@@ -11,7 +11,7 @@ export const CreateTaskSchema = z.object({
 });
 
 export const SocketAuthSchema = z.object({
-  taskId: z.string().uuid(),
+  taskId: z.string().uuid().optional(),
   role: z.enum(['user', 'agent']),
   agentId: z.string().optional(),
   agentName: z.string().optional(),

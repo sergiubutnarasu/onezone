@@ -2,15 +2,16 @@
 
 import { useEffect, useRef, useMemo } from 'react';
 import { useParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { fetchTask, fetchMessages } from '@/lib/api';
+import { fetchTask, fetchMessages, fetchAgents, assignTaskAgent } from '@/lib/api';
 import { useTaskRoom } from '@/hooks/useTaskRoom';
 import { MessageType } from '@onezone/shared';
 import { MessageLine } from '@/components/MessageLine';
 import { CommandGroup, type CommandGroupData } from '@/components/CommandGroup';
 import { AgentStatusBar } from '@/components/AgentStatusBar';
 import { MessageInput } from '@/components/MessageInput';
+import type { Agent } from '@onezone/shared';
 import type { RoomMessage } from '@/hooks/useTaskRoom';
 
 type ChatItem =
@@ -74,10 +75,21 @@ function buildChatItems(messages: RoomMessage[]): ChatItem[] {
 export default function TaskChatPage() {
   const { id: projectId, taskId } = useParams<{ id: string; taskId: string }>();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const qc = useQueryClient();
 
   const { data: task } = useQuery({
     queryKey: ['task', taskId],
     queryFn: () => fetchTask(taskId),
+  });
+
+  const { data: agents = [] } = useQuery<Agent[]>({
+    queryKey: ['agents'],
+    queryFn: fetchAgents,
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: (agentId: string | null) => assignTaskAgent(taskId, agentId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['task', taskId] }),
   });
 
   const { data: history = [] } = useQuery({
@@ -111,17 +123,30 @@ export default function TaskChatPage() {
           {' / '}
           <Link href={`/projects/${projectId}`} className="hover:underline">Project</Link>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <h1 className="font-semibold">{task?.name || 'Loading...'}</h1>
-          <span
-            className={`text-xs px-2 py-0.5 rounded-full ${
-              isConnected
-                ? 'bg-green-900 text-green-300'
-                : 'bg-gray-700 text-gray-400'
-            }`}
-          >
-            {isConnected ? 'connected' : 'disconnected'}
-          </span>
+          <div className="flex items-center gap-2">
+            <select
+              className="text-xs bg-gray-800 border border-gray-600 rounded px-2 py-1 text-gray-200"
+              value={task?.agentId ?? ''}
+              disabled={assignMutation.isPending}
+              onChange={(e) => assignMutation.mutate(e.target.value || null)}
+            >
+              <option value="">No agent</option>
+              {agents.map((a) => (
+                <option key={a.id} value={a.id}>{a.isConnected ? '● ' : '○ '}{a.name}</option>
+              ))}
+            </select>
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full ${
+                isConnected
+                  ? 'bg-green-900 text-green-300'
+                  : 'bg-gray-700 text-gray-400'
+              }`}
+            >
+              {isConnected ? 'connected' : 'disconnected'}
+            </span>
+          </div>
         </div>
       </div>
 

@@ -6,6 +6,7 @@ export enum EventCommands {
   AgentCommandStart = "agent:command:start",
   AgentCommandExit = "agent:command:exit",
   AgentHeartbeat = "agent:heartbeat",
+  AssignTask = "agent:assign-task",
 }
 
 export enum MessageRole {
@@ -58,7 +59,13 @@ export interface Task {
   description?: string | null;
   status: TaskStatus;
   order: number;
+  agentId?: string | null;
   createdAt: string;
+}
+
+export interface AssignTaskPayload {
+  agentId: string;
+  taskId: string;
 }
 
 export interface Agent {
@@ -109,8 +116,12 @@ export interface CommandExitPayload {
 
 export interface ServerToClientEvents {
   [EventCommands.ChatMessage]: (message: ChatMessage) => void;
-  [EventCommands.AgentConnected]: (payload: { agentId: string; agentName: string }) => void;
+  [EventCommands.AgentConnected]: (payload: {
+    agentId: string;
+    agentName: string;
+  }) => void;
   [EventCommands.AgentDisconnected]: (payload: { agentId: string }) => void;
+  [EventCommands.AssignTask]: (payload: AssignTaskPayload) => void;
 }
 
 export interface ClientToServerEvents {

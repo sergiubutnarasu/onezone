@@ -8,14 +8,8 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { IsEnum } from 'class-validator';
-import { TaskStatus } from '@prisma/client';
 import { TasksService } from './tasks.service';
-
-class UpdateTaskStatusDto {
-  @IsEnum(TaskStatus)
-  status!: TaskStatus;
-}
+import { AssignAgentDto, UpdateTaskStatusDto } from './tasks.dto';
 
 @Controller('tasks')
 export class TasksController {
@@ -32,6 +26,14 @@ export class TasksController {
     @Body() body: UpdateTaskStatusDto,
   ) {
     return this.tasksService.updateStatus(taskId, body.status);
+  }
+
+  @Patch(':taskId/agent')
+  assignAgent(
+    @Param('taskId') taskId: string,
+    @Body() body: AssignAgentDto,
+  ) {
+    return this.tasksService.assignAgent(taskId, body.agentId);
   }
 
   @Delete(':taskId')

@@ -1,5 +1,5 @@
 import { Command, Flags } from "@oclif/core";
-import { ChatMessage, EventCommands, MessageRole, MessageStream } from "@onezone/shared";
+import { AssignTaskPayload, ChatMessage, EventCommands, MessageRole, MessageStream } from "@onezone/shared";
 import { randomUUID } from "node:crypto";
 import { hostname } from "node:os";
 import { registerCleanupHandlers, runProcess } from "../lib/process-runner.js";
@@ -9,10 +9,13 @@ import { stripAnsi } from "../lib/helper.js";
 const HEARTBEAT_INTERVAL_MS = 30_000; // Must be less than AgentsService.STALE_THRESHOLD_MS in server to avoid false positives
 
 export default class Listen extends Command {
+  private readonly activeTaskIds = new Set<string>();
+
   static description =
-    "Connect to a task room and stay open, spawning commands as users send messages in the chat";
+    "Connect to a task room (or wait for one to be assigned) and stay open, spawning commands as users send messages in the chat";
 
   static examples = [
+    "<%= config.bin %> listen",
     "<%= config.bin %> listen --task <taskId>",
     "<%= config.bin %> listen --task <taskId1> --task <taskId2>",
     "<%= config.bin %> listen --task <taskId> --name my-agent",
@@ -20,8 +23,8 @@ export default class Listen extends Command {
 
   static flags = {
     task: Flags.string({
-      description: "Task ID to connect to (can be repeated for multiple tasks)",
-      required: true,
+      description: "Task ID to connect to (can be repeated). If omitted, waits for the server to assign one.",
+      required: false,
       multiple: true,
     }),
     server: Flags.string({
@@ -40,14 +43,64 @@ export default class Listen extends Command {
     const agentName = flags.name;
     const taskIds = flags.task;
 
-    // Register with the server by name. The server enforces uniqueness and
-    // rejects the request if an agent with this name is already connected.
     const agentId = await this.registerAgent(flags.server, agentName);
     this.log(`[${agentName}] Agent ID: ${agentId}`);
 
     registerCleanupHandlers();
 
-    await Promise.all(taskIds.map((taskId) => this.connectToTask(flags.server, taskId, agentId, agentName)));
+    const connections: Promise<void>[] = [this.connectToLobby(flags.server, agentId, agentName)];
+
+    if (taskIds?.length) {
+      for (const taskId of taskIds) {
+        this.activeTaskIds.add(taskId);
+      }
+      connections.push(...taskIds.map((taskId) => this.connectToTask(flags.server, taskId, agentId, agentName)));
+    }
+
+    await Promise.all(connections);
+  }
+
+  private connectToLobby(serverUrl: string, agentId: string, agentName: string): Promise<void> {
+    const socket = createAgentSocket({ serverUrl, agentId, agentName });
+
+    return new Promise<void>((_, reject) => {
+      let heartbeatTimer: NodeJS.Timeout | undefined;
+
+      socket.on("connect", () => {
+        this.log(`[${agentName}] Connected to ${serverUrl} | Waiting for task assignment...`);
+
+        heartbeatTimer = setInterval(() => {
+          socket.emit(EventCommands.AgentHeartbeat);
+        }, HEARTBEAT_INTERVAL_MS);
+      });
+
+      socket.on(EventCommands.AssignTask, (payload: AssignTaskPayload) => {
+        if (this.activeTaskIds.has(payload.taskId)) {
+          this.log(`[${agentName}] Already connected to task: ${payload.taskId}, skipping`);
+          return;
+        }
+        this.log(`[${agentName}] Assigned to task: ${payload.taskId}`);
+        this.activeTaskIds.add(payload.taskId);
+        this.connectToTask(serverUrl, payload.taskId, agentId, agentName).catch((err: Error) => {
+          this.activeTaskIds.delete(payload.taskId);
+          this.log(`[${agentName}] Task ${payload.taskId} connection failed: ${err.message}`);
+        });
+      });
+
+      socket.on("connect_error", (err) => {
+        clearInterval(heartbeatTimer);
+        this.log(`[${agentName}] Lobby connection failed (${err.message}), retrying...`);
+      });
+
+      socket.on("disconnect", (reason) => {
+        clearInterval(heartbeatTimer);
+        if (reason === "io server disconnect") {
+          reject(new Error(`Lobby disconnected: ${reason}`));
+        } else {
+          this.log(`[${agentName}] Lobby disconnected (${reason}), reconnecting...`);
+        }
+      });
+    });
   }
 
   private connectToTask(serverUrl: string, taskId: string, agentId: string, agentName: string): Promise<void> {
@@ -135,7 +188,7 @@ export default class Listen extends Command {
 
       socket.on("connect_error", (err) => {
         clearInterval(heartbeatTimer);
-        reject(new Error(`[${roomId}] Connection failed: ${err.message}`));
+        this.log(`[${agentName}] [${roomId}] Connection failed (${err.message}), retrying...`);
       });
 
       socket.on("disconnect", (reason) => {
@@ -144,12 +197,21 @@ export default class Listen extends Command {
         // All other reasons (ping timeout, transport close, etc.) are transient;
         // socket.io will reconnect automatically so we just log and wait.
         if (reason === "io server disconnect") {
+          this.activeTaskIds.delete(taskId);
           reject(new Error(`[${roomId}] Disconnected: ${reason}`));
         } else {
           this.log(`[${agentName}] [${roomId}] Disconnected (${reason}), reconnecting...`);
         }
       });
     });
+  }
+
+  private async notifyDisconnected(serverUrl: string, agentId: string, agentName: string): Promise<void> {
+    try {
+      await fetch(`${serverUrl}/agents/${agentId}/disconnect`, { method: "POST" });
+    } catch {
+      this.log(`[${agentName}] Could not notify server of disconnect (server may be down)`);
+    }
   }
 
   private async registerAgent(serverUrl: string, name: string): Promise<string> {

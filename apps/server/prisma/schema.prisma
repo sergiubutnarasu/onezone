@@ -39,6 +39,8 @@ model Task {
   description String?
   status      TaskStatus @default(BACKLOG)
   order       Int        @default(0)
+  agentId     String?
+  agent       Agent?     @relation(fields: [agentId], references: [id], onDelete: SetNull)
   createdAt   DateTime  @default(now())
   messages    Message[]
 
@@ -76,6 +78,7 @@ model Agent {
   isConnected Boolean   @default(false)
   lastSeenAt  DateTime?
   createdAt   DateTime  @default(now())
+  tasks       Task[]
 
   @@map("agents")
 }

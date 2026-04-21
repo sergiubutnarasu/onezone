@@ -18,8 +18,18 @@ export class AgentsService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
 
   onModuleInit() {
-    // Reset any agents left as connected from a previous server run.
-    void this.markStaleAgentsDisconnected();
+    // On server start, all previous socket connections are gone — mark everyone offline.
+    void this.markAllAgentsDisconnected();
+  }
+
+  async markAllAgentsDisconnected() {
+    const { count } = await this.prisma.agent.updateMany({
+      where: { isConnected: true },
+      data: { isConnected: false },
+    });
+    if (count > 0) {
+      this.logger.log(`Marked ${count} agent(s) as disconnected on server start`);
+    }
   }
 
   findAll() {

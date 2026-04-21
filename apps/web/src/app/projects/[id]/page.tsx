@@ -4,15 +4,16 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { fetchProject, fetchTasks, createTask } from '@/lib/api';
+import { fetchProject, fetchTasks, fetchAgents, createTask } from '@/lib/api';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
-import type { Task } from '@onezone/shared';
+import type { Agent, Task } from '@onezone/shared';
 
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [agentId, setAgentId] = useState<string>('');
   const [showForm, setShowForm] = useState(false);
 
   const { data: project, isLoading: projectLoading } = useQuery({
@@ -25,12 +26,18 @@ export default function ProjectPage() {
     queryFn: () => fetchTasks(id),
   });
 
+  const { data: agents = [] } = useQuery<Agent[]>({
+    queryKey: ['agents'],
+    queryFn: fetchAgents,
+  });
+
   const createMutation = useMutation({
-    mutationFn: () => createTask(id, { name, description }),
+    mutationFn: () => createTask(id, { name, description, agentId: agentId || null }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['tasks', id] });
       setName('');
       setDescription('');
+      setAgentId('');
       setShowForm(false);
     },
   });
@@ -69,11 +76,21 @@ export default function ProjectPage() {
             onChange={(e) => setName(e.target.value)}
           />
           <input
-            className="block w-full border rounded px-3 py-2 mb-3"
+            className="block w-full border rounded px-3 py-2 mb-2"
             placeholder="Description (optional)"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
+          <select
+            className="block w-full border rounded px-3 py-2 mb-3 bg-white"
+            value={agentId}
+            onChange={(e) => setAgentId(e.target.value)}
+          >
+            <option value="">No agent assigned</option>
+            {agents.map((a) => (
+              <option key={a.id} value={a.id}>{a.isConnected ? '● ' : '○ '}{a.name}</option>
+            ))}
+          </select>
           <button
             onClick={() => createMutation.mutate()}
             disabled={!name || createMutation.isPending}

@@ -1,20 +1,14 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
-import { IsString, MinLength } from 'class-validator';
+import { Body, Controller, Get, NotFoundException, Param, Post } from '@nestjs/common';
 import { AgentsService } from './agents.service';
-
-class RegisterAgentDto {
-  @IsString()
-  @MinLength(1)
-  name!: string;
-
-  @IsString()
-  @MinLength(1)
-  hostname!: string;
-}
+import { AgentRegistryService } from '../gateways/agent-registry.service';
+import { AssignTaskDto, RegisterAgentDto } from './agents.dto';
 
 @Controller('agents')
 export class AgentsController {
-  constructor(private readonly agentsService: AgentsService) {}
+  constructor(
+    private readonly agentsService: AgentsService,
+    private readonly agentRegistry: AgentRegistryService,
+  ) {}
 
   @Get()
   findAll() {
@@ -24,5 +18,19 @@ export class AgentsController {
   @Post('register')
   register(@Body() dto: RegisterAgentDto) {
     return this.agentsService.registerByName({ name: dto.name, hostname: dto.hostname });
+  }
+
+  @Post(':agentId/disconnect')
+  disconnect(@Param('agentId') agentId: string) {
+    return this.agentsService.markDisconnected(agentId);
+  }
+
+  @Post(':agentId/assign-task')
+  assignTask(@Param('agentId') agentId: string, @Body() dto: AssignTaskDto) {
+    const sent = this.agentRegistry.assignTask(agentId, dto.taskId);
+    if (!sent) {
+      throw new NotFoundException(`Agent ${agentId} is not currently connected`);
+    }
+    return { agentId, taskId: dto.taskId };
   }
 }

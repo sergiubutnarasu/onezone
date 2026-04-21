@@ -42,7 +42,7 @@ export async function fetchTasks(projectId: string) {
 
 export async function createTask(
   projectId: string,
-  data: { name: string; description?: string },
+  data: { name: string; description?: string; agentId?: string | null },
 ) {
   const res = await fetch(`${API_BASE}/projects/${projectId}/tasks`, {
     method: 'POST',
@@ -50,6 +50,16 @@ export async function createTask(
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error('Failed to create task');
+  return res.json();
+}
+
+export async function assignTaskAgent(taskId: string, agentId: string | null) {
+  const res = await fetch(`${API_BASE}/tasks/${taskId}/agent`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agentId }),
+  });
+  if (!res.ok) throw new Error('Failed to assign agent to task');
   return res.json();
 }
 
