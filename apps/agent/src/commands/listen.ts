@@ -14,13 +14,15 @@ export default class Listen extends Command {
 
   static examples = [
     "<%= config.bin %> listen --task <taskId>",
+    "<%= config.bin %> listen --task <taskId1> --task <taskId2>",
     "<%= config.bin %> listen --task <taskId> --name my-agent",
   ];
 
   static flags = {
     task: Flags.string({
-      description: "Task ID to connect to",
+      description: "Task ID to connect to (can be repeated for multiple tasks)",
       required: true,
+      multiple: true,
     }),
     server: Flags.string({
       description: "Server URL",
@@ -36,8 +38,7 @@ export default class Listen extends Command {
     const { flags } = await this.parse(Listen);
 
     const agentName = flags.name;
-    const taskId = flags.task;
-    const roomId = `task:${taskId}`;
+    const taskIds = flags.task;
 
     // Register with the server by name. The server enforces uniqueness and
     // rejects the request if an agent with this name is already connected.
@@ -46,20 +47,26 @@ export default class Listen extends Command {
 
     registerCleanupHandlers();
 
+    await Promise.all(taskIds.map((taskId) => this.connectToTask(flags.server, taskId, agentId, agentName)));
+  }
+
+  private connectToTask(serverUrl: string, taskId: string, agentId: string, agentName: string): Promise<void> {
+    const roomId = `task:${taskId}`;
+
     const socket = createAgentSocket({
-      serverUrl: flags.server,
+      serverUrl,
       taskId,
       agentId,
       agentName,
     });
 
-    await new Promise<void>((_, reject) => {
+    return new Promise<void>((_, reject) => {
       const activeProcesses = new Map<string, ReturnType<typeof runProcess>>();
       let heartbeatTimer: NodeJS.Timeout | undefined;
 
       socket.on("connect", () => {
         this.log(
-          `[${agentName}] Connected to ${flags.server} | room: ${roomId} | Listening for commands...`,
+          `[${agentName}] Connected to ${serverUrl} | room: ${roomId} | Listening for commands...`,
         );
 
         heartbeatTimer = setInterval(() => {
@@ -78,7 +85,7 @@ export default class Listen extends Command {
           return;
         }
 
-        this.log(`[${agentName}] Spawning: ${content}`);
+        this.log(`[${agentName}] [${roomId}] Spawning: ${content}`);
 
         const jobId = randomUUID();
         const basePayload = { roomId, agentId, agentName, jobId, command: content };
@@ -119,7 +126,7 @@ export default class Listen extends Command {
 
             socket.emit(EventCommands.AgentCommandExit, { ...basePayload, exitCode });
             const badge = exitCode === 0 ? "✔ done" : `✖ error (${exitCode})`;
-            this.log(`[${agentName}] ${badge}: "${content}"`);
+            this.log(`[${agentName}] [${roomId}] ${badge}: "${content}"`);
           },
           true, // shell
         );
@@ -128,7 +135,7 @@ export default class Listen extends Command {
 
       socket.on("connect_error", (err) => {
         clearInterval(heartbeatTimer);
-        reject(new Error(`Connection failed: ${err.message}`));
+        reject(new Error(`[${roomId}] Connection failed: ${err.message}`));
       });
 
       socket.on("disconnect", (reason) => {
@@ -137,9 +144,9 @@ export default class Listen extends Command {
         // All other reasons (ping timeout, transport close, etc.) are transient;
         // socket.io will reconnect automatically so we just log and wait.
         if (reason === "io server disconnect") {
-          reject(new Error(`Disconnected: ${reason}`));
+          reject(new Error(`[${roomId}] Disconnected: ${reason}`));
         } else {
-          this.log(`[${agentName}] Disconnected (${reason}), reconnecting...`);
+          this.log(`[${agentName}] [${roomId}] Disconnected (${reason}), reconnecting...`);
         }
       });
     });
