@@ -18,54 +18,85 @@ type ChatItem =
   | { type: 'message'; msg: RoomMessage }
   | { type: 'command'; group: CommandGroupData };
 
+// ---------------------------------------------------------------------------
+// Pure helpers for buildChatItems
+// ---------------------------------------------------------------------------
+
+function handleCommandGroup(
+  msg: RoomMessage,
+  groupMap: Map<string, CommandGroupData>,
+  items: ChatItem[],
+): void {
+  if (!msg.jobId) return;
+  const group: CommandGroupData = {
+    jobId: msg.jobId,
+    command: msg.command ?? msg.content,
+    agentName: msg.agentName,
+    startTs: msg.ts,
+    lines: [],
+  };
+  groupMap.set(msg.jobId, group);
+  items.push({ type: 'message', msg });
+  items.push({ type: 'command', group });
+}
+
+function handleOutputLine(
+  msg: RoomMessage,
+  groupMap: Map<string, CommandGroupData>,
+  items: ChatItem[],
+): void {
+  if (!msg.jobId) return;
+  let group = groupMap.get(msg.jobId);
+  if (!group) {
+    group = {
+      jobId: msg.jobId,
+      command: msg.command ?? '(unknown)',
+      agentName: msg.agentName,
+      startTs: msg.ts,
+      lines: [],
+    };
+    groupMap.set(msg.jobId, group);
+    items.push({ type: 'command', group });
+  }
+  group.lines.push(msg);
+}
+
+function handleCommandExit(
+  msg: RoomMessage,
+  groupMap: Map<string, CommandGroupData>,
+  items: ChatItem[],
+): void {
+  if (!msg.jobId) return;
+  const group = groupMap.get(msg.jobId);
+  const code =
+    msg.exitCode ??
+    parseInt(msg.content.match(/exited with code (\d+)/)?.[1] ?? '-1', 10);
+  if (group) group.exitCode = code;
+  items.push({
+    type: 'message',
+    msg: { ...msg, exitCode: code, content: msg.command ?? msg.content },
+  });
+}
+
 function buildChatItems(messages: RoomMessage[]): ChatItem[] {
   const groupMap = new Map<string, CommandGroupData>();
   const items: ChatItem[] = [];
 
   for (const msg of messages) {
     if (msg.jobId) {
-      // system start message → show as timeline event + create group
       if (msg.messageType === MessageType.CommandStart) {
-        const group: CommandGroupData = {
-          jobId: msg.jobId,
-          command: msg.command ?? msg.content,
-          agentName: msg.agentName,
-          startTs: msg.ts,
-          lines: [],
-        };
-        groupMap.set(msg.jobId, group);
-        items.push({ type: 'message', msg });
-        items.push({ type: 'command', group });
+        handleCommandGroup(msg, groupMap, items);
         continue;
       }
-      // output line → append to existing group (or create one if start was missed)
       if (msg.role === 'agent') {
-        let group = groupMap.get(msg.jobId);
-        if (!group) {
-          group = {
-            jobId: msg.jobId,
-            command: msg.command ?? '(unknown)',
-            agentName: msg.agentName,
-            startTs: msg.ts,
-            lines: [],
-          };
-          groupMap.set(msg.jobId, group);
-          items.push({ type: 'command', group });
-        }
-        group.lines.push(msg);
+        handleOutputLine(msg, groupMap, items);
         continue;
       }
-      // system exit message → mark group done + show as timeline event
       if (msg.role === 'system' && (msg.exitCode != null || msg.content.includes('exited with code'))) {
-        const group = groupMap.get(msg.jobId);
-        const code = msg.exitCode ?? parseInt(msg.content.match(/exited with code (\d+)/)?.[1] ?? '-1', 10);
-        if (group) group.exitCode = code;
-        // normalise content: DB stores verbose string, socket stores raw command
-        items.push({ type: 'message', msg: { ...msg, exitCode: code, content: msg.command ?? msg.content } });
+        handleCommandExit(msg, groupMap, items);
         continue;
       }
     }
-    // ungrouped message (user chat, system without jobId)
     items.push({ type: 'message', msg });
   }
 
@@ -134,7 +165,10 @@ export default function TaskChatPage() {
             >
               <option value="">No agent</option>
               {agents.map((a) => (
-                <option key={a.id} value={a.id}>{a.isConnected ? '● ' : '○ '}{a.name}</option>
+                <option key={a.id} value={a.id}>
+                  {a.isConnected ? '● ' : '○ '}
+                  {a.name}
+                </option>
               ))}
             </select>
             <span

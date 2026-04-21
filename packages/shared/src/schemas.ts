@@ -1,14 +1,15 @@
+// packages/shared/src/schemas.ts
+
 import { z } from 'zod';
 
-export const CreateProjectSchema = z.object({
+const baseEntitySchema = z.object({
   name: z.string().min(1).max(255),
   description: z.string().max(1000).optional(),
 });
 
-export const CreateTaskSchema = z.object({
-  name: z.string().min(1).max(255),
-  description: z.string().max(1000).optional(),
-});
+export const CreateProjectSchema = baseEntitySchema;
+
+export const CreateTaskSchema = baseEntitySchema;
 
 export const SocketAuthSchema = z.object({
   taskId: z.string().uuid().optional(),

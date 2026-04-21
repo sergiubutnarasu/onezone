@@ -1,3 +1,5 @@
+// packages/shared/src/types.ts
+
 export enum EventCommands {
   ChatMessage = "chat:message",
   OutputLine = "output:line",
@@ -130,3 +132,78 @@ export interface ClientToServerEvents {
   [EventCommands.AgentCommandExit]: (payload: CommandExitPayload) => void;
   [EventCommands.AgentHeartbeat]: () => void;
 }
+
+// --- Discriminated union for room messages (used by web frontend) ---
+
+interface BaseRoomMessage {
+  id?: string;
+  roomId: string;
+  ts: number;
+}
+
+export interface UserChatMessage extends BaseRoomMessage {
+  role: 'user';
+  content: string;
+  agentId?: null;
+  agentName?: null;
+  jobId?: null;
+  command?: null;
+  stream?: null;
+  exitCode?: null;
+  messageType?: null;
+}
+
+export interface AgentOutputMessage extends BaseRoomMessage {
+  role: 'agent';
+  content: string;
+  agentId: string;
+  agentName: string;
+  jobId: string;
+  command: string;
+  stream: 'stdout' | 'stderr';
+  exitCode?: null;
+  messageType?: null;
+}
+
+export interface CommandStartMessage extends BaseRoomMessage {
+  role: 'system';
+  messageType: MessageType.CommandStart;
+  content: string;
+  agentId: string;
+  agentName: string;
+  jobId: string;
+  command: string;
+  stream?: null;
+  exitCode?: null;
+}
+
+export interface CommandExitMessage extends BaseRoomMessage {
+  role: 'system';
+  messageType?: MessageType.CommandExit | null;
+  content: string;
+  agentId: string;
+  agentName?: string | null;
+  jobId: string;
+  command: string;
+  exitCode: number;
+  stream?: null;
+}
+
+export interface SystemNoticeMessage extends BaseRoomMessage {
+  role: 'system';
+  content: string;
+  agentId?: string | null;
+  agentName?: string | null;
+  jobId?: null;
+  command?: null;
+  stream?: null;
+  exitCode?: null;
+  messageType?: null;
+}
+
+export type RoomMessage =
+  | UserChatMessage
+  | AgentOutputMessage
+  | CommandStartMessage
+  | CommandExitMessage
+  | SystemNoticeMessage;

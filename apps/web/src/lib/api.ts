@@ -1,102 +1,50 @@
-import { TaskStatus } from '@onezone/shared';
+// apps/web/src/lib/api.ts
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5026';
+import { TaskStatus, type Agent, type Task, type RoomMessage } from '@onezone/shared';
+import { httpClient } from './http-client';
+
+export interface Project {
+  id: string;
+  name: string;
+  description?: string | null;
+  createdAt: string;
+}
 
 export interface TaskOrderItem {
   id: string;
   status: TaskStatus;
   order: number;
 }
-export async function fetchProjects() {
-  const res = await fetch(`${API_BASE}/projects`);
-  if (!res.ok) throw new Error('Failed to fetch projects');
-  return res.json();
-}
 
-export async function createProject(data: { name: string; description?: string }) {
-  const res = await fetch(`${API_BASE}/projects`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error('Failed to create project');
-  return res.json();
-}
+export const fetchProjects = () => httpClient.get<Project[]>('/projects');
 
-export async function deleteProject(id: string) {
-  const res = await fetch(`${API_BASE}/projects/${id}`, { method: 'DELETE' });
-  if (!res.ok) throw new Error('Failed to delete project');
-}
+export const createProject = (data: { name: string; description?: string }) =>
+  httpClient.post<Project>('/projects', data);
 
-export async function fetchProject(id: string) {
-  const res = await fetch(`${API_BASE}/projects/${id}`);
-  if (!res.ok) throw new Error('Failed to fetch project');
-  return res.json();
-}
+export const deleteProject = (id: string) => httpClient.delete<void>(`/projects/${id}`);
 
-export async function fetchTasks(projectId: string) {
-  const res = await fetch(`${API_BASE}/projects/${projectId}/tasks`);
-  if (!res.ok) throw new Error('Failed to fetch tasks');
-  return res.json();
-}
+export const fetchProject = (id: string) => httpClient.get<Project>(`/projects/${id}`);
 
-export async function createTask(
+export const fetchTasks = (projectId: string) =>
+  httpClient.get<Task[]>(`/projects/${projectId}/tasks`);
+
+export const createTask = (
   projectId: string,
   data: { name: string; description?: string; agentId?: string | null },
-) {
-  const res = await fetch(`${API_BASE}/projects/${projectId}/tasks`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error('Failed to create task');
-  return res.json();
-}
+) => httpClient.post<Task>(`/projects/${projectId}/tasks`, data);
 
-export async function assignTaskAgent(taskId: string, agentId: string | null) {
-  const res = await fetch(`${API_BASE}/tasks/${taskId}/agent`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ agentId }),
-  });
-  if (!res.ok) throw new Error('Failed to assign agent to task');
-  return res.json();
-}
+export const assignTaskAgent = (taskId: string, agentId: string | null) =>
+  httpClient.patch<Task>(`/tasks/${taskId}/agent`, { agentId });
 
-export async function fetchTask(taskId: string) {
-  const res = await fetch(`${API_BASE}/tasks/${taskId}`);
-  if (!res.ok) throw new Error('Failed to fetch task');
-  return res.json();
-}
+export const fetchTask = (taskId: string) => httpClient.get<Task>(`/tasks/${taskId}`);
 
-export async function fetchMessages(taskId: string) {
-  const res = await fetch(`${API_BASE}/tasks/${taskId}/messages`);
-  if (!res.ok) throw new Error('Failed to fetch messages');
-  return res.json();
-}
+export const fetchMessages = (taskId: string) =>
+  httpClient.get<RoomMessage[]>(`/tasks/${taskId}/messages`);
 
-export async function updateTaskStatus(taskId: string, status: TaskStatus) {
-  const res = await fetch(`${API_BASE}/tasks/${taskId}/status`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
-  });
-  if (!res.ok) throw new Error('Failed to update task status');
-  return res.json();
-}
+export const updateTaskStatus = (taskId: string, status: TaskStatus) =>
+  httpClient.patch<Task>(`/tasks/${taskId}/status`, { status });
 
-export async function fetchAgents() {
-  const res = await fetch(`${API_BASE}/agents`);
-  if (!res.ok) throw new Error('Failed to fetch agents');
-  return res.json();
-}
+export const fetchAgents = () => httpClient.get<Agent[]>('/agents');
 
-export async function reorderTasks(projectId: string, tasks: TaskOrderItem[]) {
-  const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/reorder`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tasks }),
-  });
-  if (!res.ok) throw new Error('Failed to reorder tasks');
-  return res.json();
-}
+export const reorderTasks = (projectId: string, tasks: TaskOrderItem[]) =>
+  httpClient.put<Task[]>(`/projects/${projectId}/tasks/reorder`, { tasks });

@@ -1,38 +1,47 @@
-import { Command, Flags } from "@oclif/core";
-import { AssignTaskPayload, ChatMessage, EventCommands, MessageRole, MessageStream } from "@onezone/shared";
-import { randomUUID } from "node:crypto";
-import { hostname } from "node:os";
-import { registerCleanupHandlers, runProcess } from "../lib/process-runner.js";
-import { createAgentSocket } from "../lib/socket-client.js";
-import { stripAnsi } from "../lib/helper.js";
+// apps/agent/src/commands/listen.ts
 
-const HEARTBEAT_INTERVAL_MS = 30_000; // Must be less than AgentsService.STALE_THRESHOLD_MS in server to avoid false positives
+import { Command, Flags } from '@oclif/core';
+import {
+  AssignTaskPayload,
+  ChatMessage,
+  EventCommands,
+  MessageRole,
+  MessageStream,
+  createTaskRoomId,
+} from '@onezone/shared';
+import { randomUUID } from 'node:crypto';
+import { hostname } from 'node:os';
+import { registerCleanupHandlers, runProcess } from '../lib/process-runner.js';
+import { stripAnsi } from '../lib/helper.js';
+import { registerAgent } from '../lib/agent-registration.js';
+import { createLobbySocket, createTaskSocket } from '../lib/task-socket.js';
 
 export default class Listen extends Command {
   private readonly activeTaskIds = new Set<string>();
 
   static description =
-    "Connect to a task room (or wait for one to be assigned) and stay open, spawning commands as users send messages in the chat";
+    'Connect to a task room (or wait for one to be assigned) and stay open, spawning commands as users send messages in the chat';
 
   static examples = [
-    "<%= config.bin %> listen",
-    "<%= config.bin %> listen --task <taskId>",
-    "<%= config.bin %> listen --task <taskId1> --task <taskId2>",
-    "<%= config.bin %> listen --task <taskId> --name my-agent",
+    '<%= config.bin %> listen',
+    '<%= config.bin %> listen --task <taskId>',
+    '<%= config.bin %> listen --task <taskId1> --task <taskId2>',
+    '<%= config.bin %> listen --task <taskId> --name my-agent',
   ];
 
   static flags = {
     task: Flags.string({
-      description: "Task ID to connect to (can be repeated). If omitted, waits for the server to assign one.",
+      description:
+        'Task ID to connect to (can be repeated). If omitted, waits for the server to assign one.',
       required: false,
       multiple: true,
     }),
     server: Flags.string({
-      description: "Server URL",
-      default: "http://localhost:5026",
+      description: 'Server URL',
+      default: 'http://localhost:5026',
     }),
     name: Flags.string({
-      description: "Agent name — must be unique across all running agents",
+      description: 'Agent name — must be unique across all running agents',
       default: hostname(),
     }),
   };
@@ -43,202 +52,158 @@ export default class Listen extends Command {
     const agentName = flags.name;
     const taskIds = flags.task;
 
-    const agentId = await this.registerAgent(flags.server, agentName);
+    let agentId: string;
+    try {
+      agentId = await registerAgent({ serverUrl: flags.server, name: agentName });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.error(message, { exit: 1 });
+    }
+
     this.log(`[${agentName}] Agent ID: ${agentId}`);
 
     registerCleanupHandlers();
 
-    const connections: Promise<void>[] = [this.connectToLobby(flags.server, agentId, agentName)];
+    const connections: Promise<void>[] = [
+      this.connectToLobby(flags.server, agentId, agentName),
+    ];
 
     if (taskIds?.length) {
       for (const taskId of taskIds) {
         this.activeTaskIds.add(taskId);
       }
-      connections.push(...taskIds.map((taskId) => this.connectToTask(flags.server, taskId, agentId, agentName)));
+      connections.push(
+        ...taskIds.map((taskId) =>
+          this.connectToTask(flags.server, taskId, agentId, agentName),
+        ),
+      );
     }
 
     await Promise.all(connections);
   }
 
-  private connectToLobby(serverUrl: string, agentId: string, agentName: string): Promise<void> {
-    const socket = createAgentSocket({ serverUrl, agentId, agentName });
-
+  private connectToLobby(
+    serverUrl: string,
+    agentId: string,
+    agentName: string,
+  ): Promise<void> {
     return new Promise<void>((_, reject) => {
-      let heartbeatTimer: NodeJS.Timeout | undefined;
-
-      socket.on("connect", () => {
-        this.log(`[${agentName}] Connected to ${serverUrl} | Waiting for task assignment...`);
-
-        heartbeatTimer = setInterval(() => {
-          socket.emit(EventCommands.AgentHeartbeat);
-        }, HEARTBEAT_INTERVAL_MS);
-      });
-
-      socket.on(EventCommands.AssignTask, (payload: AssignTaskPayload) => {
-        if (this.activeTaskIds.has(payload.taskId)) {
-          this.log(`[${agentName}] Already connected to task: ${payload.taskId}, skipping`);
-          return;
-        }
-        this.log(`[${agentName}] Assigned to task: ${payload.taskId}`);
-        this.activeTaskIds.add(payload.taskId);
-        this.connectToTask(serverUrl, payload.taskId, agentId, agentName).catch((err: Error) => {
-          this.activeTaskIds.delete(payload.taskId);
-          this.log(`[${agentName}] Task ${payload.taskId} connection failed: ${err.message}`);
-        });
-      });
-
-      socket.on("connect_error", (err) => {
-        clearInterval(heartbeatTimer);
-        this.log(`[${agentName}] Lobby connection failed (${err.message}), retrying...`);
-      });
-
-      socket.on("disconnect", (reason) => {
-        clearInterval(heartbeatTimer);
-        if (reason === "io server disconnect") {
-          reject(new Error(`Lobby disconnected: ${reason}`));
-        } else {
-          this.log(`[${agentName}] Lobby disconnected (${reason}), reconnecting...`);
-        }
+      createLobbySocket(serverUrl, agentId, agentName, {
+        onConnect: () => {
+          this.log(`[${agentName}] Connected to ${serverUrl} | Waiting for task assignment...`);
+        },
+        onMessage: (event, payload) => {
+          if (event === EventCommands.AssignTask) {
+            const { taskId } = payload as AssignTaskPayload;
+            if (this.activeTaskIds.has(taskId)) {
+              this.log(`[${agentName}] Already connected to task: ${taskId}, skipping`);
+              return;
+            }
+            this.log(`[${agentName}] Assigned to task: ${taskId}`);
+            this.activeTaskIds.add(taskId);
+            this.connectToTask(serverUrl, taskId, agentId, agentName).catch((err: Error) => {
+              this.activeTaskIds.delete(taskId);
+              this.log(`[${agentName}] Task ${taskId} connection failed: ${err.message}`);
+            });
+          }
+        },
+        onConnectError: (_, err) => {
+          this.log(`[${agentName}] Lobby connection failed (${err.message}), retrying...`);
+        },
+        onDisconnect: (_, reason) => {
+          if (reason === 'io server disconnect') {
+            reject(new Error(`Lobby disconnected: ${reason}`));
+          } else {
+            this.log(`[${agentName}] Lobby disconnected (${reason}), reconnecting...`);
+          }
+        },
       });
     });
   }
 
-  private connectToTask(serverUrl: string, taskId: string, agentId: string, agentName: string): Promise<void> {
-    const roomId = `task:${taskId}`;
-
-    const socket = createAgentSocket({
-      serverUrl,
-      taskId,
-      agentId,
-      agentName,
-    });
+  private connectToTask(
+    serverUrl: string,
+    taskId: string,
+    agentId: string,
+    agentName: string,
+  ): Promise<void> {
+    const roomId = createTaskRoomId(taskId);
 
     return new Promise<void>((_, reject) => {
       const activeProcesses = new Map<string, ReturnType<typeof runProcess>>();
-      let heartbeatTimer: NodeJS.Timeout | undefined;
 
-      socket.on("connect", () => {
-        this.log(
-          `[${agentName}] Connected to ${serverUrl} | room: ${roomId} | Listening for commands...`,
-        );
+      const { socket } = createTaskSocket(serverUrl, taskId, agentId, agentName, {
+        onConnect: () => {
+          this.log(
+            `[${agentName}] Connected to ${serverUrl} | room: ${roomId} | Listening for commands...`,
+          );
+        },
+        onMessage: (event, payload) => {
+          if (event !== EventCommands.ChatMessage) return;
+          const message = payload as ChatMessage;
+          if (message.role !== MessageRole.User) return;
 
-        heartbeatTimer = setInterval(() => {
-          socket.emit(EventCommands.AgentHeartbeat);
-        }, HEARTBEAT_INTERVAL_MS);
-      });
+          const content = message.content.trim();
+          if (!content) return;
 
-      socket.on(EventCommands.ChatMessage, (message: ChatMessage) => {
-        // Only react to user messages
-        if (message.role !== MessageRole.User) {
-          return;
-        }
+          this.log(`[${agentName}] [${roomId}] Spawning: ${content}`);
 
-        const content = message.content.trim();
-        if (!content) {
-          return;
-        }
+          const jobId = randomUUID();
+          const basePayload = { roomId, agentId, agentName, jobId, command: content };
 
-        this.log(`[${agentName}] [${roomId}] Spawning: ${content}`);
+          socket.emit(EventCommands.AgentCommandStart, basePayload);
 
-        const jobId = randomUUID();
-        const basePayload = { roomId, agentId, agentName, jobId, command: content };
+          const stderrBuffer: string[] = [];
 
-        socket.emit(EventCommands.AgentCommandStart, basePayload);
+          const proc = runProcess(
+            content,
+            [],
+            (stream, line) => {
+              const clean = stripAnsi(line);
+              if (!clean) return;
 
-        // Run with shell=true so quoted args and shell syntax work correctly
-        const stderrBuffer: string[] = [];
-
-        const proc = runProcess(
-          content,
-          [],
-          (stream, line) => {
-            const clean = stripAnsi(line);
-            if (!clean) return; // skip lines that were pure escape sequences
-
-            if (stream === MessageStream.Stderr) {
-              // Buffer stderr — only emit if the process fails
-              stderrBuffer.push(clean);
-              return;
-            }
-
-            socket.emit(EventCommands.OutputLine, { ...basePayload, stream, content: clean });
-          },
-          (exitCode) => {
-            activeProcesses.delete(jobId);
-
-            // Flush stderr only on failure
-            if (exitCode !== 0) {
-              for (const line of stderrBuffer) {
-                socket.emit(EventCommands.OutputLine, {
-                  ...basePayload,
-                  stream: MessageStream.Stderr,
-                  content: line,
-                });
+              if (stream === MessageStream.Stderr) {
+                stderrBuffer.push(clean);
+                return;
               }
-            }
 
-            socket.emit(EventCommands.AgentCommandExit, { ...basePayload, exitCode });
-            const badge = exitCode === 0 ? "✔ done" : `✖ error (${exitCode})`;
-            this.log(`[${agentName}] [${roomId}] ${badge}: "${content}"`);
-          },
-          true, // shell
-        );
-        activeProcesses.set(jobId, proc);
-      });
+              socket.emit(EventCommands.OutputLine, { ...basePayload, stream, content: clean });
+            },
+            (exitCode) => {
+              activeProcesses.delete(jobId);
 
-      socket.on("connect_error", (err) => {
-        clearInterval(heartbeatTimer);
-        this.log(`[${agentName}] [${roomId}] Connection failed (${err.message}), retrying...`);
-      });
+              if (exitCode !== 0) {
+                for (const line of stderrBuffer) {
+                  socket.emit(EventCommands.OutputLine, {
+                    ...basePayload,
+                    stream: MessageStream.Stderr,
+                    content: line,
+                  });
+                }
+              }
 
-      socket.on("disconnect", (reason) => {
-        clearInterval(heartbeatTimer);
-        // "io server disconnect" is an intentional kick — treat as fatal.
-        // All other reasons (ping timeout, transport close, etc.) are transient;
-        // socket.io will reconnect automatically so we just log and wait.
-        if (reason === "io server disconnect") {
-          this.activeTaskIds.delete(taskId);
-          reject(new Error(`[${roomId}] Disconnected: ${reason}`));
-        } else {
-          this.log(`[${agentName}] [${roomId}] Disconnected (${reason}), reconnecting...`);
-        }
+              socket.emit(EventCommands.AgentCommandExit, { ...basePayload, exitCode });
+              const badge = exitCode === 0 ? '✔ done' : `✖ error (${exitCode})`;
+              this.log(`[${agentName}] [${roomId}] ${badge}: "${content}"`);
+            },
+            true, // shell
+          );
+          activeProcesses.set(jobId, proc);
+        },
+        onConnectError: (_, err) => {
+          this.log(
+            `[${agentName}] [${roomId}] Connection failed (${err.message}), retrying...`,
+          );
+        },
+        onDisconnect: (_, reason) => {
+          if (reason === 'io server disconnect') {
+            this.activeTaskIds.delete(taskId);
+            reject(new Error(`[${roomId}] Disconnected: ${reason}`));
+          } else {
+            this.log(`[${agentName}] [${roomId}] Disconnected (${reason}), reconnecting...`);
+          }
+        },
       });
     });
-  }
-
-  private async notifyDisconnected(serverUrl: string, agentId: string, agentName: string): Promise<void> {
-    try {
-      await fetch(`${serverUrl}/agents/${agentId}/disconnect`, { method: "POST" });
-    } catch {
-      this.log(`[${agentName}] Could not notify server of disconnect (server may be down)`);
-    }
-  }
-
-  private async registerAgent(serverUrl: string, name: string): Promise<string> {
-    const url = `${serverUrl}/agents/register`;
-    let response: Response;
-
-    try {
-      response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, hostname: hostname() }),
-      });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.error(`Could not reach server at ${serverUrl}: ${message}`, { exit: 1 });
-    }
-
-    if (response.status === 409) {
-      const body = await response.json().catch(() => ({})) as { message?: string };
-      this.error(body.message ?? `Agent "${name}" is already connected.`, { exit: 1 });
-    }
-
-    if (!response.ok) {
-      this.error(`Server registration failed (HTTP ${response.status})`, { exit: 1 });
-    }
-
-    const agent = await response.json() as { id: string };
-    return agent.id;
   }
 }

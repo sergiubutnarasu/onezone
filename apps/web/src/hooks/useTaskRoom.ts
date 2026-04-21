@@ -1,44 +1,27 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { MessageType } from '@onezone/shared';
+import { reducer, initialState } from './useTaskRoom.reducer';
+import type { RoomMessage, ConnectedAgent } from './useTaskRoom.types';
 
-export interface RoomMessage {
-  id?: string;
-  roomId: string;
-  role: 'user' | 'agent' | 'system';
-  agentId?: string | null;
-  agentName?: string | null;
-  jobId?: string | null;
-  command?: string | null;
-  stream?: 'stdout' | 'stderr' | null;
-  exitCode?: number | null;
-  content: string;
-  messageType?: string | null;
-  ts: number;
-}
+export type { RoomMessage, ConnectedAgent };
 
-export interface ConnectedAgent {
-  agentId: string;
-  agentName: string;
-  taskId: string;
+function useReducerState<T>(initial: T): [T, (value: T) => void] {
+  const [val, dispatch] = useReducer((_: T, v: T) => v, initial);
+  return [val, dispatch];
 }
 
 const SERVER_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5026';
 
 export function useTaskRoom(taskId: string) {
-  const [messages, setMessages] = useState<RoomMessage[]>([]);
-  const [connectedAgents, setConnectedAgents] = useState<Map<string, ConnectedAgent>>(new Map());
-  const [isConnected, setIsConnected] = useState(false);
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const [isConnected, setIsConnected] = useReducerState(false);
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
     const socket = io(`${SERVER_URL}/chat`, {
-      auth: {
-        taskId,
-        role: 'user',
-      },
+      auth: { taskId, role: 'user' },
     });
 
     socketRef.current = socket;
@@ -47,120 +30,37 @@ export function useTaskRoom(taskId: string) {
     socket.on('disconnect', () => setIsConnected(false));
 
     socket.on('chat:message', (msg: RoomMessage) => {
-      setMessages((prev) => [...prev, msg]);
+      dispatch({ type: 'APPEND_MESSAGE', message: msg });
     });
 
     socket.on('output:line', (msg: RoomMessage) => {
-      setMessages((prev) => [...prev, msg]);
+      dispatch({ type: 'APPEND_MESSAGE', message: msg });
     });
 
     socket.on(
       'agent:command:start',
       (payload: { agentId: string; agentName: string; jobId: string; command: string; ts: number }) => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            roomId: `task:${taskId}`,
-            role: 'system',
-            agentId: payload.agentId,
-            agentName: payload.agentName,
-            jobId: payload.jobId,
-            command: payload.command,
-            content: `[${payload.agentName}] started: ${payload.command}`,
-            messageType: MessageType.CommandStart,
-            ts: payload.ts,
-          },
-        ]);
+        dispatch({ type: 'COMMAND_START', payload, taskId });
       },
     );
 
     socket.on(
       'agent:command:exit',
       (payload: { agentId: string; jobId: string; command: string; exitCode: number; ts: number }) => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            roomId: `task:${taskId}`,
-            role: 'system',
-            agentId: payload.agentId,
-            jobId: payload.jobId,
-            command: payload.command,
-            exitCode: payload.exitCode,
-            content: payload.command,
-            ts: payload.ts,
-          },
-        ]);
+        dispatch({ type: 'COMMAND_EXIT', payload, taskId });
       },
     );
 
     socket.on('agent:connected', (info: ConnectedAgent & { ts: number }) => {
-      setConnectedAgents((prev) => {
-        const next = new Map(prev);
-        next.set(info.agentId, { agentId: info.agentId, agentName: info.agentName, taskId: info.taskId });
-        return next;
-      });
-      setMessages((prev) => [
-        ...prev,
-        {
-          roomId: `task:${taskId}`,
-          role: 'system',
-          agentId: info.agentId,
-          agentName: info.agentName,
-          content: `${info.agentName} connected`,
-          ts: info.ts,
-        },
-      ]);
+      dispatch({ type: 'AGENT_CONNECTED', info });
     });
 
-    socket.on('agent:disconnected', (info: ConnectedAgent & { ts: number }) => {
-      setConnectedAgents((prev) => {
-        const next = new Map(prev);
-        next.delete(info.agentId);
-        return next;
-      });
-      setMessages((prev) => {
-        // Inject synthetic exit messages for any commands that started but never exited
-        const startedJobs = new Map<string, { command?: string | null; roomId: string }>();
-        const completedJobs = new Set<string>();
-        for (const msg of prev) {
-          if (msg.agentId !== info.agentId || !msg.jobId) continue;
-          if (msg.messageType === MessageType.CommandStart) {
-            startedJobs.set(msg.jobId, { command: msg.command, roomId: msg.roomId });
-          }
-          if (msg.exitCode != null || msg.messageType === MessageType.CommandExit) {
-            completedJobs.add(msg.jobId);
-          }
-        }
-        const syntheticExits: RoomMessage[] = [];
-        for (const [jobId, { command, roomId }] of startedJobs) {
-          if (!completedJobs.has(jobId)) {
-            syntheticExits.push({
-              roomId,
-              role: 'system',
-              agentId: info.agentId,
-              agentName: info.agentName,
-              jobId,
-              command,
-              exitCode: -1,
-              content: command ?? jobId,
-              ts: info.ts,
-            });
-          }
-        }
-        return [
-          ...prev,
-          ...syntheticExits,
-          {
-            roomId: `task:${taskId}`,
-            role: 'system',
-            agentId: info.agentId,
-            agentName: info.agentName,
-            content: `${info.agentName} disconnected`,
-            ts: info.ts,
-          },
-        ];
-      });
-    });
+    socket.on(
+      'agent:disconnected',
+      (info: { agentId: string; agentName?: string; ts: number }) => {
+        dispatch({ type: 'AGENT_DISCONNECTED', info });
+      },
+    );
 
     return () => {
       socket.disconnect();
@@ -180,12 +80,12 @@ export function useTaskRoom(taskId: string) {
   );
 
   const prependMessages = useCallback((msgs: RoomMessage[]) => {
-    setMessages(msgs);
+    dispatch({ type: 'SET_MESSAGES', messages: msgs });
   }, []);
 
   return {
-    messages,
-    connectedAgents: Array.from(connectedAgents.values()),
+    messages: state.messages,
+    connectedAgents: Array.from(state.connectedAgents.values()),
     isConnected,
     sendMessage,
     prependMessages,

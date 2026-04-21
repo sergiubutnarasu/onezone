@@ -1,15 +1,13 @@
 import { ConflictException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { randomUUID } from 'node:crypto';
+import { STALE_THRESHOLD_MS } from '@onezone/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface RegisterAgentInput {
   name: string;
   hostname: string;
 }
-
-/** Agents are considered stale if no heartbeat is received within this window. */
-const STALE_THRESHOLD_MS = 90_000; // 90 seconds
 
 @Injectable()
 export class AgentsService implements OnModuleInit {

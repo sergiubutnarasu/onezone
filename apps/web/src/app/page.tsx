@@ -73,7 +73,7 @@ export default function ProjectsPage() {
         <p className="text-gray-500">No projects yet. Create one to get started.</p>
       ) : (
         <ul className="space-y-3">
-          {projects.map((p: { id: string; name: string; description?: string; createdAt: string }) => (
+          {projects.map((p) => (
             <li key={p.id} className="border rounded p-4 hover:bg-gray-50">
               <Link href={`/projects/${p.id}`} className="block">
                 <div className="font-medium text-blue-700">{p.name}</div>

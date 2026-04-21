@@ -1,0 +1,59 @@
+// apps/server/src/gateways/message-handlers/output-line.handler.ts
+
+import { Injectable, Logger } from '@nestjs/common';
+import { MessageRole, MessageStream } from '@onezone/shared';
+import { Server, Socket } from 'socket.io';
+import { MessagesService } from '../../messages/messages.service';
+import { extractTaskId } from '@onezone/shared';
+import { IMessageHandler } from './message-handler.interface';
+
+export interface OutputLineData {
+  roomId: string;
+  agentId: string;
+  agentName: string;
+  jobId?: string;
+  command?: string;
+  stream: MessageStream;
+  content: string;
+}
+
+@Injectable()
+export class OutputLineHandler implements IMessageHandler<OutputLineData> {
+  private readonly logger = new Logger(OutputLineHandler.name);
+
+  constructor(private readonly messagesService: MessagesService) {}
+
+  async handle(
+    data: OutputLineData,
+    client: Socket,
+    server?: Server,
+  ): Promise<{ status: 'ok' | 'error' }> {
+    try {
+      const taskId = extractTaskId(data.roomId);
+      const ts = Date.now();
+
+      const message = await this.messagesService.create({
+        roomId: data.roomId,
+        taskId,
+        role: MessageRole.Agent,
+        agentId: data.agentId,
+        agentName: data.agentName,
+        jobId: data.jobId,
+        command: data.command,
+        stream: data.stream,
+        content: data.content,
+        ts,
+      });
+
+      server
+        ?.to(data.roomId)
+        .emit('output:line', { ...message, ts: Number(message.ts) });
+
+      return { status: 'ok' };
+    } catch (error) {
+      this.logger.error('Failed to handle output:line', error);
+      client.emit('error', { message: 'Failed to save output line' });
+      return { status: 'error' };
+    }
+  }
+}
