@@ -5,11 +5,12 @@ import {
   Put,
   Body,
   Param,
+  Query,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
-import { ReorderTasksDto } from './tasks.dto';
+import { ListTasksQueryDto, ReorderTasksDto } from './tasks.dto';
 
 @Controller('projects/:projectId/tasks')
 export class ProjectTasksController {
@@ -25,8 +26,11 @@ export class ProjectTasksController {
   }
 
   @Get()
-  findAll(@Param('projectId') projectId: string) {
-    return this.tasksService.findAllByProject(projectId);
+  findAll(
+    @Param('projectId') projectId: string,
+    @Query() query: ListTasksQueryDto,
+  ) {
+    return this.tasksService.findAllByProject(projectId, query.status);
   }
 
   @Get(':taskId')

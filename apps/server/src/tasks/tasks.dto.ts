@@ -1,6 +1,6 @@
-import { IsArray, IsEnum, IsInt, IsUUID, Min, ValidateNested } from 'class-validator';
+import { IsArray, IsEnum, IsInt, IsOptional, IsUUID, Min, ValidateNested } from 'class-validator';
 import { TaskStatus } from '@prisma/client';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 
 export class TaskOrderItemDto {
   @IsUUID()
@@ -19,6 +19,14 @@ export class ReorderTasksDto {
   @ValidateNested({ each: true })
   @Type(() => TaskOrderItemDto)
   tasks!: TaskOrderItemDto[];
+}
+
+export class ListTasksQueryDto {
+  @IsOptional()
+  @IsArray()
+  @IsEnum(TaskStatus, { each: true })
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+  status?: TaskStatus[];
 }
 
 export class UpdateTaskStatusDto {

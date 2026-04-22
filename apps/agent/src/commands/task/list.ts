@@ -1,11 +1,13 @@
 import { Command, Flags } from "@oclif/core";
-import { Task } from "@onezone/shared";
+import { Task, TaskStatus } from "@onezone/shared";
 
 export default class TaskList extends Command {
   static description = "List all tasks for a project";
 
   static examples = [
     "<%= config.bin %> task list --project <uuid>",
+    "<%= config.bin %> task list --project <uuid> --status TODO",
+    "<%= config.bin %> task list --project <uuid> --status IN_PROGRESS --status TODO",
     "<%= config.bin %> task list --project <uuid> --server http://localhost:5026",
   ];
 
@@ -18,6 +20,11 @@ export default class TaskList extends Command {
       description: "Server URL",
       default: "http://localhost:5026",
     }),
+    status: Flags.string({
+      description: "Filter by status (can be repeated)",
+      options: Object.values(TaskStatus),
+      multiple: true,
+    }),
   };
 
   async run(): Promise<void> {
@@ -25,9 +32,11 @@ export default class TaskList extends Command {
 
     let tasks: Task[];
     try {
-      const response = await fetch(
-        `${flags.server}/projects/${flags.project}/tasks`,
-      );
+      const url = new URL(`${flags.server}/projects/${flags.project}/tasks`);
+      if (flags.status && flags.status.length > 0) {
+        for (const s of flags.status) url.searchParams.append('status', s);
+      }
+      const response = await fetch(url.toString());
       if (!response.ok) {
         this.error(
           `Server returned ${response.status}: ${response.statusText}`,

@@ -23,9 +23,9 @@ export class TasksService {
     return task;
   }
 
-  async findAllByProject(projectId: string) {
+  async findAllByProject(projectId: string, status?: TaskStatus[]) {
     return this.prisma.task.findMany({
-      where: { projectId },
+      where: { projectId, ...(status && status.length > 0 ? { status: { in: status } } : {}) },
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
       include: { agent: true },
     });
