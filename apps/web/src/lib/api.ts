@@ -46,5 +46,7 @@ export const updateTaskStatus = (taskId: string, status: TaskStatus) =>
 
 export const fetchAgents = () => httpClient.get<Agent[]>('/agents');
 
+export const deleteTask = (taskId: string) => httpClient.delete<void>(`/tasks/${taskId}`);
+
 export const reorderTasks = (projectId: string, tasks: TaskOrderItem[]) =>
   httpClient.put<Task[]>(`/projects/${projectId}/tasks/reorder`, { tasks });

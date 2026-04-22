@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useMemo } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { fetchTask, fetchMessages, fetchAgents, assignTaskAgent } from '@/lib/api';
+import { fetchTask, fetchMessages, fetchAgents, assignTaskAgent, deleteTask } from '@/lib/api';
 import { useTaskRoom } from '@/hooks/useTaskRoom';
 import { MessageType } from '@onezone/shared';
 import { MessageLine } from '@/components/MessageLine';
@@ -106,6 +106,7 @@ function buildChatItems(messages: RoomMessage[]): ChatItem[] {
 export default function TaskChatPage() {
   const { id: projectId, taskId } = useParams<{ id: string; taskId: string }>();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
   const qc = useQueryClient();
 
   const { data: task } = useQuery({
@@ -122,6 +123,20 @@ export default function TaskChatPage() {
     mutationFn: (agentId: string) => assignTaskAgent(taskId, agentId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['task', taskId] }),
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteTask(taskId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tasks', projectId] });
+      router.push(`/projects/${projectId}`);
+    },
+  });
+
+  function handleDelete() {
+    if (confirm(`Delete task "${task?.name}"? This cannot be undone.`)) {
+      deleteMutation.mutate();
+    }
+  }
 
   const { data: history = [] } = useQuery({
     queryKey: ['messages', taskId],
@@ -179,6 +194,13 @@ export default function TaskChatPage() {
             >
               {isConnected ? 'connected' : 'disconnected'}
             </span>
+            <button
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
+              className="text-xs px-2 py-0.5 rounded bg-red-900 text-red-300 hover:bg-red-800 disabled:opacity-50"
+            >
+              {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+            </button>
           </div>
         </div>
       </div>
