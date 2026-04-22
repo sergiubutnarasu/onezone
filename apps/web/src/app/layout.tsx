@@ -32,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <div className="flex min-h-screen">
             <AppNav />
-            <main className="flex-1 min-w-0">{children}</main>
+            <main className="flex-1 min-w-0 pt-12 md:pt-0">{children}</main>
           </div>
         </Providers>
       </body>
