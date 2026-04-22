@@ -29,6 +29,15 @@ export class AgentRegistryService {
     this.agentSocketIds.delete(agentId);
   }
 
+  disconnectAgent(agentId: string): void {
+    const socketId = this.agentSocketIds.get(agentId);
+    if (socketId && this.server) {
+      this.logger.log(`Force-disconnecting agent ${agentId} (socket ${socketId})`);
+      this.server.to(socketId).disconnectSockets(true);
+    }
+    this.agentSocketIds.delete(agentId);
+  }
+
   registerTaskSocket(taskId: string, socketId: string): void {
     const existing = this.taskAgentSockets.get(taskId);
     if (existing && existing !== socketId && this.server) {

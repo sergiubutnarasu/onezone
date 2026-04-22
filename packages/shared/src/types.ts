@@ -78,6 +78,7 @@ export interface Agent {
   isConnected: boolean;
   lastSeenAt: string | null;
   createdAt: string;
+  pendingTaskCount?: number;
 }
 
 // --- Chat message ---

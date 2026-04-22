@@ -1,16 +1,28 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { fetchAgents } from '@/lib/api';
+import { fetchAgents, deleteAgent } from '@/lib/api';
 import type { Agent } from '@onezone/shared';
 
 export default function AgentsPage() {
+  const qc = useQueryClient();
   const { data: agents = [], isLoading } = useQuery<Agent[]>({
     queryKey: ['agents'],
     queryFn: fetchAgents,
     refetchInterval: 10_000,
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (agentId: string) => deleteAgent(agentId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['agents'] }),
+  });
+
+  function handleDelete(agent: Agent) {
+    if (confirm(`Delete agent "${agent.name}"? This will disconnect it if connected.`)) {
+      deleteMutation.mutate(agent.id);
+    }
+  }
 
   if (isLoading) return <div className="p-8">Loading...</div>;
 
@@ -38,7 +50,7 @@ export default function AgentsPage() {
                 <div className="text-sm text-gray-500">{agent.hostname}</div>
                 <div className="text-xs text-gray-400 mt-1 font-mono">{agent.id}</div>
               </div>
-              <div className="flex flex-col items-end gap-1">
+              <div className="flex flex-col items-end gap-2">
                 <span
                   className={`inline-flex items-center gap-1.5 text-sm font-medium px-2.5 py-0.5 rounded-full ${
                     agent.isConnected
@@ -58,6 +70,23 @@ export default function AgentsPage() {
                     Last seen {new Date(agent.lastSeenAt).toLocaleString()}
                   </span>
                 )}
+                <button
+                  onClick={() => handleDelete(agent)}
+                  disabled={
+                    (deleteMutation.isPending && deleteMutation.variables === agent.id) ||
+                    (agent.pendingTaskCount ?? 0) > 0
+                  }
+                  title={
+                    (agent.pendingTaskCount ?? 0) > 0
+                      ? `${agent.pendingTaskCount} task(s) not done — reassign or complete them first`
+                      : undefined
+                  }
+                  className="text-xs px-2 py-0.5 rounded bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {deleteMutation.isPending && deleteMutation.variables === agent.id
+                    ? 'Deleting…'
+                    : 'Delete'}
+                </button>
               </div>
             </div>
           ))}

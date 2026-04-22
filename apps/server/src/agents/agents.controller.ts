@@ -1,4 +1,4 @@
-import { Body, Controller, Get, NotFoundException, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, NotFoundException, Param, Post } from '@nestjs/common';
 import { AgentsService } from './agents.service';
 import { AgentRegistryService } from '../gateways/agent-registry.service';
 import { AssignTaskDto, RegisterAgentDto } from './agents.dto';
@@ -32,5 +32,11 @@ export class AgentsController {
       throw new NotFoundException(`Agent ${agentId} is not currently connected`);
     }
     return { agentId, taskId: dto.taskId };
+  }
+
+  @Delete(':agentId')
+  async delete(@Param('agentId') agentId: string) {
+    this.agentRegistry.disconnectAgent(agentId);
+    return this.agentsService.delete(agentId);
   }
 }

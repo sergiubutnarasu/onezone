@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { randomUUID } from 'node:crypto';
 import { STALE_THRESHOLD_MS } from '@onezone/shared';
@@ -33,7 +33,19 @@ export class AgentsService implements OnModuleInit {
   findAll() {
     return this.prisma.agent.findMany({
       orderBy: [{ isConnected: 'desc' }, { name: 'asc' }],
-    });
+      include: {
+        _count: {
+          select: {
+            tasks: { where: { status: { not: 'DONE' } } },
+          },
+        },
+      },
+    }).then((agents) =>
+      agents.map(({ _count, ...agent }) => ({
+        ...agent,
+        pendingTaskCount: _count.tasks,
+      }))
+    );
   }
 
   /**
@@ -101,6 +113,22 @@ export class AgentsService implements OnModuleInit {
       data: { isConnected: false, lastSeenAt: new Date() },
     });
     this.logger.log(`Agent disconnected: ${agent.id} (${agent.name})`);
+    return agent;
+  }
+
+  async delete(agentId: string) {
+    const agent = await this.prisma.agent.findUnique({ where: { id: agentId } });
+    if (!agent) throw new NotFoundException(`Agent ${agentId} not found`);
+
+    const taskCount = await this.prisma.task.count({ where: { agentId } });
+    if (taskCount > 0) {
+      throw new ConflictException(
+        `Agent "${agent.name}" has ${taskCount} task(s) assigned. Reassign or delete them first.`,
+      );
+    }
+
+    await this.prisma.agent.delete({ where: { id: agentId } });
+    this.logger.log(`Deleted agent ${agentId} (${agent.name})`);
     return agent;
   }
 }
