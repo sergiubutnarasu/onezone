@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bot, Trash2, Clock, Wifi, WifiOff } from 'lucide-react';
+import { CopyButton } from '@/components/CopyButton';
 import { fetchAgents, deleteAgent } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -92,7 +93,10 @@ export default function AgentsPage() {
                       <div className="min-w-0">
                         <p className="font-medium text-sm truncate">{agent.name}</p>
                         <p className="text-xs text-muted-foreground truncate">{agent.hostname}</p>
-                        <p className="text-[11px] text-muted-foreground/60 font-mono mt-1 truncate">{agent.id}</p>
+                        <div className="flex items-center gap-1 mt-1">
+                          <p className="text-[11px] text-muted-foreground/60 font-mono truncate">{agent.id}</p>
+                          <CopyButton value={agent.id} />
+                        </div>
                         {agent.lastSeenAt && (
                           <div className="flex items-center gap-1 mt-1.5">
                             <Clock className="size-3 text-muted-foreground/60" />

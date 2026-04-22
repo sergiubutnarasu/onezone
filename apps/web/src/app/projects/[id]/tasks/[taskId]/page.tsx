@@ -12,6 +12,7 @@ import { MessageLine } from '@/components/MessageLine';
 import { CommandGroup, type CommandGroupData } from '@/components/CommandGroup';
 import { AgentStatusBar } from '@/components/AgentStatusBar';
 import { MessageInput } from '@/components/MessageInput';
+import { CopyButton } from '@/components/CopyButton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -198,7 +199,13 @@ export default function TaskChatPage() {
           </div>
 
           <div className="flex items-center justify-between gap-3">
-            <h1 className="font-semibold text-sm truncate">{task?.name ?? 'Loading…'}</h1>
+            <div className="min-w-0">
+              <h1 className="font-semibold text-sm truncate">{task?.name ?? 'Loading…'}</h1>
+              <div className="flex items-center gap-1">
+                <p className="text-xs text-muted-foreground font-mono">{taskId}</p>
+                <CopyButton value={taskId} />
+              </div>
+            </div>
 
             <div className="flex items-center gap-2 shrink-0">
               {/* Connection badge */}

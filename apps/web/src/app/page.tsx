@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Plus, FolderOpen, ArrowUpRight, Calendar, Layers } from 'lucide-react';
+import { CopyButton } from '@/components/CopyButton';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { fetchProjects, createProject } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,6 +64,7 @@ export default function ProjectsPage() {
   });
 
   return (
+    <TooltipProvider>
     <div className="p-8 max-w-3xl">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
@@ -156,6 +159,10 @@ export default function ProjectsPage() {
                           <Calendar className="size-3" />
                           {formatDate(p.createdAt)}
                         </span>
+                        <span className="flex items-center gap-1" onClick={(e) => e.preventDefault()}>
+                          <span className="text-xs text-muted-foreground font-mono">{p.id}</span>
+                          <CopyButton value={p.id} />
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -166,5 +173,6 @@ export default function ProjectsPage() {
         )}
       </div>
     </div>
+    </TooltipProvider>
   );
 }
