@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Home, ChevronRight, Trash2, Wifi, WifiOff } from 'lucide-react';
-import { fetchTask, fetchMessages, fetchAgents, assignTaskAgent, deleteTask } from '@/lib/api';
+import { fetchTask, fetchMessages, fetchAgents, assignTaskAgent, deleteTask, updateTaskStatus } from '@/lib/api';
 import { useTaskRoom } from '@/hooks/useTaskRoom';
 import { MessageType } from '@onezone/shared';
 import { MessageLine } from '@/components/MessageLine';
@@ -16,7 +16,6 @@ import { CopyButton } from '@/components/CopyButton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Select,
@@ -25,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Agent } from '@onezone/shared';
+import { TaskStatus, TASK_STATUS_LABELS, TASK_STATUS_COLUMNS, type Agent } from '@onezone/shared';
 import type { RoomMessage } from '@/hooks/useTaskRoom';
 
 type ChatItem =
@@ -141,6 +140,14 @@ export default function TaskChatPage() {
     },
   });
 
+  const statusMutation = useMutation({
+    mutationFn: (status: TaskStatus) => updateTaskStatus(taskId, status),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['task', taskId] });
+      qc.invalidateQueries({ queryKey: ['tasks', projectId] });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: () => deleteTask(taskId),
     onSuccess: () => {
@@ -222,6 +229,26 @@ export default function TaskChatPage() {
                 }
                 {isConnected ? 'Connected' : 'Disconnected'}
               </Badge>
+
+              {/* Status selector */}
+              <Select
+                value={task?.status ?? ''}
+                disabled={statusMutation.isPending}
+                onValueChange={(v) => { if (v) statusMutation.mutate(v as TaskStatus); }}
+              >
+                <SelectTrigger className="h-7 text-xs w-32 bg-muted/50">
+                  <SelectValue placeholder="Status…">
+                    {(v: string) => TASK_STATUS_LABELS[v as TaskStatus] ?? v}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {TASK_STATUS_COLUMNS.map((s) => (
+                    <SelectItem key={s} value={s} className="text-xs">
+                      {TASK_STATUS_LABELS[s]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
               {/* Agent selector */}
               <Select
