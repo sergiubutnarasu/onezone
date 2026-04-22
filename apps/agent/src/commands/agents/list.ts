@@ -1,18 +1,18 @@
-import { Command, Flags } from '@oclif/core';
-import { Agent } from '@onezone/shared';
+import { Command, Flags } from "@oclif/core";
+import { Agent } from "@onezone/shared";
 
 export default class AgentsList extends Command {
-  static description = 'List all agents registered on the server';
+  static description = "List all agents registered on the server";
 
   static examples = [
-    '<%= config.bin %> agents list',
-    '<%= config.bin %> agents list --server http://localhost:5026',
+    "<%= config.bin %> agents list",
+    "<%= config.bin %> agents list --server http://localhost:5026",
   ];
 
   static flags = {
     server: Flags.string({
-      description: 'Server URL',
-      default: 'http://localhost:5026',
+      description: "Server URL",
+      default: "http://localhost:5026",
     }),
   };
 
@@ -23,7 +23,10 @@ export default class AgentsList extends Command {
     try {
       const response = await fetch(`${flags.server}/agents`);
       if (!response.ok) {
-        this.error(`Server returned ${response.status}: ${response.statusText}`, { exit: 1 });
+        this.error(
+          `Server returned ${response.status}: ${response.statusText}`,
+          { exit: 1 },
+        );
       }
       agents = (await response.json()) as Agent[];
     } catch (err: unknown) {
@@ -32,7 +35,7 @@ export default class AgentsList extends Command {
     }
 
     if (agents.length === 0) {
-      this.log('No agents registered.');
+      this.log("No agents registered.");
       return;
     }
 
@@ -41,18 +44,32 @@ export default class AgentsList extends Command {
     const statusWidth = 12;
 
     const header =
-      'ID'.padEnd(idWidth) + '  ' + 'Name'.padEnd(nameWidth) + '  ' + 'Status'.padEnd(statusWidth);
+      "ID".padEnd(idWidth) +
+      "  " +
+      "Name".padEnd(nameWidth) +
+      "  " +
+      "Status".padEnd(statusWidth);
     const divider =
-      '-'.repeat(idWidth) + '  ' + '-'.repeat(nameWidth) + '  ' + '-'.repeat(statusWidth);
+      "-".repeat(idWidth) +
+      "  " +
+      "-".repeat(nameWidth) +
+      "  " +
+      "-".repeat(statusWidth);
 
     this.log(header);
     this.log(divider);
 
     for (const agent of agents) {
-      const status = agent.isConnected ? 'connected' : 'disconnected';
+      const status = agent.isConnected ? "connected" : "disconnected";
       this.log(
-        agent.id.padEnd(idWidth) + '  ' + agent.name.padEnd(nameWidth) + '  ' + status,
+        agent.id.padEnd(idWidth) +
+          "  " +
+          agent.name.padEnd(nameWidth) +
+          "  " +
+          status,
       );
     }
+
+    this.log(divider);
   }
 }

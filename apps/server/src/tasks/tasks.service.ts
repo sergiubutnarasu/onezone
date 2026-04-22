@@ -29,6 +29,7 @@ export class TasksService {
     return this.prisma.task.findMany({
       where: { projectId },
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+      include: { agent: true },
     });
   }
 

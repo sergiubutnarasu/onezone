@@ -62,6 +62,7 @@ export interface Task {
   status: TaskStatus;
   order: number;
   agentId?: string | null;
+  agent?: Pick<Agent, "id" | "name"> | null;
   createdAt: string;
 }
 
