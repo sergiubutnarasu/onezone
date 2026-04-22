@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AssignTaskPayload, EventCommands } from '@onezone/shared';
+import { AssignTaskPayload, EventCommands, createTaskRoomId } from '@onezone/shared';
 import { Server } from 'socket.io';
 
 /**
@@ -59,6 +59,15 @@ export class AgentRegistryService {
     if (this.taskAgentSockets.get(taskId) === socketId) {
       this.taskAgentSockets.delete(taskId);
     }
+  }
+
+  cleanupTaskRoom(taskId: string): void {
+    if (!this.server) return;
+    const roomId = createTaskRoomId(taskId);
+    this.server.to(roomId).emit(EventCommands.TaskDeleted, { taskId });
+    this.server.in(roomId).disconnectSockets(true);
+    this.taskAgentSockets.delete(taskId);
+    this.logger.log(`Cleaned up room for deleted task ${taskId}`);
   }
 
   getSocketId(agentId: string): string | undefined {

@@ -144,7 +144,9 @@ export default function TaskChatPage() {
   });
 
   const { messages, connectedAgents, isConnected, sendMessage, prependMessages } =
-    useTaskRoom(taskId);
+    useTaskRoom(taskId, {
+      onTaskDeleted: () => router.push(`/projects/${projectId}`),
+    });
 
   // Load history into the room on mount
   useEffect(() => {

@@ -129,7 +129,7 @@ export default class Listen extends Command {
   ): Promise<void> {
     const roomId = createTaskRoomId(taskId);
 
-    return new Promise<void>((_, reject) => {
+    return new Promise<void>((resolve, reject) => {
       const activeProcesses = new Map<string, ReturnType<typeof runProcess>>();
 
       const { socket } = createTaskSocket(serverUrl, taskId, agentId, agentName, {
@@ -139,6 +139,11 @@ export default class Listen extends Command {
           );
         },
         onMessage: (event, payload) => {
+          if (event === EventCommands.TaskDeleted) {
+            this.log(`[${agentName}] [${roomId}] Task deleted, disconnecting...`);
+            this.activeTaskIds.delete(taskId);
+            return;
+          }
           if (event !== EventCommands.ChatMessage) return;
           const message = payload as ChatMessage;
           if (message.role !== MessageRole.User) return;
@@ -197,8 +202,13 @@ export default class Listen extends Command {
         },
         onDisconnect: (_, reason) => {
           if (reason === 'io server disconnect') {
-            this.activeTaskIds.delete(taskId);
-            reject(new Error(`[${roomId}] Disconnected: ${reason}`));
+            if (!this.activeTaskIds.has(taskId)) {
+              // Task was deleted — clean exit
+              resolve();
+            } else {
+              this.activeTaskIds.delete(taskId);
+              reject(new Error(`[${roomId}] Disconnected: ${reason}`));
+            }
           } else {
             this.log(`[${agentName}] [${roomId}] Disconnected (${reason}), reconnecting...`);
           }

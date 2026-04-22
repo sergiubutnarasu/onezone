@@ -9,6 +9,7 @@ export enum EventCommands {
   AgentCommandExit = "agent:command:exit",
   AgentHeartbeat = "agent:heartbeat",
   AssignTask = "agent:assign-task",
+  TaskDeleted = "task:deleted",
 }
 
 export enum MessageRole {
@@ -126,6 +127,7 @@ export interface ServerToClientEvents {
   }) => void;
   [EventCommands.AgentDisconnected]: (payload: { agentId: string }) => void;
   [EventCommands.AssignTask]: (payload: AssignTaskPayload) => void;
+  [EventCommands.TaskDeleted]: (payload: { taskId: string }) => void;
 }
 
 export interface ClientToServerEvents {

@@ -67,6 +67,7 @@ export class TasksService {
 
   async remove(id: string) {
     await this.findOne(id);
+    this.agentRegistry.cleanupTaskRoom(id);
     const task = await this.prisma.task.delete({ where: { id } });
     this.logger.log(`Deleted task ${id}`);
     return task;
