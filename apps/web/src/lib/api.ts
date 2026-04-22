@@ -30,10 +30,10 @@ export const fetchTasks = (projectId: string) =>
 
 export const createTask = (
   projectId: string,
-  data: { name: string; description?: string; agentId?: string | null },
+  data: { name: string; description?: string; agentId: string },
 ) => httpClient.post<Task>(`/projects/${projectId}/tasks`, data);
 
-export const assignTaskAgent = (taskId: string, agentId: string | null) =>
+export const assignTaskAgent = (taskId: string, agentId: string) =>
   httpClient.patch<Task>(`/tasks/${taskId}/agent`, { agentId });
 
 export const fetchTask = (taskId: string) => httpClient.get<Task>(`/tasks/${taskId}`);

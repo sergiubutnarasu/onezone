@@ -119,7 +119,7 @@ export default function TaskChatPage() {
   });
 
   const assignMutation = useMutation({
-    mutationFn: (agentId: string | null) => assignTaskAgent(taskId, agentId),
+    mutationFn: (agentId: string) => assignTaskAgent(taskId, agentId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['task', taskId] }),
   });
 
@@ -161,9 +161,8 @@ export default function TaskChatPage() {
               className="text-xs bg-gray-800 border border-gray-600 rounded px-2 py-1 text-gray-200"
               value={task?.agentId ?? ''}
               disabled={assignMutation.isPending}
-              onChange={(e) => assignMutation.mutate(e.target.value || null)}
+              onChange={(e) => { if (e.target.value) assignMutation.mutate(e.target.value); }}
             >
-              <option value="">No agent</option>
               {agents.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.isConnected ? '● ' : '○ '}

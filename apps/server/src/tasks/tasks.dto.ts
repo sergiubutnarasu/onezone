@@ -1,4 +1,4 @@
-import { IsArray, IsEnum, IsInt, IsOptional, IsUUID, Min, ValidateNested } from 'class-validator';
+import { IsArray, IsEnum, IsInt, IsUUID, Min, ValidateNested } from 'class-validator';
 import { TaskStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 
@@ -28,6 +28,5 @@ export class UpdateTaskStatusDto {
 
 export class AssignAgentDto {
   @IsUUID()
-  @IsOptional()
-  agentId!: string | null;
+  agentId!: string;
 }

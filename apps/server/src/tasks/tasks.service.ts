@@ -13,15 +13,13 @@ export class TasksService {
     private readonly agentRegistry: AgentRegistryService,
   ) {}
 
-  async create(projectId: string, data: { name: string; description?: string; agentId?: string }) {
+  async create(projectId: string, data: { name: string; description?: string; agentId: string }) {
     const count = await this.prisma.task.count({ where: { projectId, status: 'BACKLOG' } });
     const task = await this.prisma.task.create({
       data: { ...data, projectId, order: count },
     });
     this.logger.log(`Created task ${task.id} for project ${projectId}`);
-    if (data.agentId) {
-      this.agentRegistry.assignTask(data.agentId, task.id);
-    }
+    this.agentRegistry.assignTask(data.agentId, task.id);
     return task;
   }
 
@@ -81,18 +79,15 @@ export class TasksService {
     });
   }
 
-  async assignAgent(id: string, agentId: string | null) {
+  async assignAgent(id: string, agentId: string) {
     await this.findOne(id);
     const task = await this.prisma.task.update({
       where: { id },
       data: { agentId },
     });
     this.logger.log(`Assigned agent ${agentId} to task ${id}`);
-    // Evict whatever agent is currently in the task room before notifying the new one.
     this.agentRegistry.evictTaskAgent(id);
-    if (agentId) {
-      this.agentRegistry.assignTask(agentId, id);
-    }
+    this.agentRegistry.assignTask(agentId, id);
     return task;
   }
 }

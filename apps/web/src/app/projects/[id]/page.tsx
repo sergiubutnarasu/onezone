@@ -32,7 +32,7 @@ export default function ProjectPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: () => createTask(id, { name, description, agentId: agentId || null }),
+    mutationFn: () => createTask(id, { name, description, agentId }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['tasks', id] });
       setName('');
@@ -61,7 +61,9 @@ export default function ProjectPage() {
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          disabled={agents.length === 0}
+          title={agents.length === 0 ? 'No agents available' : undefined}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           New Task
         </button>
@@ -85,15 +87,16 @@ export default function ProjectPage() {
             className="block w-full border rounded px-3 py-2 mb-3 bg-white"
             value={agentId}
             onChange={(e) => setAgentId(e.target.value)}
+            required
           >
-            <option value="">No agent assigned</option>
+            <option value="" disabled>Select an agent</option>
             {agents.map((a) => (
               <option key={a.id} value={a.id}>{a.isConnected ? '● ' : '○ '}{a.name}</option>
             ))}
           </select>
           <button
             onClick={() => createMutation.mutate()}
-            disabled={!name || createMutation.isPending}
+            disabled={!name || !agentId || createMutation.isPending}
             className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
           >
             {createMutation.isPending ? 'Creating...' : 'Create'}

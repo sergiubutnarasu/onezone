@@ -39,8 +39,8 @@ model Task {
   description String?
   status      TaskStatus @default(BACKLOG)
   order       Int        @default(0)
-  agentId     String?
-  agent       Agent?     @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  agentId     String
+  agent       Agent      @relation(fields: [agentId], references: [id], onDelete: Restrict)
   createdAt   DateTime  @default(now())
   messages    Message[]
 
