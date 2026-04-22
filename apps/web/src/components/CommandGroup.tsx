@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import type { RoomMessage } from '@/hooks/useTaskRoom';
 
 export interface CommandGroupData {
@@ -20,26 +21,32 @@ export function CommandGroup({ group }: { group: CommandGroupData }) {
   const startTime = new Date(group.startTs).toLocaleTimeString();
 
   return (
-    <div className="border border-gray-700 rounded mx-2 my-1 overflow-hidden">
+    <div className="border border-border/40 rounded-md mx-4 my-1.5 overflow-hidden bg-muted/10">
       {/* Header */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-750 text-left"
+        className="w-full flex items-center gap-2 px-3 py-2 bg-muted/20 hover:bg-muted/30 text-left transition-colors"
       >
-        <span className="text-gray-400 text-xs">{open ? '▾' : '▸'}</span>
-        <span className="text-yellow-400 font-mono text-xs truncate flex-1">
+        {open
+          ? <ChevronDown className="size-3 text-muted-foreground/60 shrink-0" />
+          : <ChevronRight className="size-3 text-muted-foreground/60 shrink-0" />
+        }
+        <span className="text-amber-400/80 font-mono text-xs truncate flex-1">
           $ {group.command}
         </span>
-        <span className="text-gray-500 text-xs shrink-0">{startTime}</span>
+        <span className="text-muted-foreground/40 text-xs shrink-0">{startTime}</span>
         {!isDone && (
-          <span className="text-blue-400 text-xs shrink-0">running…</span>
+          <span className="flex items-center gap-1 text-primary/70 text-xs shrink-0">
+            <Loader2 className="size-3 animate-spin" />
+            running
+          </span>
         )}
         {isDone && (
           <span
-            className={`text-xs shrink-0 px-1.5 py-0.5 rounded font-medium ${
+            className={`text-[11px] shrink-0 px-1.5 py-0.5 rounded font-medium ${
               failed
-                ? 'bg-red-900 text-red-300'
-                : 'bg-green-900 text-green-300'
+                ? 'bg-destructive/10 text-destructive border border-destructive/20'
+                : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
             }`}
           >
             {group.exitCode === -1 ? '✖ Interrupted' : failed ? `✖ Error (${group.exitCode})` : '✔ Done'}
@@ -49,14 +56,14 @@ export function CommandGroup({ group }: { group: CommandGroupData }) {
 
       {/* Output lines */}
       {open && group.lines.length > 0 && (
-        <div className="bg-gray-950 py-1">
+        <div className="bg-background/60 py-1">
           {group.lines.map((msg, i) => {
             const isStderr = msg.stream === 'stderr';
             return (
               <div
                 key={msg.id || i}
-                className={`font-mono text-xs px-3 py-0.5 whitespace-pre-wrap ${
-                  isStderr ? 'text-red-400' : 'text-green-300'
+                className={`font-mono text-xs px-3 py-0.5 whitespace-pre-wrap leading-relaxed ${
+                  isStderr ? 'text-rose-400/80' : 'text-emerald-300/80'
                 }`}
               >
                 {msg.content}
@@ -67,7 +74,7 @@ export function CommandGroup({ group }: { group: CommandGroupData }) {
       )}
 
       {open && group.lines.length === 0 && isDone && (
-        <div className="bg-gray-950 px-3 py-1 text-xs text-gray-600 italic">
+        <div className="bg-background/60 px-3 py-2 text-xs text-muted-foreground/40 italic">
           no output
         </div>
       )}

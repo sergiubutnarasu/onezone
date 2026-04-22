@@ -3,6 +3,7 @@
 import { DndContext, DragOverlay } from '@dnd-kit/core';
 import { useKanbanDnd } from '@/hooks/useKanbanDnd';
 import { TASK_STATUS_COLUMNS, type Task } from '@onezone/shared';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { KanbanCard } from './KanbanCard';
 import { KanbanColumn } from './KanbanColumn';
 
@@ -22,16 +23,19 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
     >
-      <div className="flex gap-4 overflow-x-auto pb-4">
-        {TASK_STATUS_COLUMNS.map((status) => (
-          <KanbanColumn
-            key={status}
-            status={status}
-            tasks={columns[status]}
-            projectId={projectId}
-          />
-        ))}
-      </div>
+      <ScrollArea className="w-full">
+        <div className="flex gap-4 pb-4">
+          {TASK_STATUS_COLUMNS.map((status) => (
+            <KanbanColumn
+              key={status}
+              status={status}
+              tasks={columns[status]}
+              projectId={projectId}
+            />
+          ))}
+        </div>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
 
       <DragOverlay>
         {activeTask && <KanbanCard task={activeTask} projectId={projectId} />}

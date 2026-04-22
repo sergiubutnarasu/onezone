@@ -3,9 +3,29 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Plus, ChevronRight, Home } from 'lucide-react';
 import Link from 'next/link';
 import { fetchProject, fetchTasks, fetchAgents, createTask } from '@/lib/api';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Agent, Task } from '@onezone/shared';
 
 export default function ProjectPage() {
@@ -14,7 +34,7 @@ export default function ProjectPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [agentId, setAgentId] = useState<string>('');
-  const [showForm, setShowForm] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const { data: project, isLoading: projectLoading } = useQuery({
     queryKey: ['project', id],
@@ -38,73 +58,131 @@ export default function ProjectPage() {
       setName('');
       setDescription('');
       setAgentId('');
-      setShowForm(false);
+      setOpen(false);
     },
   });
 
-  if (projectLoading || tasksLoading) return <div className="p-8">Loading...</div>;
+  const noAgents = agents.length === 0;
 
   return (
-    <div className="p-8">
-      <div className="mb-4">
-        <Link href="/" className="text-blue-600 hover:underline text-sm">
-          ← Projects
-        </Link>
-      </div>
+    <TooltipProvider>
+      <div className="flex flex-col h-full">
+        {/* Page header */}
+        <div className="px-8 pt-6 pb-4 border-b border-border/60">
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
+            <Link href="/" className="flex items-center gap-1 hover:text-foreground transition-colors">
+              <Home className="size-3" />
+              Projects
+            </Link>
+            <ChevronRight className="size-3" />
+            {projectLoading
+              ? <Skeleton className="h-3 w-24" />
+              : <span className="text-foreground">{project?.name}</span>
+            }
+          </div>
 
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">{project?.name}</h1>
-          {project?.description && (
-            <p className="text-gray-500 text-sm">{project.description}</p>
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              {projectLoading ? (
+                <>
+                  <Skeleton className="h-7 w-48 mb-1" />
+                  <Skeleton className="h-4 w-64" />
+                </>
+              ) : (
+                <>
+                  <h1 className="text-xl font-semibold tracking-tight">{project?.name}</h1>
+                  {project?.description && (
+                    <p className="text-sm text-muted-foreground mt-0.5">{project.description}</p>
+                  )}
+                </>
+              )}
+            </div>
+
+            <Tooltip>
+              <Dialog open={open} onOpenChange={setOpen}>
+                <TooltipTrigger
+                  render={
+                    <DialogTrigger
+                      render={<Button disabled={noAgents} />}
+                    />
+                  }
+                >
+                  <Plus data-icon="inline-start" />
+                  New Task
+                </TooltipTrigger>
+                {noAgents && (
+                  <TooltipContent>No agents available — start one first</TooltipContent>
+                )}
+
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Create task</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex flex-col gap-3 pt-2">
+                    <Input
+                      placeholder="Task name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      autoFocus
+                    />
+                    <Input
+                      placeholder="Description (optional)"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                    />
+                    <Select value={agentId} onValueChange={(v) => v != null && setAgentId(v)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue>
+                          {(v: string) => v
+                            ? (agents.find((a) => a.id === v)?.name ?? v)
+                            : <span className="text-muted-foreground">Select an agent</span>
+                          }
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {agents.map((a) => (
+                          <SelectItem key={a.id} value={a.id} label={a.name}>
+                            <span className={`mr-1.5 ${a.isConnected ? 'text-emerald-400' : 'text-muted-foreground'}`}>
+                              {a.isConnected ? '●' : '○'}
+                            </span>
+                            {a.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      onClick={() => createMutation.mutate()}
+                      disabled={!name || !agentId || createMutation.isPending}
+                      className="w-full mt-1"
+                    >
+                      {createMutation.isPending ? 'Creating…' : 'Create task'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </Tooltip>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Kanban area */}
+        <div className="flex-1 overflow-x-auto p-6">
+          {tasksLoading ? (
+            <div className="flex gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="flex flex-col gap-2 min-w-65 w-65">
+                  <Skeleton className="h-5 w-24" />
+                  <Skeleton className="h-[calc(100vh-240px)] w-full rounded-lg" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <KanbanBoard tasks={tasks as Task[]} projectId={id} />
           )}
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          disabled={agents.length === 0}
-          title={agents.length === 0 ? 'No agents available' : undefined}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          New Task
-        </button>
       </div>
-
-      {showForm && (
-        <div className="mb-6 p-4 border rounded bg-gray-50">
-          <input
-            className="block w-full border rounded px-3 py-2 mb-2"
-            placeholder="Task name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <input
-            className="block w-full border rounded px-3 py-2 mb-2"
-            placeholder="Description (optional)"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-          <select
-            className="block w-full border rounded px-3 py-2 mb-3 bg-white"
-            value={agentId}
-            onChange={(e) => setAgentId(e.target.value)}
-            required
-          >
-            <option value="" disabled>Select an agent</option>
-            {agents.map((a) => (
-              <option key={a.id} value={a.id}>{a.isConnected ? '● ' : '○ '}{a.name}</option>
-            ))}
-          </select>
-          <button
-            onClick={() => createMutation.mutate()}
-            disabled={!name || !agentId || createMutation.isPending}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
-          >
-            {createMutation.isPending ? 'Creating...' : 'Create'}
-          </button>
-        </div>
-      )}
-
-      <KanbanBoard tasks={tasks as Task[]} projectId={id} />
-    </div>
+    </TooltipProvider>
   );
 }

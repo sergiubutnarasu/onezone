@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
+import { SendHorizonal } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export function MessageInput({
   onSend,
@@ -22,22 +25,22 @@ export function MessageInput({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex gap-2 p-3 border-t border-gray-700"
+      className="flex gap-2 p-3 border-t border-border/50 bg-card/30"
     >
-      <input
-        className="flex-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-        placeholder={disabled ? 'Connecting...' : 'Type a message...'}
+      <Input
+        className="flex-1 font-mono text-sm bg-muted/30 border-border/50 focus-visible:border-primary/50"
+        placeholder={disabled ? 'Connecting…' : '$ Enter message or command…'}
         value={value}
         disabled={disabled}
         onChange={(e) => setValue(e.target.value)}
       />
-      <button
+      <Button
         type="submit"
+        size="icon"
         disabled={disabled || !value.trim()}
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50 text-sm"
       >
-        Send
-      </button>
+        <SendHorizonal />
+      </Button>
     </form>
   );
 }

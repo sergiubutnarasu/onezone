@@ -1,9 +1,28 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import Link from 'next/link';
+import { Bot, Trash2, Clock, Wifi, WifiOff } from 'lucide-react';
 import { fetchAgents, deleteAgent } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Agent } from '@onezone/shared';
+
+function AgentSkeleton() {
+  return (
+    <Card className="border-border/60">
+      <CardContent className="p-4 flex items-center justify-between">
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-3 w-28" />
+        </div>
+        <Skeleton className="h-6 w-20 rounded-full" />
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function AgentsPage() {
   const qc = useQueryClient();
@@ -24,74 +43,106 @@ export default function AgentsPage() {
     }
   }
 
-  if (isLoading) return <div className="p-8">Loading...</div>;
-
   return (
-    <div className="p-8 max-w-3xl mx-auto">
-      <div className="mb-4">
-        <Link href="/" className="text-blue-600 hover:underline text-sm">
-          ← Projects
-        </Link>
-      </div>
+    <TooltipProvider>
+      <div className="p-8 max-w-3xl">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-semibold tracking-tight">Agents</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Connected agents that can execute tasks
+          </p>
+        </div>
 
-      <h1 className="text-2xl font-bold mb-6">Agents</h1>
-
-      {agents.length === 0 ? (
-        <p className="text-gray-500">No agents registered yet.</p>
-      ) : (
-        <div className="space-y-3">
-          {agents.map((agent) => (
-            <div
-              key={agent.id}
-              className="flex items-center justify-between border rounded-lg p-4 bg-white shadow-sm"
-            >
-              <div>
-                <div className="font-medium">{agent.name}</div>
-                <div className="text-sm text-gray-500">{agent.hostname}</div>
-                <div className="text-xs text-gray-400 mt-1 font-mono">{agent.id}</div>
+        {/* Agent list */}
+        <div className="flex flex-col gap-3">
+          {isLoading ? (
+            <>
+              <AgentSkeleton />
+              <AgentSkeleton />
+            </>
+          ) : agents.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-20 text-center">
+              <div className="flex items-center justify-center size-12 rounded-xl bg-muted">
+                <Bot className="size-6 text-muted-foreground" />
               </div>
-              <div className="flex flex-col items-end gap-2">
-                <span
-                  className={`inline-flex items-center gap-1.5 text-sm font-medium px-2.5 py-0.5 rounded-full ${
-                    agent.isConnected
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-500'
-                  }`}
-                >
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      agent.isConnected ? 'bg-green-500' : 'bg-gray-400'
-                    }`}
-                  />
-                  {agent.isConnected ? 'Connected' : 'Disconnected'}
-                </span>
-                {agent.lastSeenAt && (
-                  <span className="text-xs text-gray-400">
-                    Last seen {new Date(agent.lastSeenAt).toLocaleString()}
-                  </span>
-                )}
-                <button
-                  onClick={() => handleDelete(agent)}
-                  disabled={
-                    (deleteMutation.isPending && deleteMutation.variables === agent.id) ||
-                    (agent.pendingTaskCount ?? 0) > 0
-                  }
-                  title={
-                    (agent.pendingTaskCount ?? 0) > 0
-                      ? `${agent.pendingTaskCount} task(s) not done — reassign or complete them first`
-                      : undefined
-                  }
-                  className="text-xs px-2 py-0.5 rounded bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {deleteMutation.isPending && deleteMutation.variables === agent.id
-                    ? 'Deleting…'
-                    : 'Delete'}
-                </button>
+              <div>
+                <p className="font-medium text-sm">No agents registered</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Start an agent with{' '}
+                  <code className="font-mono text-[11px] bg-muted px-1 py-0.5 rounded">
+                    pnpm dev listen --name &quot;My Agent&quot;
+                  </code>
+                </p>
               </div>
             </div>
-          ))}
+          ) : (
+            agents.map((agent) => (
+              <Card key={agent.id} className="border-border/60">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    {/* Left: agent info */}
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className={`mt-0.5 flex items-center justify-center size-8 rounded-md shrink-0 ${agent.isConnected ? 'bg-emerald-500/10' : 'bg-muted'}`}>
+                        {agent.isConnected
+                          ? <Wifi className="size-4 text-emerald-500" />
+                          : <WifiOff className="size-4 text-muted-foreground" />
+                        }
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{agent.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{agent.hostname}</p>
+                        <p className="text-[11px] text-muted-foreground/60 font-mono mt-1 truncate">{agent.id}</p>
+                        {agent.lastSeenAt && (
+                          <div className="flex items-center gap-1 mt-1.5">
+                            <Clock className="size-3 text-muted-foreground/60" />
+                            <span className="text-[11px] text-muted-foreground/60">
+                              {new Date(agent.lastSeenAt).toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Right: status + actions */}
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <Badge
+                        variant={agent.isConnected ? 'default' : 'secondary'}
+                        className={agent.isConnected ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' : ''}
+                      >
+                        <span className={`size-1.5 rounded-full mr-1.5 ${agent.isConnected ? 'bg-emerald-400' : 'bg-muted-foreground/50'}`} />
+                        {agent.isConnected ? 'Connected' : 'Disconnected'}
+                      </Badge>
+
+                      <Tooltip>
+                        <TooltipTrigger render={<span className="inline-flex" />}>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => handleDelete(agent)}
+                            disabled={
+                              (deleteMutation.isPending && deleteMutation.variables === agent.id) ||
+                              (agent.pendingTaskCount ?? 0) > 0
+                            }
+                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {(agent.pendingTaskCount ?? 0) > 0
+                            ? `${agent.pendingTaskCount} pending task(s) — reassign first`
+                            : 'Delete agent'}
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
-      )}
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }

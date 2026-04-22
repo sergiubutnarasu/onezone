@@ -3,20 +3,22 @@ import type { ConnectedAgent } from '@/hooks/useTaskRoom';
 export function AgentStatusBar({ agents }: { agents: ConnectedAgent[] }) {
   if (agents.length === 0) {
     return (
-      <div className="text-xs text-gray-500 px-4 py-1 border-b border-gray-700">
-        No agents connected
+      <div className="text-xs text-muted-foreground/50 px-4 py-1.5 border-b border-border/40 flex items-center gap-1.5">
+        <span className="size-1.5 rounded-full bg-muted-foreground/30" />
+        No agents in room
       </div>
     );
   }
 
   return (
-    <div className="flex gap-2 px-4 py-1 border-b border-gray-700 text-xs">
-      <span className="text-gray-400">Agents:</span>
+    <div className="flex items-center gap-2 px-4 py-1.5 border-b border-border/40 text-xs">
+      <span className="text-muted-foreground/60">In room:</span>
       {agents.map((a) => (
         <span
           key={a.agentId}
-          className="bg-green-900 text-green-300 px-2 py-0.5 rounded-full"
+          className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full"
         >
+          <span className="size-1.5 rounded-full bg-emerald-400" />
           {a.agentName}
         </span>
       ))}
