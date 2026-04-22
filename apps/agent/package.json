@@ -2,7 +2,7 @@
   "name": "@onezone/agent",
   "version": "0.0.1",
   "private": true,
-  "description": "OneZone Agent CLI",
+  "description": "Onezone Agent CLI",
   "type": "module",
   "bin": {
     "onezone-agent": "./bin/run.js"

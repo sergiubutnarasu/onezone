@@ -41,7 +41,7 @@ export function KanbanColumn({ status, tasks, projectId }: KanbanColumnProps) {
       <div
         ref={setNodeRef}
         className={cn(
-          'flex-1 rounded-lg border border-border/50 bg-muted/20 p-2 transition-colors',
+          'flex-1 rounded-lg border border-border/70 bg-muted/40 p-2 transition-colors',
           isOver && 'bg-primary/5 border-primary/40',
         )}
       >

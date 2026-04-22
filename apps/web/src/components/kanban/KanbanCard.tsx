@@ -34,7 +34,7 @@ export function KanbanCard({ task, projectId }: KanbanCardProps) {
     <div ref={setNodeRef} style={style} {...attributes}>
       <div
         className={cn(
-          'relative rounded-lg border border-border/40 bg-card overflow-hidden select-none',
+          'relative rounded-lg border border-border/70 bg-card overflow-hidden select-none',
           'transition-all duration-200',
           // glow on hover
           'hover:border-primary/40 hover:shadow-[0_0_0_1px_hsl(var(--primary)/0.15),0_4px_16px_-4px_hsl(var(--primary)/0.25)]',
@@ -48,7 +48,7 @@ export function KanbanCard({ task, projectId }: KanbanCardProps) {
           {/* Drag handle */}
           <button
             {...listeners}
-            className="flex items-center justify-center w-6 shrink-0 cursor-grab active:cursor-grabbing rounded-l-lg bg-muted/0 hover:bg-primary/10 transition-colors text-muted-foreground/30 hover:text-primary/70 group-hover:text-muted-foreground/50"
+            className="flex items-center justify-center w-6 shrink-0 cursor-grab active:cursor-grabbing rounded-l-lg bg-muted/0 hover:bg-primary/10 transition-colors text-muted-foreground/50 hover:text-primary/70 group-hover:text-muted-foreground/70"
             aria-label="Drag to reorder"
           >
             <GripVertical className="size-4" />
@@ -79,9 +79,9 @@ export function KanbanCard({ task, projectId }: KanbanCardProps) {
                   <span className="truncate text-muted-foreground">{task.agent.name}</span>
                 </span>
               ) : (
-                <span className="text-xs text-muted-foreground/30 italic">Unassigned</span>
+                <span className="text-xs text-muted-foreground/50 italic">Unassigned</span>
               )}
-              <span className="flex items-center gap-1 text-[10px] text-muted-foreground/40 shrink-0 tabular-nums">
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground/60 shrink-0 tabular-nums">
                 <Clock className="size-2.5" />
                 {timeAgo(task.createdAt)}
               </span>

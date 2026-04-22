@@ -15,7 +15,19 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={cn('dark font-sans', geistSans.variable, geistMono.variable)}>
+    <html
+      lang="en"
+      className={cn('dark font-sans', geistSans.variable, geistMono.variable)}
+      suppressHydrationWarning
+    >
+      <head>
+        {/* Apply theme before first paint to avoid flash */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var t=localStorage.getItem('theme');if(t==='light'){document.documentElement.classList.remove('dark')}else{document.documentElement.classList.add('dark')}})()`,
+          }}
+        />
+      </head>
       <body className="bg-background text-foreground antialiased">
         <Providers>
           <div className="flex min-h-screen">

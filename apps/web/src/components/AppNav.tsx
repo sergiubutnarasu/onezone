@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FolderOpen, Bot, Zap } from 'lucide-react';
+import { FolderOpen, Bot, Zap, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTheme } from '@/lib/theme';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Projects', icon: FolderOpen, exact: true },
@@ -12,6 +13,7 @@ const NAV_ITEMS = [
 
 export function AppNav() {
   const pathname = usePathname();
+  const { theme, setTheme } = useTheme();
 
   return (
     <aside className="flex flex-col w-56 shrink-0 border-r border-border bg-sidebar h-screen sticky top-0">
@@ -20,7 +22,7 @@ export function AppNav() {
         <div className="flex items-center justify-center size-7 rounded-md bg-primary/15 ring-1 ring-primary/30">
           <Zap className="size-4 text-primary" />
         </div>
-        <span className="font-semibold text-sm tracking-tight text-foreground">OneZone</span>
+        <span className="font-semibold text-sm tracking-tight text-foreground">Onezone</span>
       </div>
 
       {/* Nav links */}
@@ -46,8 +48,15 @@ export function AppNav() {
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-border">
+      <div className="px-4 py-3 border-t border-border flex items-center justify-between">
         <p className="text-xs text-muted-foreground">Agent task runner</p>
+        <button
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Toggle theme"
+        >
+          {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
+        </button>
       </div>
     </aside>
   );
