@@ -6,6 +6,7 @@ import { Server, Socket } from 'socket.io';
 import { MessagesService } from '../../messages/messages.service';
 import { extractTaskId } from '@onezone/shared';
 import { IMessageHandler } from './message-handler.interface';
+import { TasksService } from '../../tasks/tasks.service';
 
 export interface ChatMessageData {
   roomId: string;
@@ -16,7 +17,10 @@ export interface ChatMessageData {
 export class ChatMessageHandler implements IMessageHandler<ChatMessageData> {
   private readonly logger = new Logger(ChatMessageHandler.name);
 
-  constructor(private readonly messagesService: MessagesService) {}
+  constructor(
+    private readonly messagesService: MessagesService,
+    private readonly tasksService: TasksService,
+  ) {}
 
   async handle(
     data: ChatMessageData,
@@ -27,17 +31,34 @@ export class ChatMessageHandler implements IMessageHandler<ChatMessageData> {
       const taskId = extractTaskId(data.roomId);
       const ts = Date.now();
 
-      const message = await this.messagesService.create({
-        roomId: data.roomId,
-        taskId,
-        role: MessageRole.User,
-        content: data.content,
-        ts,
-      });
+      const [message, task] = await Promise.all([
+        this.messagesService.create({
+          roomId: data.roomId,
+          taskId,
+          role: MessageRole.User,
+          content: data.content,
+          ts,
+        }),
+        this.tasksService.findOne(taskId).catch(() => null),
+      ]);
+
+      const taskDetails = task
+        ? {
+            id: task.id,
+            name: task.name,
+            description: task.description,
+            status: task.status,
+            project: {
+              id: task.project.id,
+              name: task.project.name,
+              description: task.project.description,
+            },
+          }
+        : null;
 
       server
         ?.to(data.roomId)
-        .emit('chat:message', { ...message, ts: Number(message.ts) });
+        .emit('chat:message', { ...message, ts: Number(message.ts), task: taskDetails });
 
       return { status: 'ok' };
     } catch (error) {

@@ -55,6 +55,12 @@ export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   [TaskStatus.DONE]: "Done",
 };
 
+export interface ProjectInfo {
+  id: string;
+  name: string;
+  description?: string | null;
+}
+
 export interface Task {
   id: string;
   projectId: string;
@@ -64,6 +70,7 @@ export interface Task {
   order: number;
   terminalId: string;
   terminal?: Pick<Terminal, "id" | "name"> | null;
+  project?: ProjectInfo | null;
   createdAt: string;
 }
 
@@ -84,9 +91,18 @@ export interface Terminal {
 
 // --- Chat message ---
 
+export interface TaskDetails {
+  id: string;
+  name: string;
+  description?: string | null;
+  status: TaskStatus;
+  project: ProjectInfo;
+}
+
 export interface ChatMessage {
   role: MessageRole;
   content: string;
+  task?: TaskDetails | null;
 }
 
 // --- Socket event payloads ---

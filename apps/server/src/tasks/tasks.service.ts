@@ -32,7 +32,7 @@ export class TasksService {
   }
 
   async findOne(id: string) {
-    const task = await this.prisma.task.findUnique({ where: { id }, include: { terminal: true } });
+    const task = await this.prisma.task.findUnique({ where: { id }, include: { terminal: true, project: true } });
     if (!task) throw new NotFoundException(`Task ${id} not found`);
     return task;
   }
