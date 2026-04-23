@@ -9,8 +9,8 @@ import { IMessageHandler } from './message-handler.interface';
 
 export interface OutputLineData {
   roomId: string;
-  agentId: string;
-  agentName: string;
+  terminalId: string;
+  terminalName: string;
   jobId?: string;
   command?: string;
   stream: MessageStream;
@@ -35,9 +35,9 @@ export class OutputLineHandler implements IMessageHandler<OutputLineData> {
       const message = await this.messagesService.create({
         roomId: data.roomId,
         taskId,
-        role: MessageRole.Agent,
-        agentId: data.agentId,
-        agentName: data.agentName,
+        role: MessageRole.Terminal,
+        terminalId: data.terminalId,
+        terminalName: data.terminalName,
         jobId: data.jobId,
         command: data.command,
         stream: data.stream,

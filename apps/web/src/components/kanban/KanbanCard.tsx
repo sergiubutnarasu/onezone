@@ -71,12 +71,12 @@ export function KanbanCard({ task, projectId }: KanbanCardProps) {
 
             {/* Footer */}
             <div className="flex items-center justify-between gap-2 mt-2.5 pt-2 border-t border-border/20">
-              {task.agent ? (
+              {task.terminal ? (
                 <span className="flex items-center gap-1.5 text-xs min-w-0">
                   <span className="flex items-center justify-center size-4 rounded-full bg-primary/10 shrink-0">
                     <Bot className="size-2.5 text-primary" />
                   </span>
-                  <span className="truncate text-muted-foreground">{task.agent.name}</span>
+                  <span className="truncate text-muted-foreground">{task.terminal.name}</span>
                 </span>
               ) : (
                 <span className="text-xs text-muted-foreground/50 italic">Unassigned</span>

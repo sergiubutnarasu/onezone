@@ -6,7 +6,7 @@ import { ProjectsModule } from './projects/projects.module';
 import { TasksModule } from './tasks/tasks.module';
 import { MessagesModule } from './messages/messages.module';
 import { GatewaysModule } from './gateways/gateways.module';
-import { AgentsModule } from './agents/agents.module';
+import { TerminalsModule } from './terminals/terminals.module';
 
 @Module({
   imports: [
@@ -16,7 +16,7 @@ import { AgentsModule } from './agents/agents.module';
     ProjectsModule,
     TasksModule,
     MessagesModule,
-    AgentsModule,
+    TerminalsModule,
     GatewaysModule,
   ],
 })

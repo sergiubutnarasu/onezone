@@ -6,25 +6,25 @@ import {
 import { hostname } from "node:os";
 import { io, Socket } from "socket.io-client";
 
-export interface AgentSocketOptions {
+export interface TerminalSocketOptions {
   serverUrl: string;
   taskId?: string;
-  agentId: string;
-  agentName: string;
+  terminalId: string;
+  terminalName: string;
 }
 
-export function createAgentSocket(
-  options: AgentSocketOptions,
+export function createTerminalSocket(
+  options: TerminalSocketOptions,
 ): Socket<ServerToClientEvents, ClientToServerEvents> {
-  const { serverUrl, taskId, agentId, agentName } = options;
+  const { serverUrl, taskId, terminalId, terminalName } = options;
 
   const socket = io(`${serverUrl}/chat`, {
     auth: {
       ...(taskId ? { taskId } : {}),
-      role: MessageRole.Agent,
-      agentId,
-      agentName,
-      agentHostname: hostname(),
+      role: MessageRole.Terminal,
+      terminalId,
+      terminalName,
+      terminalHostname: hostname(),
     },
     reconnection: true,
   });

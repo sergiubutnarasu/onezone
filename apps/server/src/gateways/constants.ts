@@ -1,1 +1,1 @@
-export const SYSTEM_AGENTS_ROOM = 'system:agents';
+export const SYSTEM_TERMINALS_ROOM = 'system:terminals';

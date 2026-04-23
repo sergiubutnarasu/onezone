@@ -3,15 +3,15 @@ import type { Action, RoomMessage, State } from './useTaskRoom.types';
 
 function buildSyntheticExits(
   messages: RoomMessage[],
-  agentId: string,
-  agentName: string | undefined,
+  terminalId: string,
+  terminalName: string | undefined,
   ts: number,
 ): RoomMessage[] {
   const startedJobs = new Map<string, { command?: string | null; roomId: string }>();
   const completedJobs = new Set<string>();
 
   for (const msg of messages) {
-    if (msg.agentId !== agentId || !msg.jobId) continue;
+    if (msg.terminalId !== terminalId || !msg.jobId) continue;
     if (msg.messageType === MessageType.CommandStart) {
       startedJobs.set(msg.jobId, { command: msg.command, roomId: msg.roomId });
     }
@@ -26,8 +26,8 @@ function buildSyntheticExits(
       exits.push({
         roomId,
         role: 'system',
-        agentId,
-        agentName: agentName ?? null,
+        terminalId,
+        terminalName: terminalName ?? null,
         jobId,
         command,
         exitCode: -1,
@@ -52,11 +52,11 @@ export function reducer(state: State, action: Action): State {
       const msg: RoomMessage = {
         roomId: `task:${taskId}`,
         role: 'system',
-        agentId: payload.agentId,
-        agentName: payload.agentName,
+        terminalId: payload.terminalId,
+        terminalName: payload.terminalName,
         jobId: payload.jobId,
         command: payload.command,
-        content: `[${payload.agentName}] started: ${payload.command}`,
+        content: `[${payload.terminalName}] started: ${payload.command}`,
         messageType: MessageType.CommandStart,
         ts: payload.ts,
       };
@@ -68,7 +68,7 @@ export function reducer(state: State, action: Action): State {
       const msg: RoomMessage = {
         roomId: `task:${taskId}`,
         role: 'system',
-        agentId: payload.agentId,
+        terminalId: payload.terminalId,
         jobId: payload.jobId,
         command: payload.command,
         exitCode: payload.exitCode,
@@ -78,52 +78,52 @@ export function reducer(state: State, action: Action): State {
       return { ...state, messages: [...state.messages, msg] };
     }
 
-    case 'AGENT_CONNECTED': {
+    case 'TERMINAL_CONNECTED': {
       const { info } = action;
-      const next = new Map(state.connectedAgents);
-      next.set(info.agentId, {
-        agentId: info.agentId,
-        agentName: info.agentName,
+      const next = new Map(state.connectedTerminals);
+      next.set(info.terminalId, {
+        terminalId: info.terminalId,
+        terminalName: info.terminalName,
         taskId: info.taskId,
       });
       const noticeMsg: RoomMessage = {
         roomId: `task:${info.taskId}`,
         role: 'system',
-        agentId: info.agentId,
-        agentName: info.agentName,
-        content: `${info.agentName} connected`,
+        terminalId: info.terminalId,
+        terminalName: info.terminalName,
+        content: `${info.terminalName} connected`,
         ts: info.ts,
       };
       return {
-        connectedAgents: next,
+        connectedTerminals: next,
         messages: [...state.messages, noticeMsg],
       };
     }
 
-    case 'AGENT_DISCONNECTED': {
+    case 'TERMINAL_DISCONNECTED': {
       const { info } = action;
-      const next = new Map(state.connectedAgents);
-      const agent = next.get(info.agentId);
-      next.delete(info.agentId);
+      const next = new Map(state.connectedTerminals);
+      const terminal = next.get(info.terminalId);
+      next.delete(info.terminalId);
 
       const syntheticExits = buildSyntheticExits(
         state.messages,
-        info.agentId,
-        agent?.agentName ?? info.agentName,
+        info.terminalId,
+        terminal?.terminalName ?? info.terminalName,
         info.ts,
       );
 
       const noticeMsg: RoomMessage = {
         roomId: state.messages[0]?.roomId ?? '',
         role: 'system',
-        agentId: info.agentId,
-        agentName: agent?.agentName ?? info.agentName ?? null,
-        content: `${agent?.agentName ?? info.agentName ?? info.agentId} disconnected`,
+        terminalId: info.terminalId,
+        terminalName: terminal?.terminalName ?? info.terminalName ?? null,
+        content: `${terminal?.terminalName ?? info.terminalName ?? info.terminalId} disconnected`,
         ts: info.ts,
       };
 
       return {
-        connectedAgents: next,
+        connectedTerminals: next,
         messages: [...state.messages, ...syntheticExits, noticeMsg],
       };
     }
@@ -135,5 +135,5 @@ export function reducer(state: State, action: Action): State {
 
 export const initialState: State = {
   messages: [],
-  connectedAgents: new Map(),
+  connectedTerminals: new Map(),
 };

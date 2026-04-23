@@ -1,6 +1,6 @@
 // apps/web/src/lib/api.ts
 
-import { TaskStatus, type Agent, type Task, type RoomMessage } from '@onezone/shared';
+import { TaskStatus, type Terminal, type Task, type RoomMessage } from '@onezone/shared';
 import { httpClient } from './http-client';
 
 export interface Project {
@@ -30,11 +30,11 @@ export const fetchTasks = (projectId: string) =>
 
 export const createTask = (
   projectId: string,
-  data: { name: string; description?: string; agentId: string },
+  data: { name: string; description?: string; terminalId: string },
 ) => httpClient.post<Task>(`/projects/${projectId}/tasks`, data);
 
-export const assignTaskAgent = (taskId: string, agentId: string) =>
-  httpClient.patch<Task>(`/tasks/${taskId}/agent`, { agentId });
+export const assignTaskTerminal = (taskId: string, terminalId: string) =>
+  httpClient.patch<Task>(`/tasks/${taskId}/terminal`, { terminalId });
 
 export const fetchTask = (taskId: string) => httpClient.get<Task>(`/tasks/${taskId}`);
 
@@ -44,9 +44,9 @@ export const fetchMessages = (taskId: string) =>
 export const updateTaskStatus = (taskId: string, status: TaskStatus) =>
   httpClient.patch<Task>(`/tasks/${taskId}/status`, { status });
 
-export const fetchAgents = () => httpClient.get<Agent[]>('/agents');
+export const fetchTerminals = () => httpClient.get<Terminal[]>('/terminals');
 
-export const deleteAgent = (agentId: string) => httpClient.delete<void>(`/agents/${agentId}`);
+export const deleteTerminal = (terminalId: string) => httpClient.delete<void>(`/terminals/${terminalId}`);
 
 export const deleteTask = (taskId: string) => httpClient.delete<void>(`/tasks/${taskId}`);
 

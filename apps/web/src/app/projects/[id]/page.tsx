@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, ChevronRight, Home } from 'lucide-react';
 import Link from 'next/link';
-import { fetchProject, fetchTasks, fetchAgents, createTask } from '@/lib/api';
+import { fetchProject, fetchTasks, fetchTerminals, createTask } from '@/lib/api';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,14 +26,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { Agent, Task } from '@onezone/shared';
+import type { Terminal, Task } from '@onezone/shared';
 
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [agentId, setAgentId] = useState<string>('');
+  const [terminalId, setTerminalId] = useState<string>('');
   const [open, setOpen] = useState(false);
 
   const { data: project, isLoading: projectLoading } = useQuery({
@@ -46,23 +46,23 @@ export default function ProjectPage() {
     queryFn: () => fetchTasks(id),
   });
 
-  const { data: agents = [] } = useQuery<Agent[]>({
-    queryKey: ['agents'],
-    queryFn: fetchAgents,
+  const { data: terminals = [] } = useQuery<Terminal[]>({
+    queryKey: ['terminals'],
+    queryFn: fetchTerminals,
   });
 
   const createMutation = useMutation({
-    mutationFn: () => createTask(id, { name, description, agentId }),
+    mutationFn: () => createTask(id, { name, description, terminalId }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['tasks', id] });
       setName('');
       setDescription('');
-      setAgentId('');
+      setTerminalId('');
       setOpen(false);
     },
   });
 
-  const noAgents = agents.length === 0;
+  const noTerminals = terminals.length === 0;
 
   return (
     <TooltipProvider>
@@ -104,15 +104,15 @@ export default function ProjectPage() {
                 <TooltipTrigger
                   render={
                     <DialogTrigger
-                      render={<Button disabled={noAgents} />}
+                      render={<Button disabled={noTerminals} />}
                     />
                   }
                 >
                   <Plus data-icon="inline-start" />
                   New Task
                 </TooltipTrigger>
-                {noAgents && (
-                  <TooltipContent>No agents available — start one first</TooltipContent>
+                {noTerminals && (
+                  <TooltipContent>No terminals available — start one first</TooltipContent>
                 )}
 
                 <DialogContent className="sm:max-w-md">
@@ -131,29 +131,29 @@ export default function ProjectPage() {
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                     />
-                    <Select value={agentId} onValueChange={(v) => v != null && setAgentId(v)}>
+                    <Select value={terminalId} onValueChange={(v) => v != null && setTerminalId(v)}>
                       <SelectTrigger className="w-full">
                         <SelectValue>
                           {(v: string) => v
-                            ? (agents.find((a) => a.id === v)?.name ?? v)
-                            : <span className="text-muted-foreground">Select an agent</span>
+                            ? (terminals.find((t) => t.id === v)?.name ?? v)
+                            : <span className="text-muted-foreground">Select a terminal</span>
                           }
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        {agents.map((a) => (
-                          <SelectItem key={a.id} value={a.id} label={a.name}>
-                            <span className={`mr-1.5 ${a.isConnected ? 'text-emerald-400' : 'text-muted-foreground'}`}>
-                              {a.isConnected ? '●' : '○'}
+                        {terminals.map((t) => (
+                          <SelectItem key={t.id} value={t.id} label={t.name}>
+                            <span className={`mr-1.5 ${t.isConnected ? 'text-emerald-400' : 'text-muted-foreground'}`}>
+                              {t.isConnected ? '●' : '○'}
                             </span>
-                            {a.name}
+                            {t.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <Button
                       onClick={() => createMutation.mutate()}
-                      disabled={!name || !agentId || createMutation.isPending}
+                      disabled={!name || !terminalId || createMutation.isPending}
                       className="w-full mt-1"
                     >
                       {createMutation.isPending ? 'Creating…' : 'Create task'}

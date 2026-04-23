@@ -1,12 +1,12 @@
 import { Command, Flags } from "@oclif/core";
-import { Agent } from "@onezone/shared";
+import { Terminal } from "@onezone/shared";
 
-export default class AgentsList extends Command {
-  static description = "List all agents registered on the server";
+export default class TerminalsList extends Command {
+  static description = "List all terminals registered on the server";
 
   static examples = [
-    "<%= config.bin %> agents list",
-    "<%= config.bin %> agents list --server http://localhost:5026",
+    "<%= config.bin %> terminals list",
+    "<%= config.bin %> terminals list --server http://localhost:5026",
   ];
 
   static flags = {
@@ -17,30 +17,30 @@ export default class AgentsList extends Command {
   };
 
   async run(): Promise<void> {
-    const { flags } = await this.parse(AgentsList);
+    const { flags } = await this.parse(TerminalsList);
 
-    let agents: Agent[];
+    let terminals: Terminal[];
     try {
-      const response = await fetch(`${flags.server}/agents`);
+      const response = await fetch(`${flags.server}/terminals`);
       if (!response.ok) {
         this.error(
           `Server returned ${response.status}: ${response.statusText}`,
           { exit: 1 },
         );
       }
-      agents = (await response.json()) as Agent[];
+      terminals = (await response.json()) as Terminal[];
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       this.error(message, { exit: 1 });
     }
 
-    if (agents.length === 0) {
-      this.log("No agents registered.");
+    if (terminals.length === 0) {
+      this.log("No terminals registered.");
       return;
     }
 
-    const idWidth = Math.max(36, ...agents.map((a) => a.id.length));
-    const nameWidth = Math.max(4, ...agents.map((a) => a.name.length));
+    const idWidth = Math.max(36, ...terminals.map((t) => t.id.length));
+    const nameWidth = Math.max(4, ...terminals.map((t) => t.name.length));
     const statusWidth = 12;
 
     const header =
@@ -59,12 +59,12 @@ export default class AgentsList extends Command {
     this.log(header);
     this.log(divider);
 
-    for (const agent of agents) {
-      const status = agent.isConnected ? "connected" : "disconnected";
+    for (const terminal of terminals) {
+      const status = terminal.isConnected ? "connected" : "disconnected";
       this.log(
-        agent.id.padEnd(idWidth) +
+        terminal.id.padEnd(idWidth) +
           "  " +
-          agent.name.padEnd(nameWidth) +
+          terminal.name.padEnd(nameWidth) +
           "  " +
           status,
       );

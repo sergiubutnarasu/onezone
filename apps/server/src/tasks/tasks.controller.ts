@@ -9,7 +9,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
-import { AssignAgentDto, UpdateTaskStatusDto } from './tasks.dto';
+import { AssignTerminalDto, UpdateTaskStatusDto } from './tasks.dto';
 
 @Controller('tasks')
 export class TasksController {
@@ -28,12 +28,12 @@ export class TasksController {
     return this.tasksService.updateStatus(taskId, body.status);
   }
 
-  @Patch(':taskId/agent')
-  assignAgent(
+  @Patch(':taskId/terminal')
+  assignTerminal(
     @Param('taskId') taskId: string,
-    @Body() body: AssignAgentDto,
+    @Body() body: AssignTerminalDto,
   ) {
-    return this.tasksService.assignAgent(taskId, body.agentId);
+    return this.tasksService.assignTerminal(taskId, body.terminalId);
   }
 
   @Delete(':taskId')

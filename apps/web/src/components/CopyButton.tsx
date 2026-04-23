@@ -22,7 +22,7 @@ export function CopyButton({ value, className }: CopyButtonProps) {
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
+      <TooltipTrigger render={<span />}>
         <Button
           variant="ghost"
           size="icon-sm"

@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { TaskStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TaskOrderItemDto } from './tasks.dto';
-import { AgentRegistryService } from '../gateways/agent-registry.service';
+import { TerminalRegistryService } from '../gateways/terminal-registry.service';
 
 @Injectable()
 export class TasksService {
@@ -10,16 +10,16 @@ export class TasksService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly agentRegistry: AgentRegistryService,
+    private readonly terminalRegistry: TerminalRegistryService,
   ) {}
 
-  async create(projectId: string, data: { name: string; description?: string; agentId: string }) {
+  async create(projectId: string, data: { name: string; description?: string; terminalId: string }) {
     const count = await this.prisma.task.count({ where: { projectId, status: 'BACKLOG' } });
     const task = await this.prisma.task.create({
       data: { ...data, projectId, order: count },
     });
     this.logger.log(`Created task ${task.id} for project ${projectId}`);
-    this.agentRegistry.assignTask(data.agentId, task.id);
+    this.terminalRegistry.assignTask(data.terminalId, task.id);
     return task;
   }
 
@@ -27,12 +27,12 @@ export class TasksService {
     return this.prisma.task.findMany({
       where: { projectId, ...(status && status.length > 0 ? { status: { in: status } } : {}) },
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
-      include: { agent: true },
+      include: { terminal: true },
     });
   }
 
   async findOne(id: string) {
-    const task = await this.prisma.task.findUnique({ where: { id }, include: { agent: true } });
+    const task = await this.prisma.task.findUnique({ where: { id }, include: { terminal: true } });
     if (!task) throw new NotFoundException(`Task ${id} not found`);
     return task;
   }
@@ -67,28 +67,28 @@ export class TasksService {
 
   async remove(id: string) {
     await this.findOne(id);
-    this.agentRegistry.cleanupTaskRoom(id);
+    this.terminalRegistry.cleanupTaskRoom(id);
     const task = await this.prisma.task.delete({ where: { id } });
     this.logger.log(`Deleted task ${id}`);
     return task;
   }
 
-  async findByAgent(agentId: string) {
+  async findByTerminal(terminalId: string) {
     return this.prisma.task.findMany({
-      where: { agentId },
+      where: { terminalId },
       select: { id: true },
     });
   }
 
-  async assignAgent(id: string, agentId: string) {
+  async assignTerminal(id: string, terminalId: string) {
     await this.findOne(id);
     const task = await this.prisma.task.update({
       where: { id },
-      data: { agentId },
+      data: { terminalId },
     });
-    this.logger.log(`Assigned agent ${agentId} to task ${id}`);
-    this.agentRegistry.evictTaskAgent(id);
-    this.agentRegistry.assignTask(agentId, id);
+    this.logger.log(`Assigned terminal ${terminalId} to task ${id}`);
+    this.terminalRegistry.evictTaskTerminal(id);
+    this.terminalRegistry.assignTask(terminalId, id);
     return task;
   }
 }

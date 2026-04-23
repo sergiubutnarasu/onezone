@@ -1,4 +1,4 @@
-// apps/agent/src/commands/listen.ts
+// apps/terminal/src/commands/listen.ts
 
 import { Command, Flags } from '@oclif/core';
 import {
@@ -13,7 +13,7 @@ import { randomUUID } from 'node:crypto';
 import { hostname } from 'node:os';
 import { registerCleanupHandlers, runProcess } from '../lib/process-runner.js';
 import { stripAnsi } from '../lib/helper.js';
-import { registerAgent } from '../lib/agent-registration.js';
+import { registerTerminal } from '../lib/terminal-registration.js';
 import { createLobbySocket, createTaskSocket } from '../lib/task-socket.js';
 
 export default class Listen extends Command {
@@ -26,7 +26,7 @@ export default class Listen extends Command {
     '<%= config.bin %> listen',
     '<%= config.bin %> listen --task <taskId>',
     '<%= config.bin %> listen --task <taskId1> --task <taskId2>',
-    '<%= config.bin %> listen --task <taskId> --name my-agent',
+    '<%= config.bin %> listen --task <taskId> --name my-terminal',
   ];
 
   static flags = {
@@ -41,7 +41,7 @@ export default class Listen extends Command {
       default: 'http://localhost:5026',
     }),
     name: Flags.string({
-      description: 'Agent name — must be unique across all running agents',
+      description: 'Terminal name — must be unique across all running terminals',
       default: hostname(),
     }),
   };
@@ -49,23 +49,23 @@ export default class Listen extends Command {
   async run(): Promise<void> {
     const { flags } = await this.parse(Listen);
 
-    const agentName = flags.name;
+    const terminalName = flags.name;
     const taskIds = flags.task;
 
-    let agentId: string;
+    let terminalId: string;
     try {
-      agentId = await registerAgent({ serverUrl: flags.server, name: agentName });
+      terminalId = await registerTerminal({ serverUrl: flags.server, name: terminalName });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       this.error(message, { exit: 1 });
     }
 
-    this.log(`[${agentName}] Agent ID: ${agentId}`);
+    this.log(`[${terminalName}] Terminal ID: ${terminalId}`);
 
     registerCleanupHandlers();
 
     const connections: Promise<void>[] = [
-      this.connectToLobby(flags.server, agentId, agentName),
+      this.connectToLobby(flags.server, terminalId, terminalName),
     ];
 
     if (taskIds?.length) {
@@ -74,7 +74,7 @@ export default class Listen extends Command {
       }
       connections.push(
         ...taskIds.map((taskId) =>
-          this.connectToTask(flags.server, taskId, agentId, agentName),
+          this.connectToTask(flags.server, taskId, terminalId, terminalName),
         ),
       );
     }
@@ -84,37 +84,37 @@ export default class Listen extends Command {
 
   private connectToLobby(
     serverUrl: string,
-    agentId: string,
-    agentName: string,
+    terminalId: string,
+    terminalName: string,
   ): Promise<void> {
     return new Promise<void>((_, reject) => {
-      createLobbySocket(serverUrl, agentId, agentName, {
+      createLobbySocket(serverUrl, terminalId, terminalName, {
         onConnect: () => {
-          this.log(`[${agentName}] Connected to ${serverUrl} | Waiting for task assignment...`);
+          this.log(`[${terminalName}] Connected to ${serverUrl} | Waiting for task assignment...`);
         },
         onMessage: (event, payload) => {
           if (event === EventCommands.AssignTask) {
             const { taskId } = payload as AssignTaskPayload;
             if (this.activeTaskIds.has(taskId)) {
-              this.log(`[${agentName}] Already connected to task: ${taskId}, skipping`);
+              this.log(`[${terminalName}] Already connected to task: ${taskId}, skipping`);
               return;
             }
-            this.log(`[${agentName}] Assigned to task: ${taskId}`);
+            this.log(`[${terminalName}] Assigned to task: ${taskId}`);
             this.activeTaskIds.add(taskId);
-            this.connectToTask(serverUrl, taskId, agentId, agentName).catch((err: Error) => {
+            this.connectToTask(serverUrl, taskId, terminalId, terminalName).catch((err: Error) => {
               this.activeTaskIds.delete(taskId);
-              this.log(`[${agentName}] Task ${taskId} connection failed: ${err.message}`);
+              this.log(`[${terminalName}] Task ${taskId} connection failed: ${err.message}`);
             });
           }
         },
         onConnectError: (_, err) => {
-          this.log(`[${agentName}] Lobby connection failed (${err.message}), retrying...`);
+          this.log(`[${terminalName}] Lobby connection failed (${err.message}), retrying...`);
         },
         onDisconnect: (_, reason) => {
           if (reason === 'io server disconnect') {
             reject(new Error(`Lobby disconnected: ${reason}`));
           } else {
-            this.log(`[${agentName}] Lobby disconnected (${reason}), reconnecting...`);
+            this.log(`[${terminalName}] Lobby disconnected (${reason}), reconnecting...`);
           }
         },
       });
@@ -124,23 +124,23 @@ export default class Listen extends Command {
   private connectToTask(
     serverUrl: string,
     taskId: string,
-    agentId: string,
-    agentName: string,
+    terminalId: string,
+    terminalName: string,
   ): Promise<void> {
     const roomId = createTaskRoomId(taskId);
 
     return new Promise<void>((resolve, reject) => {
       const activeProcesses = new Map<string, ReturnType<typeof runProcess>>();
 
-      const { socket } = createTaskSocket(serverUrl, taskId, agentId, agentName, {
+      const { socket } = createTaskSocket(serverUrl, taskId, terminalId, terminalName, {
         onConnect: () => {
           this.log(
-            `[${agentName}] Connected to ${serverUrl} | room: ${roomId} | Listening for commands...`,
+            `[${terminalName}] Connected to ${serverUrl} | room: ${roomId} | Listening for commands...`,
           );
         },
         onMessage: (event, payload) => {
           if (event === EventCommands.TaskDeleted) {
-            this.log(`[${agentName}] [${roomId}] Task deleted, disconnecting...`);
+            this.log(`[${terminalName}] [${roomId}] Task deleted, disconnecting...`);
             this.activeTaskIds.delete(taskId);
             return;
           }
@@ -151,12 +151,12 @@ export default class Listen extends Command {
           const content = message.content.trim();
           if (!content) return;
 
-          this.log(`[${agentName}] [${roomId}] Spawning: ${content}`);
+          this.log(`[${terminalName}] [${roomId}] Spawning: ${content}`);
 
           const jobId = randomUUID();
-          const basePayload = { roomId, agentId, agentName, jobId, command: content };
+          const basePayload = { roomId, terminalId, terminalName, jobId, command: content };
 
-          socket.emit(EventCommands.AgentCommandStart, basePayload);
+          socket.emit(EventCommands.TerminalCommandStart, basePayload);
 
           const stderrBuffer: string[] = [];
 
@@ -187,9 +187,9 @@ export default class Listen extends Command {
                 }
               }
 
-              socket.emit(EventCommands.AgentCommandExit, { ...basePayload, exitCode });
+              socket.emit(EventCommands.TerminalCommandExit, { ...basePayload, exitCode });
               const badge = exitCode === 0 ? '✔ done' : `✖ error (${exitCode})`;
-              this.log(`[${agentName}] [${roomId}] ${badge}: "${content}"`);
+              this.log(`[${terminalName}] [${roomId}] ${badge}: "${content}"`);
             },
             true, // shell
           );
@@ -197,7 +197,7 @@ export default class Listen extends Command {
         },
         onConnectError: (_, err) => {
           this.log(
-            `[${agentName}] [${roomId}] Connection failed (${err.message}), retrying...`,
+            `[${terminalName}] [${roomId}] Connection failed (${err.message}), retrying...`,
           );
         },
         onDisconnect: (_, reason) => {
@@ -210,10 +210,11 @@ export default class Listen extends Command {
               reject(new Error(`[${roomId}] Disconnected: ${reason}`));
             }
           } else {
-            this.log(`[${agentName}] [${roomId}] Disconnected (${reason}), reconnecting...`);
+            this.log(`[${terminalName}] [${roomId}] Disconnected (${reason}), reconnecting...`);
           }
         },
       });
     });
   }
 }
+

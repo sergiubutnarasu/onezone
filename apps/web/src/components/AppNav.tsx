@@ -9,7 +9,7 @@ import { useTheme } from '@/lib/theme';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Projects', icon: FolderOpen, exact: true },
-  { href: '/agents', label: 'Agents', icon: Bot, exact: true },
+  { href: '/terminals', label: 'Terminals', icon: Bot, exact: true },
 ];
 
 export function AppNav() {
@@ -50,7 +50,7 @@ export function AppNav() {
         </div>
         <nav className="flex flex-col gap-1 p-2 flex-1">{navLinks()}</nav>
         <div className="px-4 py-3 border-t border-border flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">Agent task runner</p>
+          <p className="text-xs text-muted-foreground">Terminal task runner</p>
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             className="text-muted-foreground hover:text-foreground transition-colors"
@@ -105,7 +105,7 @@ export function AppNav() {
               {navLinks(() => setMobileOpen(false))}
             </nav>
             <div className="px-4 py-3 border-t border-border flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">Agent task runner</p>
+              <p className="text-xs text-muted-foreground">Terminal task runner</p>
               <button
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                 className="text-muted-foreground hover:text-foreground transition-colors"

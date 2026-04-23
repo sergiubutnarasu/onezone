@@ -39,8 +39,8 @@ model Task {
   description String?
   status      TaskStatus @default(BACKLOG)
   order       Int        @default(0)
-  agentId     String
-  agent       Agent      @relation(fields: [agentId], references: [id], onDelete: Restrict)
+  terminalId  String
+  terminal    Terminal   @relation(fields: [terminalId], references: [id], onDelete: Restrict)
   createdAt   DateTime  @default(now())
   messages    Message[]
 
@@ -49,20 +49,20 @@ model Task {
 }
 
 model Message {
-  id        String   @id @default(uuid())
-  roomId    String
-  taskId    String
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  role      String
-  agentId   String?
-  agentName String?
-  jobId     String?
-  command   String?
+  id          String   @id @default(uuid())
+  roomId      String
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  role        String
+  terminalId  String?
+  terminalName String?
+  jobId       String?
+  command     String?
   stream      String?
   messageType MessageType?
   content     String   @db.Text
-  ts        BigInt
-  createdAt DateTime @default(now())
+  ts          BigInt
+  createdAt   DateTime @default(now())
 
   @@index([roomId])
   @@index([taskId])
@@ -71,7 +71,7 @@ model Message {
   @@map("messages")
 }
 
-model Agent {
+model Terminal {
   id          String    @id
   name        String    @unique
   hostname    String
@@ -80,5 +80,5 @@ model Agent {
   createdAt   DateTime  @default(now())
   tasks       Task[]
 
-  @@map("agents")
+  @@map("terminals")
 }

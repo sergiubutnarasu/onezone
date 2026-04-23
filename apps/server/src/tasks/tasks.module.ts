@@ -2,10 +2,10 @@ import { Module } from '@nestjs/common';
 import { TasksController } from './tasks.controller';
 import { ProjectTasksController } from './project-tasks.controller';
 import { TasksService } from './tasks.service';
-import { AgentRegistryModule } from '../gateways/agent-registry.module';
+import { TerminalRegistryModule } from '../gateways/terminal-registry.module';
 
 @Module({
-  imports: [AgentRegistryModule],
+  imports: [TerminalRegistryModule],
   controllers: [TasksController, ProjectTasksController],
   providers: [TasksService],
   exports: [TasksService],

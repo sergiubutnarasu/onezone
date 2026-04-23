@@ -1,15 +1,15 @@
 {
-  "name": "@onezone/agent",
+  "name": "@onezone/terminal",
   "version": "0.0.1",
   "private": true,
-  "description": "Onezone Agent CLI",
+  "description": "Onezone Terminal CLI",
   "type": "module",
   "bin": {
-    "onezone-agent": "./bin/run.js"
+    "onezone-terminal": "./bin/run.js"
   },
   "oclif": {
-    "bin": "onezone-agent",
-    "dirname": "onezone-agent",
+    "bin": "onezone-terminal",
+    "dirname": "onezone-terminal",
     "commands": "./dist/commands",
     "topicSeparator": " "
   },

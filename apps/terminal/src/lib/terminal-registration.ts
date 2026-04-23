@@ -1,19 +1,19 @@
-// apps/agent/src/lib/agent-registration.ts
+// apps/terminal/src/lib/terminal-registration.ts
 
 import { hostname } from 'node:os';
 
-export interface RegisterAgentInput {
+export interface RegisterTerminalInput {
   serverUrl: string;
   name: string;
 }
 
 /**
- * Registers the agent with the server via HTTP POST /agents/register.
- * Returns the agentId on success, throws on failure.
+ * Registers the terminal with the server via HTTP POST /terminals/register.
+ * Returns the terminalId on success, throws on failure.
  */
-export async function registerAgent(input: RegisterAgentInput): Promise<string> {
+export async function registerTerminal(input: RegisterTerminalInput): Promise<string> {
   const { serverUrl, name } = input;
-  const url = `${serverUrl}/agents/register`;
+  const url = `${serverUrl}/terminals/register`;
   let response: Response;
 
   try {
@@ -29,13 +29,13 @@ export async function registerAgent(input: RegisterAgentInput): Promise<string> 
 
   if (response.status === 409) {
     const body = await response.json().catch(() => ({})) as { message?: string };
-    throw new Error(body.message ?? `Agent "${name}" is already connected.`);
+    throw new Error(body.message ?? `Terminal "${name}" is already connected.`);
   }
 
   if (!response.ok) {
     throw new Error(`Server registration failed (HTTP ${response.status})`);
   }
 
-  const agent = await response.json() as { id: string };
-  return agent.id;
+  const terminal = await response.json() as { id: string };
+  return terminal.id;
 }

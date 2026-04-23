@@ -10,8 +10,8 @@ import { IMessageHandler } from './message-handler.interface';
 
 export interface CommandStartData {
   roomId: string;
-  agentId: string;
-  agentName: string;
+  terminalId: string;
+  terminalName: string;
   jobId: string;
   command: string;
 }
@@ -35,18 +35,18 @@ export class CommandStartHandler implements IMessageHandler<CommandStartData> {
         roomId: data.roomId,
         taskId,
         role: MessageRole.System,
-        agentId: data.agentId,
-        agentName: data.agentName,
+        terminalId: data.terminalId,
+        terminalName: data.terminalName,
         jobId: data.jobId,
         command: data.command,
         messageType: MessageType.COMMAND_START,
-        content: `[${data.agentName}] started: ${data.command}`,
+        content: `[${data.terminalName}] started: ${data.command}`,
         ts,
       });
 
-      server?.to(data.roomId).emit(EventCommands.AgentCommandStart, {
-        agentId: data.agentId,
-        agentName: data.agentName,
+      server?.to(data.roomId).emit(EventCommands.TerminalCommandStart, {
+        terminalId: data.terminalId,
+        terminalName: data.terminalName,
         jobId: data.jobId,
         command: data.command,
         ts,
@@ -54,7 +54,7 @@ export class CommandStartHandler implements IMessageHandler<CommandStartData> {
 
       return { status: 'ok' };
     } catch (error) {
-      this.logger.error('Failed to handle agent:command:start', error);
+      this.logger.error('Failed to handle terminal:command:start', error);
       client.emit('error', { message: 'Failed to save command start' });
       return { status: 'error' };
     }

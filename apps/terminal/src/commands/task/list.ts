@@ -57,9 +57,9 @@ export default class TaskList extends Command {
     const idWidth = Math.max(36, ...tasks.map((t) => t.id.length));
     const nameWidth = Math.max(4, ...tasks.map((t) => t.name.length));
     const statusWidth = Math.max(6, ...tasks.map((t) => t.status.length));
-    const agentWidth = Math.max(
-      5,
-      ...tasks.map((t) => (t.agent?.name ?? "-").length),
+    const terminalWidth = Math.max(
+      8,
+      ...tasks.map((t) => (t.terminal?.name ?? "-").length),
     );
 
     const header =
@@ -69,7 +69,7 @@ export default class TaskList extends Command {
       "  " +
       "Status".padEnd(statusWidth) +
       "  " +
-      "Agent".padEnd(agentWidth);
+      "Terminal".padEnd(terminalWidth);
     const divider =
       "-".repeat(idWidth) +
       "  " +
@@ -77,7 +77,7 @@ export default class TaskList extends Command {
       "  " +
       "-".repeat(statusWidth) +
       "  " +
-      "-".repeat(agentWidth);
+      "-".repeat(terminalWidth);
 
     this.log(header);
     this.log(divider);
@@ -90,7 +90,7 @@ export default class TaskList extends Command {
           "  " +
           task.status.padEnd(statusWidth) +
           "  " +
-          (task.agent?.name ?? "-"),
+          (task.terminal?.name ?? "-"),
       );
     }
 

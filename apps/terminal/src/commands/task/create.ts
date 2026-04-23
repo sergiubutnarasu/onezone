@@ -5,8 +5,8 @@ export default class TaskCreate extends Command {
   static description = "Create a new task in a project";
 
   static examples = [
-    '<%= config.bin %> task create --project <uuid> --name "My task" --agent <agentUuid>',
-    '<%= config.bin %> task create --project <uuid> --name "My task" --description "Details" --agent <agentUuid>',
+    '<%= config.bin %> task create --project <uuid> --name "My task" --terminal <terminalUuid>',
+    '<%= config.bin %> task create --project <uuid> --name "My task" --description "Details" --terminal <terminalUuid>',
   ];
 
   static flags = {
@@ -22,8 +22,8 @@ export default class TaskCreate extends Command {
       description: "Task description",
       required: false,
     }),
-    agent: Flags.string({
-      description: "Agent ID (UUID) to assign to this task",
+    terminal: Flags.string({
+      description: "Terminal ID (UUID) to assign to this task",
       required: true,
     }),
     server: Flags.string({
@@ -35,9 +35,9 @@ export default class TaskCreate extends Command {
   async run(): Promise<void> {
     const { flags } = await this.parse(TaskCreate);
 
-    const body: { name: string; description?: string; agentId: string } = {
+    const body: { name: string; description?: string; terminalId: string } = {
       name: flags.name,
-      agentId: flags.agent,
+      terminalId: flags.terminal,
     };
     if (flags.description) body.description = flags.description;
 

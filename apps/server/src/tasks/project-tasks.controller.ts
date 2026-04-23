@@ -20,7 +20,7 @@ export class ProjectTasksController {
   @HttpCode(HttpStatus.CREATED)
   create(
     @Param('projectId') projectId: string,
-    @Body() body: { name: string; description?: string; agentId: string },
+    @Body() body: { name: string; description?: string; terminalId: string },
   ) {
     return this.tasksService.create(projectId, body);
   }

@@ -6,8 +6,8 @@ export interface CreateMessageDto {
   roomId: string;
   taskId: string;
   role: string;
-  agentId?: string;
-  agentName?: string;
+  terminalId?: string;
+  terminalName?: string;
   jobId?: string;
   command?: string;
   stream?: string;

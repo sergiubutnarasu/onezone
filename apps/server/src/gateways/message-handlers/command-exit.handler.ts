@@ -10,8 +10,8 @@ import { IMessageHandler } from './message-handler.interface';
 
 export interface CommandExitData {
   roomId: string;
-  agentId: string;
-  agentName?: string;
+  terminalId: string;
+  terminalName?: string;
   jobId: string;
   command: string;
   exitCode: number;
@@ -36,17 +36,17 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
         roomId: data.roomId,
         taskId,
         role: MessageRole.System,
-        agentId: data.agentId,
-        agentName: data.agentName,
+        terminalId: data.terminalId,
+        terminalName: data.terminalName,
         jobId: data.jobId,
         command: data.command,
         messageType: MessageType.COMMAND_EXIT,
-        content: `[${data.agentId}] exited with code ${data.exitCode}: ${data.command}`,
+        content: `[${data.terminalId}] exited with code ${data.exitCode}: ${data.command}`,
         ts,
       });
 
-      server?.to(data.roomId).emit(EventCommands.AgentCommandExit, {
-        agentId: data.agentId,
+      server?.to(data.roomId).emit(EventCommands.TerminalCommandExit, {
+        terminalId: data.terminalId,
         jobId: data.jobId,
         command: data.command,
         exitCode: data.exitCode,
@@ -55,7 +55,7 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
 
       return { status: 'ok' };
     } catch (error) {
-      this.logger.error('Failed to handle agent:command:exit', error);
+      this.logger.error('Failed to handle terminal:command:exit', error);
       client.emit('error', { message: 'Failed to save command exit' });
       return { status: 'error' };
     }

@@ -1,8 +1,8 @@
-// apps/agent/src/lib/task-socket.ts
+// apps/terminal/src/lib/task-socket.ts
 
 import { EventCommands, HEARTBEAT_INTERVAL_MS, createTaskRoomId } from '@onezone/shared';
 import { Socket } from 'socket.io-client';
-import { createAgentSocket } from './socket-client.js';
+import { createTerminalSocket } from './socket-client.js';
 
 export interface TaskSocketCallbacks {
   onConnect: (roomId: string) => void;
@@ -19,26 +19,23 @@ export interface TaskSocketConnection {
 /**
  * Creates a socket connection to a task room, setting up heartbeat and
  * lifecycle handlers. Returns the socket and a cleanup function.
- *
- * The caller receives raw socket events via callbacks, allowing the
- * command layer to remain the single source of truth for business logic.
  */
 export function createTaskSocket(
   serverUrl: string,
   taskId: string,
-  agentId: string,
-  agentName: string,
+  terminalId: string,
+  terminalName: string,
   callbacks: TaskSocketCallbacks,
 ): TaskSocketConnection {
   const roomId = createTaskRoomId(taskId);
 
-  const socket = createAgentSocket({ serverUrl, taskId, agentId, agentName });
+  const socket = createTerminalSocket({ serverUrl, taskId, terminalId, terminalName });
 
   let heartbeatTimer: NodeJS.Timeout | undefined;
 
   socket.on('connect', () => {
     heartbeatTimer = setInterval(() => {
-      socket.emit(EventCommands.AgentHeartbeat);
+      socket.emit(EventCommands.TerminalHeartbeat);
     }, HEARTBEAT_INTERVAL_MS);
     callbacks.onConnect(roomId);
   });
@@ -78,17 +75,17 @@ export function createTaskSocket(
  */
 export function createLobbySocket(
   serverUrl: string,
-  agentId: string,
-  agentName: string,
+  terminalId: string,
+  terminalName: string,
   callbacks: TaskSocketCallbacks,
 ): TaskSocketConnection {
-  const socket = createAgentSocket({ serverUrl, agentId, agentName });
+  const socket = createTerminalSocket({ serverUrl, terminalId, terminalName });
 
   let heartbeatTimer: NodeJS.Timeout | undefined;
 
   socket.on('connect', () => {
     heartbeatTimer = setInterval(() => {
-      socket.emit(EventCommands.AgentHeartbeat);
+      socket.emit(EventCommands.TerminalHeartbeat);
     }, HEARTBEAT_INTERVAL_MS);
     callbacks.onConnect('lobby');
   });

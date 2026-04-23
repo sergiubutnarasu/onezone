@@ -3,18 +3,18 @@
 export enum EventCommands {
   ChatMessage = "chat:message",
   OutputLine = "output:line",
-  AgentConnected = "agent:connected",
-  AgentDisconnected = "agent:disconnected",
-  AgentCommandStart = "agent:command:start",
-  AgentCommandExit = "agent:command:exit",
-  AgentHeartbeat = "agent:heartbeat",
-  AssignTask = "agent:assign-task",
+  TerminalConnected = "terminal:connected",
+  TerminalDisconnected = "terminal:disconnected",
+  TerminalCommandStart = "terminal:command:start",
+  TerminalCommandExit = "terminal:command:exit",
+  TerminalHeartbeat = "terminal:heartbeat",
+  AssignTask = "terminal:assign-task",
   TaskDeleted = "task:deleted",
 }
 
 export enum MessageRole {
   User = "user",
-  Agent = "agent",
+  Terminal = "terminal",
   System = "system",
 }
 
@@ -62,17 +62,17 @@ export interface Task {
   description?: string | null;
   status: TaskStatus;
   order: number;
-  agentId: string;
-  agent?: Pick<Agent, "id" | "name"> | null;
+  terminalId: string;
+  terminal?: Pick<Terminal, "id" | "name"> | null;
   createdAt: string;
 }
 
 export interface AssignTaskPayload {
-  agentId: string;
+  terminalId: string;
   taskId: string;
 }
 
-export interface Agent {
+export interface Terminal {
   id: string;
   name: string;
   hostname: string;
@@ -93,16 +93,16 @@ export interface ChatMessage {
 
 export interface CommandStartPayload {
   roomId: string;
-  agentId: string;
-  agentName: string;
+  terminalId: string;
+  terminalName: string;
   jobId: string;
   command: string;
 }
 
 export interface OutputLinePayload {
   roomId: string;
-  agentId: string;
-  agentName: string;
+  terminalId: string;
+  terminalName: string;
   jobId: string;
   command: string;
   stream: MessageStream;
@@ -111,7 +111,7 @@ export interface OutputLinePayload {
 
 export interface CommandExitPayload {
   roomId: string;
-  agentId: string;
+  terminalId: string;
   jobId: string;
   command: string;
   exitCode: number;
@@ -121,20 +121,20 @@ export interface CommandExitPayload {
 
 export interface ServerToClientEvents {
   [EventCommands.ChatMessage]: (message: ChatMessage) => void;
-  [EventCommands.AgentConnected]: (payload: {
-    agentId: string;
-    agentName: string;
+  [EventCommands.TerminalConnected]: (payload: {
+    terminalId: string;
+    terminalName: string;
   }) => void;
-  [EventCommands.AgentDisconnected]: (payload: { agentId: string }) => void;
+  [EventCommands.TerminalDisconnected]: (payload: { terminalId: string }) => void;
   [EventCommands.AssignTask]: (payload: AssignTaskPayload) => void;
   [EventCommands.TaskDeleted]: (payload: { taskId: string }) => void;
 }
 
 export interface ClientToServerEvents {
-  [EventCommands.AgentCommandStart]: (payload: CommandStartPayload) => void;
+  [EventCommands.TerminalCommandStart]: (payload: CommandStartPayload) => void;
   [EventCommands.OutputLine]: (payload: OutputLinePayload) => void;
-  [EventCommands.AgentCommandExit]: (payload: CommandExitPayload) => void;
-  [EventCommands.AgentHeartbeat]: () => void;
+  [EventCommands.TerminalCommandExit]: (payload: CommandExitPayload) => void;
+  [EventCommands.TerminalHeartbeat]: () => void;
 }
 
 // --- Discriminated union for room messages (used by web frontend) ---
@@ -148,8 +148,8 @@ interface BaseRoomMessage {
 export interface UserChatMessage extends BaseRoomMessage {
   role: 'user';
   content: string;
-  agentId?: null;
-  agentName?: null;
+  terminalId?: null;
+  terminalName?: null;
   jobId?: null;
   command?: null;
   stream?: null;
@@ -157,11 +157,11 @@ export interface UserChatMessage extends BaseRoomMessage {
   messageType?: null;
 }
 
-export interface AgentOutputMessage extends BaseRoomMessage {
-  role: 'agent';
+export interface TerminalOutputMessage extends BaseRoomMessage {
+  role: 'terminal';
   content: string;
-  agentId: string;
-  agentName: string;
+  terminalId: string;
+  terminalName: string;
   jobId: string;
   command: string;
   stream: 'stdout' | 'stderr';
@@ -173,8 +173,8 @@ export interface CommandStartMessage extends BaseRoomMessage {
   role: 'system';
   messageType: MessageType.CommandStart;
   content: string;
-  agentId: string;
-  agentName: string;
+  terminalId: string;
+  terminalName: string;
   jobId: string;
   command: string;
   stream?: null;
@@ -185,8 +185,8 @@ export interface CommandExitMessage extends BaseRoomMessage {
   role: 'system';
   messageType?: MessageType.CommandExit | null;
   content: string;
-  agentId: string;
-  agentName?: string | null;
+  terminalId: string;
+  terminalName?: string | null;
   jobId: string;
   command: string;
   exitCode: number;
@@ -196,8 +196,8 @@ export interface CommandExitMessage extends BaseRoomMessage {
 export interface SystemNoticeMessage extends BaseRoomMessage {
   role: 'system';
   content: string;
-  agentId?: string | null;
-  agentName?: string | null;
+  terminalId?: string | null;
+  terminalName?: string | null;
   jobId?: null;
   command?: null;
   stream?: null;
@@ -207,7 +207,7 @@ export interface SystemNoticeMessage extends BaseRoomMessage {
 
 export type RoomMessage =
   | UserChatMessage
-  | AgentOutputMessage
+  | TerminalOutputMessage
   | CommandStartMessage
   | CommandExitMessage
   | SystemNoticeMessage;

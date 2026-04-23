@@ -7,7 +7,7 @@ import type { RoomMessage } from '@/hooks/useTaskRoom';
 export interface CommandGroupData {
   jobId: string;
   command: string;
-  agentName?: string | null;
+  terminalName?: string | null;
   startTs: number;
   exitCode?: number;
   lines: RoomMessage[];

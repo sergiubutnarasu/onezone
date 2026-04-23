@@ -5,12 +5,12 @@ import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Home, ChevronRight, Trash2, Wifi, WifiOff } from 'lucide-react';
-import { fetchTask, fetchMessages, fetchAgents, assignTaskAgent, deleteTask, updateTaskStatus } from '@/lib/api';
+import { fetchTask, fetchMessages, fetchTerminals, assignTaskTerminal, deleteTask, updateTaskStatus } from '@/lib/api';
 import { useTaskRoom } from '@/hooks/useTaskRoom';
 import { MessageType } from '@onezone/shared';
 import { MessageLine } from '@/components/MessageLine';
 import { CommandGroup, type CommandGroupData } from '@/components/CommandGroup';
-import { AgentStatusBar } from '@/components/AgentStatusBar';
+import { TerminalStatusBar } from '@/components/TerminalStatusBar';
 import { MessageInput } from '@/components/MessageInput';
 import { CopyButton } from '@/components/CopyButton';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { TaskStatus, TASK_STATUS_LABELS, TASK_STATUS_COLUMNS, type Agent } from '@onezone/shared';
+import { TaskStatus, TASK_STATUS_LABELS, TASK_STATUS_COLUMNS, type Terminal } from '@onezone/shared';
 import type { RoomMessage } from '@/hooks/useTaskRoom';
 
 type ChatItem =
@@ -44,7 +44,7 @@ function handleCommandGroup(
   const group: CommandGroupData = {
     jobId: msg.jobId,
     command: msg.command ?? msg.content,
-    agentName: msg.agentName,
+    terminalName: msg.terminalName,
     startTs: msg.ts,
     lines: [],
   };
@@ -64,7 +64,7 @@ function handleOutputLine(
     group = {
       jobId: msg.jobId,
       command: msg.command ?? '(unknown)',
-      agentName: msg.agentName,
+      terminalName: msg.terminalName,
       startTs: msg.ts,
       lines: [],
     };
@@ -101,7 +101,7 @@ function buildChatItems(messages: RoomMessage[]): ChatItem[] {
         handleCommandGroup(msg, groupMap, items);
         continue;
       }
-      if (msg.role === 'agent') {
+      if (msg.role === 'terminal') {
         handleOutputLine(msg, groupMap, items);
         continue;
       }
@@ -127,13 +127,13 @@ export default function TaskChatPage() {
     queryFn: () => fetchTask(taskId),
   });
 
-  const { data: agents = [] } = useQuery<Agent[]>({
-    queryKey: ['agents'],
-    queryFn: fetchAgents,
+  const { data: terminals = [] } = useQuery<Terminal[]>({
+    queryKey: ['terminals'],
+    queryFn: fetchTerminals,
   });
 
   const assignMutation = useMutation({
-    mutationFn: (agentId: string) => assignTaskAgent(taskId, agentId),
+    mutationFn: (terminalId: string) => assignTaskTerminal(taskId, terminalId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['task', taskId] });
       qc.invalidateQueries({ queryKey: ['tasks', projectId] });
@@ -167,7 +167,7 @@ export default function TaskChatPage() {
     queryFn: () => fetchMessages(taskId),
   });
 
-  const { messages, connectedAgents, isConnected, sendMessage, prependMessages } =
+  const { messages, connectedTerminals, isConnected, sendMessage, prependMessages } =
     useTaskRoom(taskId, {
       onTaskDeleted: () => router.push(`/projects/${projectId}`),
     });
@@ -250,24 +250,24 @@ export default function TaskChatPage() {
                 </SelectContent>
               </Select>
 
-              {/* Agent selector */}
+              {/* Terminal selector */}
               <Select
-                value={task?.agentId ?? ''}
+                value={task?.terminalId ?? ''}
                 disabled={assignMutation.isPending}
                 onValueChange={(v) => { if (v != null) assignMutation.mutate(v); }}
               >
                 <SelectTrigger className="h-7 text-xs w-36 bg-muted/50">
-                  <SelectValue placeholder="Agent…">
-                    {(v: string) => agents.find((a) => a.id === v)?.name ?? v}
+                  <SelectValue placeholder="Terminal…">
+                    {(v: string) => terminals.find((t) => t.id === v)?.name ?? v}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {agents.map((a) => (
-                    <SelectItem key={a.id} value={a.id} label={a.name} className="text-xs">
-                      <span className={`mr-1.5 ${a.isConnected ? 'text-emerald-400' : 'text-muted-foreground'}`}>
-                        {a.isConnected ? '●' : '○'}
+                  {terminals.map((t) => (
+                    <SelectItem key={t.id} value={t.id} label={t.name} className="text-xs">
+                      <span className={`mr-1.5 ${t.isConnected ? 'text-emerald-400' : 'text-muted-foreground'}`}>
+                        {t.isConnected ? '●' : '○'}
                       </span>
-                      {a.name}
+                      {t.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -294,8 +294,8 @@ export default function TaskChatPage() {
           </div>
         </div>
 
-        {/* Agent status bar */}
-        <AgentStatusBar agents={connectedAgents} />
+        {/* Terminal status bar */}
+        <TerminalStatusBar terminals={connectedTerminals} />
 
         {/* Message area */}
         <ScrollArea className="flex-1 min-h-0">

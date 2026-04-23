@@ -4,9 +4,9 @@ import { useCallback, useEffect, useReducer, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { EventCommands } from "@onezone/shared";
 import { reducer, initialState } from "./useTaskRoom.reducer";
-import type { RoomMessage, ConnectedAgent } from "./useTaskRoom.types";
+import type { RoomMessage, ConnectedTerminal } from "./useTaskRoom.types";
 
-export type { RoomMessage, ConnectedAgent };
+export type { RoomMessage, ConnectedTerminal };
 
 function useReducerState<T>(initial: T): [T, (value: T) => void] {
   const [val, dispatch] = useReducer((_: T, v: T) => v, initial);
@@ -52,10 +52,10 @@ export function useTaskRoom(
     });
 
     socket.on(
-      "agent:command:start",
+      "terminal:command:start",
       (payload: {
-        agentId: string;
-        agentName: string;
+        terminalId: string;
+        terminalName: string;
         jobId: string;
         command: string;
         ts: number;
@@ -65,9 +65,9 @@ export function useTaskRoom(
     );
 
     socket.on(
-      "agent:command:exit",
+      "terminal:command:exit",
       (payload: {
-        agentId: string;
+        terminalId: string;
         jobId: string;
         command: string;
         exitCode: number;
@@ -77,14 +77,14 @@ export function useTaskRoom(
       },
     );
 
-    socket.on("agent:connected", (info: ConnectedAgent & { ts: number }) => {
-      dispatch({ type: "AGENT_CONNECTED", info });
+    socket.on("terminal:connected", (info: ConnectedTerminal & { ts: number }) => {
+      dispatch({ type: "TERMINAL_CONNECTED", info });
     });
 
     socket.on(
-      "agent:disconnected",
-      (info: { agentId: string; agentName?: string; ts: number }) => {
-        dispatch({ type: "AGENT_DISCONNECTED", info });
+      "terminal:disconnected",
+      (info: { terminalId: string; terminalName?: string; ts: number }) => {
+        dispatch({ type: "TERMINAL_DISCONNECTED", info });
       },
     );
 
@@ -111,7 +111,7 @@ export function useTaskRoom(
 
   return {
     messages: state.messages,
-    connectedAgents: Array.from(state.connectedAgents.values()),
+    connectedTerminals: Array.from(state.connectedTerminals.values()),
     isConnected,
     sendMessage,
     prependMessages,

@@ -1,7 +1,7 @@
 import type { RoomMessage } from '@/hooks/useTaskRoom';
 
 export function MessageLine({ message }: { message: RoomMessage }) {
-  const isAgent = message.role === 'agent';
+  const isAgent = message.role === 'terminal';
   const isSystem = message.role === 'system';
   const isStderr = message.stream === 'stderr';
 
@@ -27,9 +27,9 @@ export function MessageLine({ message }: { message: RoomMessage }) {
         ) : (
           <span className="text-muted-foreground/40">▶</span>
         )}
-        {(message.agentName || message.agentId) && (
+        {(message.terminalName || message.terminalId) && (
           <span className="text-muted-foreground/60 not-italic font-medium">
-            {message.agentName || message.agentId}
+            {message.terminalName || message.terminalId}
           </span>
         )}
         <span className="font-mono">{message.content}</span>
@@ -45,7 +45,7 @@ export function MessageLine({ message }: { message: RoomMessage }) {
         }`}
       >
         <span className="text-muted-foreground/40 mr-2">{timestamp}</span>
-        <span className="text-amber-400/70 mr-2">[{message.agentName || message.agentId}]</span>
+        <span className="text-amber-400/70 mr-2">[{message.terminalName || message.terminalId}]</span>
         {message.content}
       </div>
     );

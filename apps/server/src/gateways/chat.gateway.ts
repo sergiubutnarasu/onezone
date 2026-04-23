@@ -18,21 +18,21 @@ import {
   SocketAuthSchema,
   createTaskRoomId,
 } from '@onezone/shared';
-import { AgentRegistryService } from './agent-registry.service';
-import { SYSTEM_AGENTS_ROOM } from './constants';
+import { TerminalRegistryService } from './terminal-registry.service';
+import { SYSTEM_TERMINALS_ROOM } from './constants';
 import { Server, Socket } from 'socket.io';
 import { TasksService } from '../tasks/tasks.service';
-import { AgentsService } from '../agents/agents.service';
+import { TerminalsService } from '../terminals/terminals.service';
 import { ChatMessageHandler, ChatMessageData } from './message-handlers/chat-message.handler';
 import { OutputLineHandler, OutputLineData } from './message-handlers/output-line.handler';
 import { CommandStartHandler, CommandStartData } from './message-handlers/command-start.handler';
 import { CommandExitHandler, CommandExitData } from './message-handlers/command-exit.handler';
 
-interface AgentSocketMeta {
-  role: 'agent';
-  agentId: string;
-  agentName: string;
-  agentHostname?: string;
+interface TerminalSocketMeta {
+  role: 'terminal';
+  terminalId: string;
+  terminalName: string;
+  terminalHostname?: string;
   taskId?: string;
 }
 
@@ -41,7 +41,7 @@ interface UserSocketMeta {
   taskId?: string;
 }
 
-type SocketMeta = AgentSocketMeta | UserSocketMeta;
+type SocketMeta = TerminalSocketMeta | UserSocketMeta;
 
 @UseGuards(SocketAuthGuard)
 @WebSocketGateway({
@@ -62,8 +62,8 @@ export class ChatGateway
 
   constructor(
     private readonly tasksService: TasksService,
-    private readonly agentsService: AgentsService,
-    private readonly agentRegistry: AgentRegistryService,
+    private readonly terminalsService: TerminalsService,
+    private readonly terminalRegistry: TerminalRegistryService,
     private readonly chatMessageHandler: ChatMessageHandler,
     private readonly outputLineHandler: OutputLineHandler,
     private readonly commandStartHandler: CommandStartHandler,
@@ -71,7 +71,7 @@ export class ChatGateway
   ) {}
 
   afterInit(server: Server): void {
-    this.agentRegistry.setServer(server);
+    this.terminalRegistry.setServer(server);
   }
 
   async handleConnection(client: Socket): Promise<void> {
@@ -86,20 +86,20 @@ export class ChatGateway
       return;
     }
 
-    const { taskId, role, agentId, agentName, agentHostname } = result.data;
+    const { taskId, role, terminalId, terminalName, terminalHostname } = result.data;
 
     if (taskId) {
-      await this.connectToTaskRoom(client, { taskId, role, agentId, agentName, agentHostname });
+      await this.connectToTaskRoom(client, { taskId, role, terminalId, terminalName, terminalHostname });
     } else {
-      await this.connectToLobby(client, { role, agentId, agentName, agentHostname });
+      await this.connectToLobby(client, { role, terminalId, terminalName, terminalHostname });
     }
   }
 
   private async connectToTaskRoom(
     client: Socket,
-    auth: { taskId: string; role: string; agentId?: string; agentName?: string; agentHostname?: string },
+    auth: { taskId: string; role: string; terminalId?: string; terminalName?: string; terminalHostname?: string },
   ): Promise<void> {
-    const { taskId, role, agentId, agentName, agentHostname } = auth;
+    const { taskId, role, terminalId, terminalName, terminalHostname } = auth;
 
     try {
       await this.tasksService.findOne(taskId);
@@ -113,37 +113,37 @@ export class ChatGateway
     const roomId = createTaskRoomId(taskId);
     await client.join(roomId);
 
-    if (role === 'agent' && agentId) {
+    if (role === 'terminal' && terminalId) {
       this.socketMeta.set(client.id, {
-        role: 'agent',
-        agentId,
-        agentName: agentName ?? agentId,
-        agentHostname,
+        role: 'terminal',
+        terminalId,
+        terminalName: terminalName ?? terminalId,
+        terminalHostname,
         taskId,
       });
 
-      this.agentRegistry.registerTaskSocket(taskId, client.id);
-      await this.agentsService.markConnected(agentId);
+      this.terminalRegistry.registerTaskSocket(taskId, client.id);
+      await this.terminalsService.markConnected(terminalId);
 
-      this.server.to(roomId).emit(EventCommands.AgentConnected, {
-        agentId,
-        agentName: agentName ?? agentId,
+      this.server.to(roomId).emit(EventCommands.TerminalConnected, {
+        terminalId,
+        terminalName: terminalName ?? terminalId,
         taskId,
         ts: Date.now(),
       });
     } else {
       this.socketMeta.set(client.id, { role: 'user', taskId });
 
-      // Notify newly connected user of already-connected agents in this task
+      // Notify newly connected user of already-connected terminals in this task
       const ts = Date.now();
       for (const m of this.socketMeta.values()) {
         if (
-          m.role === 'agent' &&
+          m.role === 'terminal' &&
           m.taskId === taskId
         ) {
-          client.emit('agent:connected', {
-            agentId: m.agentId,
-            agentName: m.agentName,
+          client.emit('terminal:connected', {
+            terminalId: m.terminalId,
+            terminalName: m.terminalName,
             taskId,
             ts,
           });
@@ -154,27 +154,27 @@ export class ChatGateway
 
   private async connectToLobby(
     client: Socket,
-    auth: { role: string; agentId?: string; agentName?: string; agentHostname?: string },
+    auth: { role: string; terminalId?: string; terminalName?: string; terminalHostname?: string },
   ): Promise<void> {
-    const { role, agentId, agentName, agentHostname } = auth;
+    const { role, terminalId, terminalName, terminalHostname } = auth;
 
-    await client.join(SYSTEM_AGENTS_ROOM);
+    await client.join(SYSTEM_TERMINALS_ROOM);
 
-    if (role === 'agent' && agentId) {
+    if (role === 'terminal' && terminalId) {
       this.socketMeta.set(client.id, {
-        role: 'agent',
-        agentId,
-        agentName: agentName ?? agentId,
-        agentHostname,
+        role: 'terminal',
+        terminalId,
+        terminalName: terminalName ?? terminalId,
+        terminalHostname,
       });
 
-      this.agentRegistry.register(agentId, client.id);
-      await this.agentsService.markConnected(agentId);
-      this.logger.log(`Agent ${agentId} (${agentName}) joined system lobby`);
+      this.terminalRegistry.register(terminalId, client.id);
+      await this.terminalsService.markConnected(terminalId);
+      this.logger.log(`Terminal ${terminalId} (${terminalName}) joined system lobby`);
 
-      const assignedTasks = await this.tasksService.findByAgent(agentId);
+      const assignedTasks = await this.tasksService.findByTerminal(terminalId);
       for (const task of assignedTasks) {
-        this.agentRegistry.assignTask(agentId, task.id);
+        this.terminalRegistry.assignTask(terminalId, task.id);
       }
     } else {
       this.socketMeta.set(client.id, { role: 'user' });
@@ -184,30 +184,30 @@ export class ChatGateway
   async handleDisconnect(client: Socket): Promise<void> {
     const meta = this.socketMeta.get(client.id);
 
-    if (meta?.role === 'agent') {
+    if (meta?.role === 'terminal') {
       if (meta.taskId) {
-        this.agentRegistry.deregisterTaskSocket(meta.taskId, client.id);
+        this.terminalRegistry.deregisterTaskSocket(meta.taskId, client.id);
         const roomId = createTaskRoomId(meta.taskId);
-        this.server.to(roomId).emit(EventCommands.AgentDisconnected, {
-          agentId: meta.agentId,
-          agentName: meta.agentName,
+        this.server.to(roomId).emit(EventCommands.TerminalDisconnected, {
+          terminalId: meta.terminalId,
+          terminalName: meta.terminalName,
           taskId: meta.taskId,
           ts: Date.now(),
         });
       } else {
-        this.agentRegistry.deregister(meta.agentId);
-        await this.agentsService.markDisconnected(meta.agentId);
+        this.terminalRegistry.deregister(meta.terminalId);
+        await this.terminalsService.markDisconnected(meta.terminalId);
       }
     }
 
     this.socketMeta.delete(client.id);
   }
 
-  @SubscribeMessage(EventCommands.AgentHeartbeat)
-  async handleAgentHeartbeat(@ConnectedSocket() client: Socket): Promise<void> {
+  @SubscribeMessage(EventCommands.TerminalHeartbeat)
+  async handleTerminalHeartbeat(@ConnectedSocket() client: Socket): Promise<void> {
     const meta = this.socketMeta.get(client.id);
-    if (meta?.role === 'agent') {
-      await this.agentsService.updateHeartbeat(meta.agentId);
+    if (meta?.role === 'terminal') {
+      await this.terminalsService.updateHeartbeat(meta.terminalId);
     }
   }
 
@@ -227,7 +227,7 @@ export class ChatGateway
     return this.outputLineHandler.handle(data, client, this.server);
   }
 
-  @SubscribeMessage('agent:command:start')
+  @SubscribeMessage('terminal:command:start')
   async handleCommandStart(
     @MessageBody() data: CommandStartData,
     @ConnectedSocket() client: Socket,
@@ -235,13 +235,13 @@ export class ChatGateway
     return this.commandStartHandler.handle(data, client, this.server);
   }
 
-  @SubscribeMessage('agent:command:exit')
+  @SubscribeMessage('terminal:command:exit')
   async handleCommandExit(
     @MessageBody() data: CommandExitData,
     @ConnectedSocket() client: Socket,
   ) {
     const meta = this.socketMeta.get(client.id);
-    const agentName = meta?.role === 'agent' ? meta.agentName : undefined;
-    return this.commandExitHandler.handle({ ...data, agentName }, client, this.server);
+    const terminalName = meta?.role === 'terminal' ? meta.terminalName : undefined;
+    return this.commandExitHandler.handle({ ...data, terminalName }, client, this.server);
   }
 }

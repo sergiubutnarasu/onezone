@@ -13,10 +13,10 @@ export const CreateTaskSchema = baseEntitySchema;
 
 export const SocketAuthSchema = z.object({
   taskId: z.string().uuid().optional(),
-  role: z.enum(['user', 'agent']),
-  agentId: z.string().optional(),
-  agentName: z.string().optional(),
-  agentHostname: z.string().optional(),
+  role: z.enum(['user', 'terminal']),
+  terminalId: z.string().optional(),
+  terminalName: z.string().optional(),
+  terminalHostname: z.string().optional(),
 });
 
 export type CreateProjectInput = z.infer<typeof CreateProjectSchema>;

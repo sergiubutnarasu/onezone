@@ -34,7 +34,7 @@ export class UpdateTaskStatusDto {
   status!: TaskStatus;
 }
 
-export class AssignAgentDto {
+export class AssignTerminalDto {
   @IsUUID()
-  agentId!: string;
+  terminalId!: string;
 }
