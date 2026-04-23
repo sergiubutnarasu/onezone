@@ -1,4 +1,5 @@
 import { Args, Command, Flags } from "@oclif/core";
+import * as readline from "node:readline";
 
 export default class TaskDeleteCommand extends Command {
   static description = "Delete a task";
@@ -17,10 +18,28 @@ export default class TaskDeleteCommand extends Command {
       description: "Server URL",
       default: "http://localhost:5026",
     }),
+    yes: Flags.boolean({
+      char: "y",
+      description: "Skip confirmation prompt",
+      default: false,
+    }),
   };
 
   async run(): Promise<void> {
     const { args, flags } = await this.parse(TaskDeleteCommand);
+
+    const confirmed = flags.yes || await new Promise<boolean>((resolve) => {
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      rl.question(`Delete task ${args.id}? [y/N] `, (answer) => {
+        rl.close();
+        resolve(answer.toLowerCase() === "y");
+      });
+    });
+
+    if (!confirmed) {
+      this.log("Aborted.");
+      return;
+    }
 
     try {
       const response = await fetch(`${flags.server}/tasks/${args.id}`, {
