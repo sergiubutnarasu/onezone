@@ -25,6 +25,13 @@ export class ProjectsService {
     return project;
   }
 
+  async update(id: string, data: { name?: string; description?: string }) {
+    await this.findOne(id);
+    const project = await this.prisma.project.update({ where: { id }, data });
+    this.logger.log(`Updated project ${id}`);
+    return project;
+  }
+
   async remove(id: string) {
     await this.findOne(id);
     const project = await this.prisma.project.delete({ where: { id } });

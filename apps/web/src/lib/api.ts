@@ -21,6 +21,9 @@ export const fetchProjects = () => httpClient.get<Project[]>('/projects');
 export const createProject = (data: { name: string; description?: string }) =>
   httpClient.post<Project>('/projects', data);
 
+export const updateProject = (id: string, data: { name?: string; description?: string }) =>
+  httpClient.patch<Project>(`/projects/${id}`, data);
+
 export const deleteProject = (id: string) => httpClient.delete<void>(`/projects/${id}`);
 
 export const fetchProject = (id: string) => httpClient.get<Project>(`/projects/${id}`);

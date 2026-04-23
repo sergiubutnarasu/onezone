@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, ChevronRight, Home } from 'lucide-react';
+import { Plus, ChevronRight, Home, Settings } from 'lucide-react';
 import Link from 'next/link';
-import { fetchProject, fetchTasks, fetchTerminals, createTask } from '@/lib/api';
+import { fetchProject, fetchTasks, fetchTerminals, createTask, updateProject } from '@/lib/api';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +35,9 @@ export default function ProjectPage() {
   const [description, setDescription] = useState('');
   const [terminalId, setTerminalId] = useState<string>('');
   const [open, setOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
 
   const { data: project, isLoading: projectLoading } = useQuery({
     queryKey: ['project', id],
@@ -59,6 +62,15 @@ export default function ProjectPage() {
       setDescription('');
       setTerminalId('');
       setOpen(false);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: () => updateProject(id, { name: editName, description: editDescription }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['project', id] });
+      qc.invalidateQueries({ queryKey: ['projects'] });
+      setSettingsOpen(false);
     },
   });
 
@@ -99,6 +111,7 @@ export default function ProjectPage() {
               )}
             </div>
 
+            <div className="flex items-center gap-2">
             <Tooltip>
               <Dialog open={open} onOpenChange={setOpen}>
                 <TooltipTrigger
@@ -162,6 +175,44 @@ export default function ProjectPage() {
                 </DialogContent>
               </Dialog>
             </Tooltip>
+
+            <Dialog open={settingsOpen} onOpenChange={(v) => {
+              if (v && project) {
+                setEditName(project.name);
+                setEditDescription(project.description ?? '');
+              }
+              setSettingsOpen(v);
+            }}>
+              <DialogTrigger render={<Button variant="outline" size="icon" aria-label="Project settings" />}>
+                <Settings className="size-4" />
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Project settings</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col gap-3 pt-2">
+                  <Input
+                    placeholder="Project name"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    autoFocus
+                  />
+                  <Input
+                    placeholder="Description (optional)"
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                  />
+                  <Button
+                    onClick={() => updateMutation.mutate()}
+                    disabled={!editName || updateMutation.isPending}
+                    className="w-full mt-1"
+                  >
+                    {updateMutation.isPending ? 'Saving…' : 'Save changes'}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+            </div>
           </div>
         </div>
 
