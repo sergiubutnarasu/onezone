@@ -47,6 +47,9 @@ export const fetchMessages = (taskId: string) =>
 export const updateTaskStatus = (taskId: string, status: TaskStatus) =>
   httpClient.patch<Task>(`/tasks/${taskId}/status`, { status });
 
+export const updateTask = (taskId: string, data: { name?: string; description?: string; status?: TaskStatus }) =>
+  httpClient.patch<Task>(`/tasks/${taskId}`, data);
+
 export const fetchTerminals = () => httpClient.get<Terminal[]>('/terminals');
 
 export const deleteTerminal = (terminalId: string) => httpClient.delete<void>(`/terminals/${terminalId}`);

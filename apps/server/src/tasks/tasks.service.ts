@@ -91,4 +91,14 @@ export class TasksService {
     this.terminalRegistry.assignTask(terminalId, id);
     return task;
   }
+
+  async update(id: string, data: { name?: string; description?: string; status?: TaskStatus }) {
+    await this.findOne(id);
+    const task = await this.prisma.task.update({
+      where: { id },
+      data,
+    });
+    this.logger.log(`Updated task ${id}`);
+    return task;
+  }
 }

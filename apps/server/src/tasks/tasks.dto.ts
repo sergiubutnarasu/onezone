@@ -1,4 +1,4 @@
-import { IsArray, IsEnum, IsInt, IsOptional, IsUUID, Min, ValidateNested } from 'class-validator';
+import { IsArray, IsEnum, IsInt, IsOptional, IsString, IsUUID, Min, ValidateNested } from 'class-validator';
 import { TaskStatus } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
 
@@ -37,4 +37,18 @@ export class UpdateTaskStatusDto {
 export class AssignTerminalDto {
   @IsUUID()
   terminalId!: string;
+}
+
+export class UpdateTaskDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsEnum(TaskStatus)
+  status?: TaskStatus;
 }
