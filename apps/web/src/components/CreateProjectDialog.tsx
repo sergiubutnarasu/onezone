@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createProject } from '@/lib/api';
@@ -48,11 +49,22 @@ export function CreateProjectDialog({ agents, open, onOpenChange }: CreateProjec
       name: '',
       description: '',
       defaultAgentId: agents[0]?.id ?? '',
-      defaultModel: '',
+      defaultModel: agents[0]?.model ?? '',
     },
   });
 
   const defaultAgentId = watch('defaultAgentId');
+
+  useEffect(() => {
+    if (open && agents.length > 0) {
+      reset({
+        name: '',
+        description: '',
+        defaultAgentId: agents[0].id,
+        defaultModel: agents[0].model,
+      });
+    }
+  }, [open, agents, reset]);
 
   const mutation = useMutation({
     mutationFn: (data: CreateProjectForm) =>
@@ -94,7 +106,11 @@ export function CreateProjectDialog({ agents, open, onOpenChange }: CreateProjec
           />
           <Select
             value={defaultAgentId}
-            onValueChange={(v) => setValue('defaultAgentId', v ?? '')}
+            onValueChange={(v) => {
+              setValue('defaultAgentId', v ?? '');
+              const agent = agents.find((a) => a.id === v);
+              if (agent) setValue('defaultModel', agent.model);
+            }}
           >
             <SelectTrigger className="w-full">
               <SelectValue>
