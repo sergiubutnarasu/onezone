@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useMemo } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
@@ -19,7 +20,6 @@ import { TerminalStatusBar } from "@/components/TerminalStatusBar";
 import { MessageInput } from "@/components/MessageInput";
 import { CopyButton } from "@/components/CopyButton";
 import { TaskMoreMenu } from "@/components/TaskMoreMenu";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TASK_STATUS_LABELS, type Terminal, type Agent } from "@onezone/shared";
@@ -119,7 +119,7 @@ function buildChatItems(messages: RoomMessage[]): ChatItem[] {
 
 export default function TaskChatPage() {
   const { id: projectId, taskId } = useParams<{ id: string; taskId: string }>();
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollParentRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   const { data: task } = useQuery({
@@ -161,10 +161,24 @@ export default function TaskChatPage() {
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatItems.length > 0) {
+      virtualizer.scrollToIndex(chatItems.length - 1, { behavior: "smooth" });
+    }
   }, [messages]);
 
   const chatItems = useMemo(() => buildChatItems(messages), [messages]);
+
+  const virtualizer = useVirtualizer({
+    count: chatItems.length,
+    getScrollElement: () => scrollParentRef.current,
+    estimateSize: (i) => {
+      const item = chatItems[i];
+      if (item.type === "command") return 40 + item.group.lines.length * 18;
+      return 24;
+    },
+    measureElement: (el) => el.getBoundingClientRect().height,
+    overscan: 10,
+  });
 
   return (
     <TooltipProvider>
@@ -337,18 +351,31 @@ export default function TaskChatPage() {
         <TerminalStatusBar terminals={connectedTerminals} />
 
         {/* Message area */}
-        <ScrollArea className="flex-1 min-h-0">
-          <div className="py-2 pb-4 font-mono text-sm">
-            {chatItems.map((item, i) =>
-              item.type === "command" ? (
-                <CommandGroup key={item.group.jobId} group={item.group} />
-              ) : (
-                <MessageLine key={item.msg.id || i} message={item.msg} />
-              ),
-            )}
-            <div ref={bottomRef} />
+        <div ref={scrollParentRef} className="flex-1 min-h-0 overflow-y-auto chat-scroll">
+          <div
+            className="relative py-2 pb-4 font-mono text-sm"
+            style={{ height: `${virtualizer.getTotalSize()}px` }}
+          >
+            {virtualizer.getVirtualItems().map((virtualRow) => {
+              const item = chatItems[virtualRow.index];
+              return (
+                <div
+                  key={virtualRow.key}
+                  data-index={virtualRow.index}
+                  ref={virtualizer.measureElement}
+                  className="absolute top-0 left-0 w-full"
+                  style={{ transform: `translateY(${virtualRow.start}px)` }}
+                >
+                  {item.type === "command" ? (
+                    <CommandGroup group={item.group} />
+                  ) : (
+                    <MessageLine message={item.msg} />
+                  )}
+                </div>
+              );
+            })}
           </div>
-        </ScrollArea>
+        </div>
 
         {/* Input */}
         <MessageInput onSend={sendMessage} disabled={!isConnected} />
