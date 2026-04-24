@@ -1,0 +1,87 @@
+'use client';
+
+import { useForm } from 'react-hook-form';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { createProject } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+
+interface CreateProjectForm {
+  name: string;
+  description: string;
+}
+
+interface CreateProjectDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogProps) {
+  const qc = useQueryClient();
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateProjectForm>({
+    defaultValues: {
+      name: '',
+      description: '',
+    },
+  });
+
+  const mutation = useMutation({
+    mutationFn: (data: CreateProjectForm) =>
+      createProject({
+        name: data.name,
+        description: data.description,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['projects'] });
+      onOpenChange(false);
+      reset();
+    },
+  });
+
+  const onSubmit = (data: CreateProjectForm) => {
+    mutation.mutate(data);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Create project</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3 pt-2">
+          <Input
+            {...register('name', { required: 'Name is required' })}
+            placeholder="Project name"
+            autoFocus
+          />
+          {errors.name && (
+            <p className="text-xs text-destructive">{errors.name.message}</p>
+          )}
+          <Input
+            {...register('description')}
+            placeholder="Description (optional)"
+          />
+          <Button
+            type="submit"
+            disabled={isSubmitting || mutation.isPending}
+            className="w-full mt-1"
+          >
+            {mutation.isPending ? 'Creating…' : 'Create project'}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

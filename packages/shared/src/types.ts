@@ -37,7 +37,7 @@ export enum TaskStatus {
   DONE = "DONE",
 }
 
-export const TASK_STATUS_COLUMNS = [
+export const TASK_STATUS_COLUMNS: readonly TaskStatus[] = [
   TaskStatus.BACKLOG,
   TaskStatus.TODO,
   TaskStatus.IN_PROGRESS,
@@ -141,7 +141,9 @@ export interface ServerToClientEvents {
     terminalId: string;
     terminalName: string;
   }) => void;
-  [EventCommands.TerminalDisconnected]: (payload: { terminalId: string }) => void;
+  [EventCommands.TerminalDisconnected]: (payload: {
+    terminalId: string;
+  }) => void;
   [EventCommands.AssignTask]: (payload: AssignTaskPayload) => void;
   [EventCommands.TaskDeleted]: (payload: { taskId: string }) => void;
 }
@@ -162,7 +164,7 @@ interface BaseRoomMessage {
 }
 
 export interface UserChatMessage extends BaseRoomMessage {
-  role: 'user';
+  role: "user";
   content: string;
   terminalId?: null;
   terminalName?: null;
@@ -174,19 +176,19 @@ export interface UserChatMessage extends BaseRoomMessage {
 }
 
 export interface TerminalOutputMessage extends BaseRoomMessage {
-  role: 'terminal';
+  role: "terminal";
   content: string;
   terminalId: string;
   terminalName: string;
   jobId: string;
   command: string;
-  stream: 'stdout' | 'stderr';
+  stream: "stdout" | "stderr";
   exitCode?: null;
   messageType?: null;
 }
 
 export interface CommandStartMessage extends BaseRoomMessage {
-  role: 'system';
+  role: "system";
   messageType: MessageType.CommandStart;
   content: string;
   terminalId: string;
@@ -198,7 +200,7 @@ export interface CommandStartMessage extends BaseRoomMessage {
 }
 
 export interface CommandExitMessage extends BaseRoomMessage {
-  role: 'system';
+  role: "system";
   messageType?: MessageType.CommandExit | null;
   content: string;
   terminalId: string;
@@ -210,7 +212,7 @@ export interface CommandExitMessage extends BaseRoomMessage {
 }
 
 export interface SystemNoticeMessage extends BaseRoomMessage {
-  role: 'system';
+  role: "system";
   content: string;
   terminalId?: string | null;
   terminalName?: string | null;

@@ -4,8 +4,8 @@ import { useEffect, useRef, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Home, ChevronRight, Trash2, Wifi, WifiOff, Pencil } from 'lucide-react';
-import { fetchTask, fetchMessages, fetchTerminals, assignTaskTerminal, deleteTask, updateTaskStatus, updateTask } from '@/lib/api';
+import { Home, ChevronRight, Trash2, Wifi, WifiOff } from 'lucide-react';
+import { fetchTask, fetchMessages, fetchTerminals, assignTaskTerminal, deleteTask, updateTaskStatus } from '@/lib/api';
 import { useTaskRoom } from '@/hooks/useTaskRoom';
 import { MessageType } from '@onezone/shared';
 import { MessageLine } from '@/components/MessageLine';
@@ -18,14 +18,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -33,6 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TaskStatus, TASK_STATUS_LABELS, TASK_STATUS_COLUMNS, type Terminal } from '@onezone/shared';
+import { EditTaskButton } from '@/components/EditTaskButton';
 import type { RoomMessage } from '@/hooks/useTaskRoom';
 
 type ChatItem =
@@ -140,19 +133,6 @@ export default function TaskChatPage() {
     queryFn: fetchTerminals,
   });
 
-  const [editOpen, setEditOpen] = useState(false);
-  const [editName, setEditName] = useState('');
-  const [editDescription, setEditDescription] = useState('');
-  const [editStatus, setEditStatus] = useState<TaskStatus>(TaskStatus.BACKLOG);
-
-  useEffect(() => {
-    if (task && editOpen) {
-      setEditName(task.name);
-      setEditDescription(task.description ?? '');
-      setEditStatus(task.status);
-    }
-  }, [task, editOpen]);
-
   const assignMutation = useMutation({
     mutationFn: (terminalId: string) => assignTaskTerminal(taskId, terminalId),
     onSuccess: () => {
@@ -174,15 +154,6 @@ export default function TaskChatPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['tasks', projectId] });
       router.push(`/projects/${projectId}`);
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: () => updateTask(taskId, { name: editName, description: editDescription, status: editStatus }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['task', taskId] });
-      qc.invalidateQueries({ queryKey: ['tasks', projectId] });
-      setEditOpen(false);
     },
   });
 
@@ -304,21 +275,7 @@ export default function TaskChatPage() {
               </Select>
 
               {/* Edit */}
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => setEditOpen(true)}
-                      className="text-muted-foreground hover:text-foreground hover:bg-muted"
-                    />
-                  }
-                >
-                  <Pencil />
-                </TooltipTrigger>
-                <TooltipContent>Edit task</TooltipContent>
-              </Tooltip>
+              {task && <EditTaskButton task={task} projectId={projectId} />}
 
               {/* Delete */}
               <Tooltip>
@@ -360,63 +317,6 @@ export default function TaskChatPage() {
 
         {/* Input */}
         <MessageInput onSend={sendMessage} disabled={!isConnected} />
-
-        {/* Edit Task Dialog */}
-        <Dialog open={editOpen} onOpenChange={setEditOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Edit Task</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Name</label>
-                <Input
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  placeholder="Task name"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Description</label>
-                <Textarea
-                  value={editDescription}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditDescription(e.target.value)}
-                  placeholder="Task description (optional)"
-                  rows={3}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Status</label>
-                <Select
-                  value={editStatus}
-                  onValueChange={(v) => setEditStatus(v as TaskStatus)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TASK_STATUS_COLUMNS.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {TASK_STATUS_LABELS[s]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setEditOpen(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={() => updateMutation.mutate()}
-                  disabled={updateMutation.isPending || !editName.trim()}
-                >
-                  {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     </TooltipProvider>
   );

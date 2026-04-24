@@ -1,23 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Plus, FolderOpen, ArrowUpRight, Calendar, Layers } from 'lucide-react';
+import { FolderOpen, ArrowUpRight, Calendar, Layers } from 'lucide-react';
 import { CopyButton } from '@/components/CopyButton';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { fetchProjects, createProject } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { fetchProjects } from '@/lib/api';
+import { CreateProjectButton } from '@/components/CreateProjectButton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -43,24 +34,9 @@ function ProjectCardSkeleton() {
 }
 
 export default function ProjectsPage() {
-  const qc = useQueryClient();
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [open, setOpen] = useState(false);
-
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['projects'],
     queryFn: fetchProjects,
-  });
-
-  const createMutation = useMutation({
-    mutationFn: () => createProject({ name, description }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['projects'] });
-      setName('');
-      setDescription('');
-      setOpen(false);
-    },
   });
 
   return (
@@ -75,37 +51,7 @@ export default function ProjectsPage() {
           </p>
         </div>
 
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger render={<Button />}>
-            <Plus data-icon="inline-start" />
-            New Project
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Create project</DialogTitle>
-            </DialogHeader>
-            <div className="flex flex-col gap-3 pt-2">
-              <Input
-                placeholder="Project name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                autoFocus
-              />
-              <Input
-                placeholder="Description (optional)"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-              <Button
-                onClick={() => createMutation.mutate()}
-                disabled={!name || createMutation.isPending}
-                className="w-full mt-1"
-              >
-                {createMutation.isPending ? 'Creating…' : 'Create project'}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <CreateProjectButton />
       </div>
 
       {/* Project list */}
