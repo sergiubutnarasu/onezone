@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useMemo, useState } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
@@ -23,7 +23,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TASK_STATUS_LABELS, type Terminal, type Agent } from "@onezone/shared";
-import { EditTaskDialog } from "@/components/EditTaskDialog";
 import type { RoomMessage } from "@/hooks/useTaskRoom";
 
 type ChatItem =
@@ -122,7 +121,6 @@ export default function TaskChatPage() {
   const { id: projectId, taskId } = useParams<{ id: string; taskId: string }>();
   const bottomRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const [editOpen, setEditOpen] = useState(false);
 
   const { data: task } = useQuery({
     queryKey: ["task", taskId],
@@ -239,19 +237,7 @@ export default function TaskChatPage() {
                   projectId={projectId}
                   agents={agents}
                   terminals={terminals}
-                  onEdit={() => setEditOpen(true)}
                   onDeleted={() => router.push(`/projects/${projectId}`)}
-                />
-              )}
-
-              {/* Edit dialog */}
-              {task && (
-                <EditTaskDialog
-                  task={task}
-                  projectId={projectId}
-                  agents={agents}
-                  open={editOpen}
-                  onOpenChange={setEditOpen}
                 />
               )}
             </div>

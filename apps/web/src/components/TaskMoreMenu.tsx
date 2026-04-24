@@ -1,9 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { Trash2, Bot, MoreHorizontal, Pencil, Monitor } from 'lucide-react';
 import { updateTask, assignTaskTerminal, deleteTask, updateTaskStatus } from '@/lib/api';
-import { TaskStatus, TASK_STATUS_LABELS, TASK_STATUS_COLUMNS, type Terminal, type Agent } from '@onezone/shared';
+import { TaskStatus, TASK_STATUS_LABELS, TASK_STATUS_COLUMNS, type Terminal, type Agent, type Task } from '@onezone/shared';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,25 +16,18 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { EditTaskDialog } from '@/components/EditTaskDialog';
 
 interface TaskMoreMenuProps {
-  task: {
-    id: string;
-    name: string;
-    status: TaskStatus;
-    agentId: string;
-    terminalId: string;
-    agent?: { name: string } | null;
-    terminal?: { name: string; isConnected: boolean } | null;
-  };
+  task: Task;
   projectId: string;
   agents: Agent[];
   terminals: Terminal[];
-  onEdit: () => void;
   onDeleted: () => void;
 }
 
-export function TaskMoreMenu({ task, projectId, agents, terminals, onEdit, onDeleted }: TaskMoreMenuProps) {
+export function TaskMoreMenu({ task, projectId, agents, terminals, onDeleted }: TaskMoreMenuProps) {
+  const [editOpen, setEditOpen] = useState(false);
   const qc = useQueryClient();
 
   const assignMutation = useMutation({
@@ -64,7 +58,8 @@ export function TaskMoreMenu({ task, projectId, agents, terminals, onEdit, onDel
   }
 
   return (
-    <DropdownMenu>
+    <>
+      <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="icon-sm" className="h-7 w-7">
           <MoreHorizontal className="size-4" />
@@ -167,7 +162,7 @@ export function TaskMoreMenu({ task, projectId, agents, terminals, onEdit, onDel
         <DropdownMenuSeparator />
 
         {/* Edit */}
-        <DropdownMenuItem onClick={onEdit}>
+        <DropdownMenuItem onClick={() => setEditOpen(true)}>
           <Pencil className="mr-2 size-3.5" />
           Edit task
         </DropdownMenuItem>
@@ -182,5 +177,14 @@ export function TaskMoreMenu({ task, projectId, agents, terminals, onEdit, onDel
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+
+    <EditTaskDialog
+      task={task}
+      projectId={projectId}
+      agents={agents}
+      open={editOpen}
+      onOpenChange={setEditOpen}
+    />
+  </>
   );
 }
