@@ -59,6 +59,17 @@ export interface ProjectInfo {
   id: string;
   name: string;
   description?: string | null;
+  defaultAgentId: string;
+  defaultAgent: Agent;
+  defaultModel: string;
+}
+
+export interface Agent {
+  id: string;
+  name: string;
+  tag: string;
+  model: string;
+  createdAt: string;
 }
 
 export interface Task {
@@ -69,7 +80,10 @@ export interface Task {
   status: TaskStatus;
   order: number;
   terminalId: string;
-  terminal?: Pick<Terminal, "id" | "name"> | null;
+  terminal?: Pick<Terminal, "id" | "name" | "isConnected"> | null;
+  agentId: string;
+  agent?: Pick<Agent, "id" | "name" | "tag"> | null;
+  model: string;
   project?: ProjectInfo | null;
   createdAt: string;
 }

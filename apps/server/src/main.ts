@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { NestFactory, Reflector } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { RedisIoAdapter } from './adapters/redis-io.adapter';

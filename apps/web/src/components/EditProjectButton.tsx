@@ -4,13 +4,14 @@ import { useState } from 'react';
 import { Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EditProjectDialog } from './EditProjectDialog';
-import type { ProjectInfo } from '@onezone/shared';
+import type { ProjectInfo, Agent } from '@onezone/shared';
 
 interface EditProjectButtonProps {
   project: ProjectInfo;
+  agents: Agent[];
 }
 
-export function EditProjectButton({ project }: EditProjectButtonProps) {
+export function EditProjectButton({ project, agents }: EditProjectButtonProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -26,6 +27,7 @@ export function EditProjectButton({ project }: EditProjectButtonProps) {
 
       <EditProjectDialog
         project={project}
+        agents={agents}
         open={open}
         onOpenChange={setOpen}
       />

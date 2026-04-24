@@ -10,6 +10,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
+import { CreateProjectDto, UpdateProjectDto } from './projects.dto';
 
 @Controller('projects')
 export class ProjectsController {
@@ -17,7 +18,7 @@ export class ProjectsController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() body: { name: string; description?: string }) {
+  create(@Body() body: CreateProjectDto) {
     return this.projectsService.create(body);
   }
 
@@ -32,7 +33,7 @@ export class ProjectsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: { name?: string; description?: string }) {
+  update(@Param('id') id: string, @Body() body: UpdateProjectDto) {
     return this.projectsService.update(id, body);
   }
 

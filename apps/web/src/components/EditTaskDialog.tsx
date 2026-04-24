@@ -7,28 +7,38 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { TaskStatus, type Task } from '@onezone/shared';
+import { TaskStatus, type Task, type Agent } from '@onezone/shared';
 import { TaskStatusSelect } from './TaskStatusSelect';
 
 interface EditTaskForm {
   name: string;
   description: string;
   status: TaskStatus;
+  agentId: string;
+  model: string;
 }
 
 interface EditTaskDialogProps {
   task: Task;
   projectId: string;
+  agents: Agent[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function EditTaskDialog({ task, projectId, open, onOpenChange }: EditTaskDialogProps) {
+export function EditTaskDialog({ task, projectId, agents, open, onOpenChange }: EditTaskDialogProps) {
   const qc = useQueryClient();
 
   const methods = useForm<EditTaskForm>({
@@ -36,15 +46,21 @@ export function EditTaskDialog({ task, projectId, open, onOpenChange }: EditTask
       name: task.name,
       description: task.description ?? '',
       status: task.status,
+      agentId: task.agentId,
+      model: task.model,
     },
   });
 
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     reset,
     formState: { errors, isSubmitting },
   } = methods;
+
+  const agentId = watch('agentId');
 
   const mutation = useMutation({
     mutationFn: (data: EditTaskForm) =>
@@ -52,6 +68,8 @@ export function EditTaskDialog({ task, projectId, open, onOpenChange }: EditTask
         name: data.name,
         description: data.description,
         status: data.status,
+        agentId: data.agentId,
+        model: data.model,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['task', task.id] });
@@ -94,6 +112,40 @@ export function EditTaskDialog({ task, projectId, open, onOpenChange }: EditTask
           <div className="space-y-2">
             <label className="text-sm font-medium">Status</label>
             <TaskStatusSelect />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Agent</label>
+            <Select
+              value={agentId}
+              onValueChange={(v) => v != null && setValue('agentId', v, { shouldValidate: true })}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue>
+                  {(v: string) =>
+                    v
+                      ? (agents.find((a) => a.id === v)?.name ?? v)
+                      : <span className="text-muted-foreground">Select an agent</span>
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {agents.map((a) => (
+                  <SelectItem key={a.id} value={a.id} label={a.name}>
+                    {a.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Model</label>
+            <Input
+              {...register('model', { required: 'Model is required' })}
+              placeholder="Model"
+            />
+            {errors.model && (
+              <p className="text-xs text-destructive">{errors.model.message}</p>
+            )}
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button

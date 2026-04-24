@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { FolderOpen, ArrowUpRight, Calendar, Layers } from 'lucide-react';
 import { CopyButton } from '@/components/CopyButton';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { fetchProjects } from '@/lib/api';
+import { fetchProjects, fetchAgents } from '@/lib/api';
 import { CreateProjectButton } from '@/components/CreateProjectButton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -39,6 +39,11 @@ export default function ProjectsPage() {
     queryFn: fetchProjects,
   });
 
+  const { data: agents = [] } = useQuery({
+    queryKey: ['agents'],
+    queryFn: fetchAgents,
+  });
+
   return (
     <TooltipProvider>
     <div className="p-8 max-w-3xl">
@@ -51,7 +56,7 @@ export default function ProjectsPage() {
           </p>
         </div>
 
-        <CreateProjectButton />
+        <CreateProjectButton agents={agents} />
       </div>
 
       {/* Project list */}

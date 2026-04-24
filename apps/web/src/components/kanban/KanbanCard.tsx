@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import Link from 'next/link';
-import { GripVertical, Bot, Clock } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import type { Task } from '@onezone/shared';
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import Link from "next/link";
+import { GripVertical, Bot, Clock } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { Task } from "@onezone/shared";
 
 interface KanbanCardProps {
   task: Task;
@@ -15,15 +15,24 @@ interface KanbanCardProps {
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const days = Math.floor(diff / 86400000);
-  if (days === 0) return 'Today';
-  if (days === 1) return 'Yesterday';
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
   if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export function KanbanCard({ task, projectId }: KanbanCardProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: task.id, data: { task } });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id, data: { task } });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -34,11 +43,12 @@ export function KanbanCard({ task, projectId }: KanbanCardProps) {
     <div ref={setNodeRef} style={style} {...attributes}>
       <div
         className={cn(
-          'relative rounded-lg border border-border/70 bg-card overflow-hidden select-none',
-          'transition-all duration-200',
+          "relative rounded-lg border border-border/70 bg-card overflow-hidden select-none",
+          "transition-all duration-200",
           // glow on hover
-          'hover:border-primary/40 hover:shadow-[0_0_0_1px_hsl(var(--primary)/0.15),0_4px_16px_-4px_hsl(var(--primary)/0.25)]',
-          isDragging && 'opacity-50 shadow-[0_0_0_2px_hsl(var(--primary)/0.5),0_8px_24px_-4px_hsl(var(--primary)/0.4)]',
+          "hover:border-primary/40 hover:shadow-[0_0_0_1px_hsl(var(--primary)/0.15),0_4px_16px_-4px_hsl(var(--primary)/0.25)]",
+          isDragging &&
+            "opacity-50 shadow-[0_0_0_2px_hsl(var(--primary)/0.5),0_8px_24px_-4px_hsl(var(--primary)/0.4)]",
         )}
       >
         {/* Subtle top shimmer line */}
@@ -63,25 +73,33 @@ export function KanbanCard({ task, projectId }: KanbanCardProps) {
               {task.name}
             </p>
 
-            {task.description && (
-              <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">
-                {task.description}
-              </p>
-            )}
-
             {/* Footer */}
-            <div className="flex items-center justify-between gap-2 mt-2.5 pt-2 border-t border-border/20">
+            <div className="flex flex-col items-start justify-between gap-0.5 mt-2.5 pt-2 border-t border-border/20">
               {task.terminal ? (
                 <span className="flex items-center gap-1.5 text-xs min-w-0">
                   <span className="flex items-center justify-center size-4 rounded-full bg-primary/10 shrink-0">
                     <Bot className="size-2.5 text-primary" />
                   </span>
-                  <span className="truncate text-muted-foreground">{task.terminal.name}</span>
+                  <span className="truncate text-muted-foreground">
+                    {task.terminal.name}
+                  </span>
                 </span>
               ) : (
-                <span className="text-xs text-muted-foreground/50 italic">Unassigned</span>
+                <span className="text-xs text-muted-foreground/50 italic">
+                  Unassigned
+                </span>
               )}
-                <span className="flex items-center gap-1 text-[10px] text-muted-foreground/60 shrink-0 tabular-nums">
+              {task.agent && (
+                <span className="text-[10px] text-muted-foreground/60 shrink-0 tabular-nums">
+                  {task.agent.name}
+                </span>
+              )}
+              {task.agent && (
+                <span className="text-[10px] text-muted-foreground/60 shrink-0 tabular-nums">
+                  {task.model}
+                </span>
+              )}
+              <span className="flex items-center gap-1 text-[10px] text-muted-foreground/60 shrink-0 tabular-nums">
                 <Clock className="size-2.5" />
                 {timeAgo(task.createdAt)}
               </span>
@@ -92,4 +110,3 @@ export function KanbanCard({ task, projectId }: KanbanCardProps) {
     </div>
   );
 }
-

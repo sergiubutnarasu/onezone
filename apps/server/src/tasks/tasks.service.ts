@@ -13,7 +13,7 @@ export class TasksService {
     private readonly terminalRegistry: TerminalRegistryService,
   ) {}
 
-  async create(projectId: string, data: { name: string; description?: string; terminalId: string }) {
+  async create(projectId: string, data: { name: string; description?: string; terminalId: string; agentId: string; model: string }) {
     const count = await this.prisma.task.count({ where: { projectId, status: 'BACKLOG' } });
     const task = await this.prisma.task.create({
       data: { ...data, projectId, order: count },
@@ -27,12 +27,12 @@ export class TasksService {
     return this.prisma.task.findMany({
       where: { projectId, ...(status && status.length > 0 ? { status: { in: status } } : {}) },
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
-      include: { terminal: true },
+      include: { terminal: true, agent: true },
     });
   }
 
   async findOne(id: string) {
-    const task = await this.prisma.task.findUnique({ where: { id }, include: { terminal: true, project: true } });
+    const task = await this.prisma.task.findUnique({ where: { id }, include: { terminal: true, project: true, agent: true } });
     if (!task) throw new NotFoundException(`Task ${id} not found`);
     return task;
   }
@@ -92,7 +92,7 @@ export class TasksService {
     return task;
   }
 
-  async update(id: string, data: { name?: string; description?: string; status?: TaskStatus }) {
+  async update(id: string, data: { name?: string; description?: string; status?: TaskStatus; agentId?: string; model?: string }) {
     await this.findOne(id);
     const task = await this.prisma.task.update({
       where: { id },

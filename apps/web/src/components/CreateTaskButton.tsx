@@ -5,14 +5,17 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { CreateTaskDialog } from './CreateTaskDialog';
-import type { Terminal } from '@onezone/shared';
+import type { Terminal, Agent } from '@onezone/shared';
+import type { Project } from '@/lib/api';
 
 interface CreateTaskButtonProps {
   projectId: string;
+  project: Project | null;
   terminals: Terminal[];
+  agents: Agent[];
 }
 
-export function CreateTaskButton({ projectId, terminals }: CreateTaskButtonProps) {
+export function CreateTaskButton({ projectId, project, terminals, agents }: CreateTaskButtonProps) {
   const [open, setOpen] = useState(false);
   const noTerminals = terminals.length === 0;
 
@@ -37,7 +40,9 @@ export function CreateTaskButton({ projectId, terminals }: CreateTaskButtonProps
 
       <CreateTaskDialog
         projectId={projectId}
+        project={project}
         terminals={terminals}
+        agents={agents}
         open={open}
         onOpenChange={setOpen}
       />

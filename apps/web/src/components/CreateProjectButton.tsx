@@ -4,8 +4,13 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CreateProjectDialog } from './CreateProjectDialog';
+import type { Agent } from '@onezone/shared';
 
-export function CreateProjectButton() {
+interface CreateProjectButtonProps {
+  agents: Agent[];
+}
+
+export function CreateProjectButton({ agents }: CreateProjectButtonProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -15,7 +20,7 @@ export function CreateProjectButton() {
         New Project
       </Button>
 
-      <CreateProjectDialog open={open} onOpenChange={setOpen} />
+      <CreateProjectDialog agents={agents} open={open} onOpenChange={setOpen} />
     </>
   );
 }

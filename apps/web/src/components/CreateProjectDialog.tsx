@@ -6,42 +6,61 @@ import { createProject } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import type { Agent } from '@onezone/shared';
 
 interface CreateProjectForm {
   name: string;
   description: string;
+  defaultAgentId: string;
+  defaultModel: string;
 }
 
 interface CreateProjectDialogProps {
+  agents: Agent[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogProps) {
+export function CreateProjectDialog({ agents, open, onOpenChange }: CreateProjectDialogProps) {
   const qc = useQueryClient();
 
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<CreateProjectForm>({
     defaultValues: {
       name: '',
       description: '',
+      defaultAgentId: agents[0]?.id ?? '',
+      defaultModel: '',
     },
   });
+
+  const defaultAgentId = watch('defaultAgentId');
 
   const mutation = useMutation({
     mutationFn: (data: CreateProjectForm) =>
       createProject({
         name: data.name,
         description: data.description,
+        defaultAgentId: data.defaultAgentId,
+        defaultModel: data.defaultModel,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['projects'] });
@@ -73,6 +92,34 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
             {...register('description')}
             placeholder="Description (optional)"
           />
+          <Select
+            value={defaultAgentId}
+            onValueChange={(v) => setValue('defaultAgentId', v ?? '')}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue>
+                {(v: string) =>
+                  v
+                    ? (agents.find((a) => a.id === v)?.name ?? v)
+                    : <span className="text-muted-foreground">Select default agent</span>
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {agents.map((a) => (
+                <SelectItem key={a.id} value={a.id} label={a.name}>
+                  {a.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            {...register('defaultModel', { required: 'Default model is required' })}
+            placeholder="Default model"
+          />
+          {errors.defaultModel && (
+            <p className="text-xs text-destructive">{errors.defaultModel.message}</p>
+          )}
           <Button
             type="submit"
             disabled={isSubmitting || mutation.isPending}

@@ -10,7 +10,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
-import { ListTasksQueryDto, ReorderTasksDto } from './tasks.dto';
+import { CreateTaskDto, ListTasksQueryDto, ReorderTasksDto } from './tasks.dto';
 
 @Controller('projects/:projectId/tasks')
 export class ProjectTasksController {
@@ -20,7 +20,7 @@ export class ProjectTasksController {
   @HttpCode(HttpStatus.CREATED)
   create(
     @Param('projectId') projectId: string,
-    @Body() body: { name: string; description?: string; terminalId: string },
+    @Body() body: CreateTaskDto,
   ) {
     return this.tasksService.create(projectId, body);
   }

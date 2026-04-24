@@ -7,9 +7,16 @@ const baseEntitySchema = z.object({
   description: z.string().max(1000).optional(),
 });
 
-export const CreateProjectSchema = baseEntitySchema;
+export const CreateProjectSchema = baseEntitySchema.extend({
+  defaultAgentId: z.string(),
+  defaultModel: z.string(),
+});
 
-export const CreateTaskSchema = baseEntitySchema;
+export const CreateTaskSchema = baseEntitySchema.extend({
+  terminalId: z.string(),
+  agentId: z.string(),
+  model: z.string(),
+});
 
 export const SocketAuthSchema = z.object({
   taskId: z.string().uuid().optional(),

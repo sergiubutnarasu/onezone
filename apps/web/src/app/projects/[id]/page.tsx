@@ -4,24 +4,25 @@ import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronRight, Home } from 'lucide-react';
 import Link from 'next/link';
-import { fetchProject, fetchTasks, fetchTerminals } from '@/lib/api';
+import { fetchProject, fetchTasks, fetchTerminals, fetchAgents } from '@/lib/api';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { EditProjectButton } from '@/components/EditProjectButton';
 import { CreateTaskButton } from '@/components/CreateTaskButton';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import type { Terminal, Task } from '@onezone/shared';
+import type { Terminal, Task, Agent } from '@onezone/shared';
+import type { Project } from '@/lib/api';
 
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();
 
-  const { data: project, isLoading: projectLoading } = useQuery({
+  const { data: project, isLoading: projectLoading } = useQuery<Project>({
     queryKey: ['project', id],
     queryFn: () => fetchProject(id),
   });
 
-  const { data: tasks = [], isLoading: tasksLoading } = useQuery({
+  const { data: tasks = [], isLoading: tasksLoading } = useQuery<Task[]>({
     queryKey: ['tasks', id],
     queryFn: () => fetchTasks(id),
   });
@@ -29,6 +30,11 @@ export default function ProjectPage() {
   const { data: terminals = [] } = useQuery<Terminal[]>({
     queryKey: ['terminals'],
     queryFn: fetchTerminals,
+  });
+
+  const { data: agents = [] } = useQuery<Agent[]>({
+    queryKey: ['agents'],
+    queryFn: fetchAgents,
   });
 
   return (
@@ -67,9 +73,9 @@ export default function ProjectPage() {
             </div>
 
             <div className="flex items-center gap-2">
-            <CreateTaskButton projectId={id} terminals={terminals} />
+              <CreateTaskButton projectId={id} project={project ?? null} terminals={terminals} agents={agents} />
 
-            {project && <EditProjectButton project={project} />}
+              {project && <EditProjectButton project={project} agents={agents} />}
             </div>
           </div>
         </div>
@@ -88,7 +94,7 @@ export default function ProjectPage() {
               ))}
             </div>
           ) : (
-            <KanbanBoard tasks={tasks as Task[]} projectId={id} />
+            <KanbanBoard tasks={tasks} projectId={id} />
           )}
         </div>
       </div>

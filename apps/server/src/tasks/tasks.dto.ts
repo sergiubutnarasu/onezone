@@ -2,6 +2,24 @@ import { IsArray, IsEnum, IsInt, IsOptional, IsString, IsUUID, Min, ValidateNest
 import { TaskStatus } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
 
+export class CreateTaskDto {
+  @IsString()
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsUUID()
+  terminalId!: string;
+
+  @IsUUID()
+  agentId!: string;
+
+  @IsString()
+  model!: string;
+}
+
 export class TaskOrderItemDto {
   @IsUUID()
   id!: string;
@@ -51,4 +69,12 @@ export class UpdateTaskDto {
   @IsOptional()
   @IsEnum(TaskStatus)
   status?: TaskStatus;
+
+  @IsOptional()
+  @IsUUID()
+  agentId?: string;
+
+  @IsOptional()
+  @IsString()
+  model?: string;
 }

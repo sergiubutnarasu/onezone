@@ -14,7 +14,6 @@ import { Logger, UseGuards } from '@nestjs/common';
 import { SocketAuthGuard } from './socket-auth.guard';
 import {
   EventCommands,
-  MessageRole,
   SocketAuthSchema,
   createTaskRoomId,
 } from '@onezone/shared';
