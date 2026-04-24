@@ -185,22 +185,45 @@ export class ChatGateway
     const meta = this.socketMeta.get(client.id);
 
     if (meta?.role === 'terminal') {
-      if (meta.taskId) {
-        this.terminalRegistry.deregisterTaskSocket(meta.taskId, client.id);
-        const roomId = createTaskRoomId(meta.taskId);
+      const { terminalId, taskId } = meta;
+
+      if (taskId) {
+        this.terminalRegistry.deregisterTaskSocket(taskId, client.id);
+        const roomId = createTaskRoomId(taskId);
         this.server.to(roomId).emit(EventCommands.TerminalDisconnected, {
-          terminalId: meta.terminalId,
+          terminalId,
           terminalName: meta.terminalName,
-          taskId: meta.taskId,
+          taskId,
           ts: Date.now(),
         });
       } else {
-        this.terminalRegistry.deregister(meta.terminalId);
-        await this.terminalsService.markDisconnected(meta.terminalId);
+        this.terminalRegistry.deregister(terminalId);
+      }
+
+      // Check if terminal has any other active socket connections
+      // before marking it as disconnected in the database
+      const hasOtherConnection = this.hasTerminalAnyConnection(terminalId, client.id);
+      if (!hasOtherConnection) {
+        await this.terminalsService.markDisconnected(terminalId);
       }
     }
 
     this.socketMeta.delete(client.id);
+  }
+
+  /**
+   * Checks if a terminal has any active socket connections (lobby or task room)
+   * excluding the specified socket ID.
+   */
+  private hasTerminalAnyConnection(terminalId: string, excludeSocketId: string): boolean {
+    for (const [socketId, socketMeta] of this.socketMeta.entries()) {
+      if (socketId !== excludeSocketId && 
+          socketMeta.role === 'terminal' && 
+          socketMeta.terminalId === terminalId) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @SubscribeMessage(EventCommands.TerminalHeartbeat)

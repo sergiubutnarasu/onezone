@@ -50,16 +50,26 @@ export class TerminalsService implements OnModuleInit {
 
   /**
    * Registers a terminal by name. If a terminal with the same name already exists
-   * and is currently connected, throws a ConflictException. Otherwise returns
-   * the existing terminal record or creates a new one.
+   * and is currently connected with a recent heartbeat, throws a ConflictException.
+   * Otherwise returns the existing terminal record or creates a new one.
+   * Allows re-registration if the existing terminal is stale (no recent heartbeat).
    */
   async registerByName(input: RegisterTerminalInput) {
     const existing = await this.prisma.terminal.findUnique({ where: { name: input.name } });
 
     if (existing?.isConnected) {
-      throw new ConflictException(
-        `Terminal "${input.name}" is already connected. Stop the running terminal before starting a new one.`,
-      );
+      // Check if the existing connection is actually stale (no recent heartbeat)
+      const isStale = existing.lastSeenAt &&
+        new Date(existing.lastSeenAt).getTime() < Date.now() - STALE_THRESHOLD_MS;
+
+      if (!isStale) {
+        throw new ConflictException(
+          `Terminal "${input.name}" is already connected. Stop the running terminal before starting a new one.`,
+        );
+      }
+
+      // Stale terminal - allow re-registration. The new socket will call markConnected().
+      this.logger.warn(`Terminal "${input.name}" was stale, allowing re-registration`);
     }
 
     if (existing) {
