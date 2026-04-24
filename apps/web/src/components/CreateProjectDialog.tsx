@@ -1,25 +1,26 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createProject } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createProject } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import type { Agent } from '@onezone/shared';
+} from "@/components/ui/dialog";
+import type { Agent } from "@onezone/shared";
 
 interface CreateProjectForm {
   name: string;
@@ -34,7 +35,11 @@ interface CreateProjectDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function CreateProjectDialog({ agents, open, onOpenChange }: CreateProjectDialogProps) {
+export function CreateProjectDialog({
+  agents,
+  open,
+  onOpenChange,
+}: CreateProjectDialogProps) {
   const qc = useQueryClient();
 
   const {
@@ -46,20 +51,20 @@ export function CreateProjectDialog({ agents, open, onOpenChange }: CreateProjec
     formState: { errors, isSubmitting },
   } = useForm<CreateProjectForm>({
     defaultValues: {
-      name: '',
-      description: '',
-      defaultAgentId: agents[0]?.id ?? '',
-      defaultModel: agents[0]?.model ?? '',
+      name: "",
+      description: "",
+      defaultAgentId: agents[0]?.id ?? "",
+      defaultModel: agents[0]?.model ?? "",
     },
   });
 
-  const defaultAgentId = watch('defaultAgentId');
+  const defaultAgentId = watch("defaultAgentId");
 
   useEffect(() => {
     if (open && agents.length > 0) {
       reset({
-        name: '',
-        description: '',
+        name: "",
+        description: "",
         defaultAgentId: agents[0].id,
         defaultModel: agents[0].model,
       });
@@ -75,7 +80,7 @@ export function CreateProjectDialog({ agents, open, onOpenChange }: CreateProjec
         defaultModel: data.defaultModel,
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['projects'] });
+      qc.invalidateQueries({ queryKey: ["projects"] });
       onOpenChange(false);
       reset();
     },
@@ -91,33 +96,37 @@ export function CreateProjectDialog({ agents, open, onOpenChange }: CreateProjec
         <DialogHeader>
           <DialogTitle>Create project</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3 pt-2">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="flex flex-col gap-3 pt-2"
+        >
           <Input
-            {...register('name', { required: 'Name is required' })}
+            {...register("name", { required: "Name is required" })}
             placeholder="Project name"
             autoFocus
           />
           {errors.name && (
             <p className="text-xs text-destructive">{errors.name.message}</p>
           )}
-          <Input
-            {...register('description')}
-            placeholder="Description (optional)"
-          />
+
           <Select
             value={defaultAgentId}
             onValueChange={(v) => {
-              setValue('defaultAgentId', v ?? '');
+              setValue("defaultAgentId", v ?? "");
               const agent = agents.find((a) => a.id === v);
-              if (agent) setValue('defaultModel', agent.model);
+              if (agent) setValue("defaultModel", agent.model);
             }}
           >
             <SelectTrigger className="w-full">
               <SelectValue>
                 {(v: string) =>
-                  v
-                    ? (agents.find((a) => a.id === v)?.name ?? v)
-                    : <span className="text-muted-foreground">Select default agent</span>
+                  v ? (
+                    (agents.find((a) => a.id === v)?.name ?? v)
+                  ) : (
+                    <span className="text-muted-foreground">
+                      Select default agent
+                    </span>
+                  )
                 }
               </SelectValue>
             </SelectTrigger>
@@ -130,18 +139,29 @@ export function CreateProjectDialog({ agents, open, onOpenChange }: CreateProjec
             </SelectContent>
           </Select>
           <Input
-            {...register('defaultModel', { required: 'Default model is required' })}
+            {...register("defaultModel", {
+              required: "Default model is required",
+            })}
             placeholder="Default model"
           />
           {errors.defaultModel && (
-            <p className="text-xs text-destructive">{errors.defaultModel.message}</p>
+            <p className="text-xs text-destructive">
+              {errors.defaultModel.message}
+            </p>
           )}
+
+          <Textarea
+            {...register("description")}
+            placeholder="Description (optional)"
+            className="break-all"
+          />
+
           <Button
             type="submit"
             disabled={isSubmitting || mutation.isPending}
             className="w-full mt-1"
           >
-            {mutation.isPending ? 'Creating…' : 'Create project'}
+            {mutation.isPending ? "Creating…" : "Create project"}
           </Button>
         </form>
       </DialogContent>

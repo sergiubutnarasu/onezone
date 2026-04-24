@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateProject } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -100,10 +101,7 @@ export function EditProjectDialog({
           {errors.name && (
             <p className="text-xs text-destructive">{errors.name.message}</p>
           )}
-          <Input
-            {...register("description")}
-            placeholder="Description (optional)"
-          />
+
           <Select
             value={defaultAgentId}
             onValueChange={(v) => setValue("defaultAgentId", v ?? "")}
@@ -130,6 +128,13 @@ export function EditProjectDialog({
             </SelectContent>
           </Select>
           <Input {...register("defaultModel")} placeholder="Default model" />
+
+          <Textarea
+            {...register("description")}
+            placeholder="Description (optional)"
+            className="break-all"
+          />
+
           <Button
             type="submit"
             disabled={isSubmitting || mutation.isPending}

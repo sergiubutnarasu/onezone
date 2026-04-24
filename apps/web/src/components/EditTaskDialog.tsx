@@ -1,26 +1,26 @@
-'use client';
+"use client";
 
-import { useForm, FormProvider } from 'react-hook-form';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateTask } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { useForm, FormProvider } from "react-hook-form";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { updateTask } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { TaskStatus, type Task, type Agent } from '@onezone/shared';
-import { TaskStatusSelect } from './TaskStatusSelect';
+} from "@/components/ui/dialog";
+import { TaskStatus, type Task, type Agent } from "@onezone/shared";
+import { TaskStatusSelect } from "./TaskStatusSelect";
 
 interface EditTaskForm {
   name: string;
@@ -38,13 +38,19 @@ interface EditTaskDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function EditTaskDialog({ task, projectId, agents, open, onOpenChange }: EditTaskDialogProps) {
+export function EditTaskDialog({
+  task,
+  projectId,
+  agents,
+  open,
+  onOpenChange,
+}: EditTaskDialogProps) {
   const qc = useQueryClient();
 
   const methods = useForm<EditTaskForm>({
     defaultValues: {
       name: task.name,
-      description: task.description ?? '',
+      description: task.description ?? "",
       status: task.status,
       agentId: task.agentId,
       model: task.model,
@@ -60,7 +66,7 @@ export function EditTaskDialog({ task, projectId, agents, open, onOpenChange }: 
     formState: { errors, isSubmitting },
   } = methods;
 
-  const agentId = watch('agentId');
+  const agentId = watch("agentId");
 
   const mutation = useMutation({
     mutationFn: (data: EditTaskForm) =>
@@ -72,8 +78,8 @@ export function EditTaskDialog({ task, projectId, agents, open, onOpenChange }: 
         model: data.model,
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['task', task.id] });
-      qc.invalidateQueries({ queryKey: ['tasks', projectId] });
+      qc.invalidateQueries({ queryKey: ["task", task.id] });
+      qc.invalidateQueries({ queryKey: ["tasks", projectId] });
       onOpenChange(false);
       reset();
     },
@@ -91,75 +97,92 @@ export function EditTaskDialog({ task, projectId, agents, open, onOpenChange }: 
         </DialogHeader>
         <FormProvider {...methods}>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Name</label>
-            <Input
-              {...register('name', { required: 'Name is required' })}
-              placeholder="Task name"
-            />
-            {errors.name && (
-              <p className="text-xs text-destructive">{errors.name.message}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Description</label>
-            <Textarea
-              {...register('description')}
-              placeholder="Task description (optional)"
-              rows={3}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Status</label>
-            <TaskStatusSelect />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Agent</label>
-            <Select
-              value={agentId}
-              onValueChange={(v) => v != null && setValue('agentId', v, { shouldValidate: true })}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue>
-                  {(v: string) =>
-                    v
-                      ? (agents.find((a) => a.id === v)?.name ?? v)
-                      : <span className="text-muted-foreground">Select an agent</span>
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {agents.map((a) => (
-                  <SelectItem key={a.id} value={a.id} label={a.name}>
-                    {a.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Model</label>
-            <Input
-              {...register('model', { required: 'Model is required' })}
-              placeholder="Model"
-            />
-            {errors.model && (
-              <p className="text-xs text-destructive">{errors.model.message}</p>
-            )}
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting || mutation.isPending}>
-              {mutation.isPending ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </div>
-        </form>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Name</label>
+              <Input
+                {...register("name", { required: "Name is required" })}
+                placeholder="Task name"
+              />
+              {errors.name && (
+                <p className="text-xs text-destructive">
+                  {errors.name.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Status</label>
+              <TaskStatusSelect />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Agent</label>
+              <Select
+                value={agentId}
+                onValueChange={(v) =>
+                  v != null && setValue("agentId", v, { shouldValidate: true })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {(v: string) =>
+                      v ? (
+                        (agents.find((a) => a.id === v)?.name ?? v)
+                      ) : (
+                        <span className="text-muted-foreground">
+                          Select an agent
+                        </span>
+                      )
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {agents.map((a) => (
+                    <SelectItem key={a.id} value={a.id} label={a.name}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Model</label>
+              <Input
+                {...register("model", { required: "Model is required" })}
+                placeholder="Model"
+              />
+              {errors.model && (
+                <p className="text-xs text-destructive">
+                  {errors.model.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description</label>
+              <Textarea
+                {...register("description")}
+                placeholder="Task description (optional)"
+                rows={3}
+                className="break-all"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting || mutation.isPending}
+              >
+                {mutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          </form>
         </FormProvider>
       </DialogContent>
     </Dialog>

@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createTask } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -120,10 +121,7 @@ export function CreateTaskDialog({
           {errors.name && (
             <p className="text-xs text-destructive">{errors.name.message}</p>
           )}
-          <Input
-            {...register("description")}
-            placeholder="Description (optional)"
-          />
+
           <Select
             value={terminalId}
             onValueChange={(v) =>
@@ -194,6 +192,13 @@ export function CreateTaskDialog({
           {errors.model && (
             <p className="text-xs text-destructive">{errors.model.message}</p>
           )}
+
+          <Textarea
+            {...register("description")}
+            placeholder="Description (optional)"
+            className="break-all"
+          />
+
           <Button
             type="submit"
             disabled={
