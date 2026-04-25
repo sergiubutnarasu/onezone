@@ -1,9 +1,10 @@
 'use client';
 
+import { memo, useRef, useMemo } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { KanbanCard } from './KanbanCard';
 import { TaskStatus, type Task } from '@onezone/shared';
@@ -24,8 +25,22 @@ interface KanbanColumnProps {
   projectId: string;
 }
 
-export function KanbanColumn({ status, tasks, projectId }: KanbanColumnProps) {
+// Approximate card height (px) — used as initial estimate before measurement.
+const CARD_ESTIMATE_PX = 110;
+
+export const KanbanColumn = memo(function KanbanColumn({ status, tasks, projectId }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const itemIds = useMemo(() => tasks.map((t) => t.id), [tasks]);
+
+  const virtualizer = useVirtualizer({
+    count: tasks.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => CARD_ESTIMATE_PX,
+    gap: 8,
+    overscan: 5,
+  });
 
   return (
     <div className="flex flex-col gap-2 min-w-65 w-65">
@@ -45,25 +60,42 @@ export function KanbanColumn({ status, tasks, projectId }: KanbanColumnProps) {
           isOver && 'bg-primary/5 border-primary/40',
         )}
       >
-        <ScrollArea className="h-[calc(100vh-260px)]">
-          <SortableContext
-            items={tasks.map((t) => t.id)}
-            strategy={verticalListSortingStrategy}
+        <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+          <div
+            ref={scrollRef}
+            className="h-[calc(100vh-260px)] overflow-y-auto"
           >
-            <div className="flex flex-col gap-2">
-              {tasks.map((task) => (
-                <KanbanCard key={task.id} task={task} projectId={projectId} />
-              ))}
-              {tasks.length === 0 && (
-                <p className="text-xs text-muted-foreground/50 text-center py-10">
-                  Drop tasks here
-                </p>
-              )}
-            </div>
-          </SortableContext>
-        </ScrollArea>
+            {tasks.length === 0 ? (
+              <p className="text-xs text-muted-foreground/50 text-center py-10">
+                Drop tasks here
+              </p>
+            ) : (
+              <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+                {virtualizer.getVirtualItems().map((virtualRow) => {
+                  const task = tasks[virtualRow.index];
+                  return (
+                    <div
+                      key={task.id}
+                      data-index={virtualRow.index}
+                      ref={virtualizer.measureElement}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }}
+                    >
+                      <KanbanCard task={task} projectId={projectId} />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </SortableContext>
       </div>
     </div>
   );
-}
+});
 

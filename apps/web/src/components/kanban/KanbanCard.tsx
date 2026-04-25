@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
@@ -24,7 +25,7 @@ function timeAgo(iso: string) {
   });
 }
 
-export function KanbanCard({ task, projectId }: KanbanCardProps) {
+export const KanbanCard = memo(function KanbanCard({ task, projectId }: KanbanCardProps) {
   const {
     attributes,
     listeners,
@@ -44,7 +45,7 @@ export function KanbanCard({ task, projectId }: KanbanCardProps) {
       <div
         className={cn(
           "relative rounded-lg border border-border/70 bg-card overflow-hidden select-none",
-          "transition-all duration-200",
+          "transition-[border-color,box-shadow,color,opacity] duration-200",
           // glow on hover
           "hover:border-primary/40 hover:shadow-[0_0_0_1px_hsl(var(--primary)/0.15),0_4px_16px_-4px_hsl(var(--primary)/0.25)]",
           isDragging &&
@@ -109,4 +110,4 @@ export function KanbanCard({ task, projectId }: KanbanCardProps) {
       </div>
     </div>
   );
-}
+});

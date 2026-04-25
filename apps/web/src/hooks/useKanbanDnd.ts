@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   PointerSensor,
   useSensor,
@@ -152,10 +152,12 @@ export function useKanbanDnd(projectId: string, initialTasks: Task[]): KanbanDnd
     }
   }, [syncTasks, persistOrder]);
 
+  const columns = useMemo(() => groupByStatus(tasks), [tasks]);
+
   return {
     tasks,
     activeTask,
-    columns: groupByStatus(tasks),
+    columns,
     sensors,
     onDragStart,
     onDragOver,
