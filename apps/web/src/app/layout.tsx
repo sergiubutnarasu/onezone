@@ -9,7 +9,7 @@ const geistSans = Geist({ subsets: ['latin'], variable: '--font-sans' });
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-mono' });
 
 export const metadata: Metadata = {
-  title: 'OneZone',
+  title: 'Onezone',
   description: 'Agent task runner',
 };
 

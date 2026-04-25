@@ -20,6 +20,11 @@ import { setupProject } from "../lib/setup.js";
 export default class Listen extends Command {
   private readonly activeTaskIds = new Set<string>();
 
+  override log(message: string, ...args: unknown[]): void {
+    const ts = new Date().toLocaleString();
+    super.log(`[${ts}] ${message}`, ...args);
+  }
+
   static description =
     "Connect to a task room (or wait for one to be assigned) and stay open, spawning commands as users send messages in the chat";
 
