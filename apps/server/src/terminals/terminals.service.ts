@@ -55,7 +55,8 @@ export class TerminalsService implements OnModuleInit {
    * Allows re-registration if the existing terminal is stale (no recent heartbeat).
    */
   async registerByName(input: RegisterTerminalInput) {
-    const existing = await this.prisma.terminal.findUnique({ where: { name: input.name } });
+    const trimmedName = input.name.trim();
+    const existing = await this.prisma.terminal.findUnique({ where: { name: trimmedName } });
 
     if (existing?.isConnected) {
       // Check if the existing connection is actually stale (no recent heartbeat)
@@ -64,12 +65,12 @@ export class TerminalsService implements OnModuleInit {
 
       if (!isStale) {
         throw new ConflictException(
-          `Terminal "${input.name}" is already connected. Stop the running terminal before starting a new one.`,
+          `Terminal "${trimmedName}" is already connected. Stop the running terminal before starting a new one.`,
         );
       }
 
       // Stale terminal - allow re-registration. The new socket will call markConnected().
-      this.logger.warn(`Terminal "${input.name}" was stale, allowing re-registration`);
+      this.logger.warn(`Terminal "${trimmedName}" was stale, allowing re-registration`);
     }
 
     if (existing) {
@@ -80,7 +81,7 @@ export class TerminalsService implements OnModuleInit {
     const terminal = await this.prisma.terminal.create({
       data: {
         id: randomUUID(),
-        name: input.name,
+        name: trimmedName,
         hostname: input.hostname,
         isConnected: false,
       },

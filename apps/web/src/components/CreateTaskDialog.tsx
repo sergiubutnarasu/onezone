@@ -61,7 +61,7 @@ export function CreateTaskDialog({
     defaultValues: {
       name: "",
       description: "",
-      terminalId: "",
+      terminalId: terminals[0]?.id ?? "",
       agentId: project?.defaultAgentId ?? "",
       model: project?.defaultModel ?? "",
     },
@@ -72,12 +72,12 @@ export function CreateTaskDialog({
       reset({
         name: "",
         description: "",
-        terminalId: "",
+        terminalId: terminals[0]?.id ?? "",
         agentId: project?.defaultAgentId ?? "",
         model: project?.defaultModel ?? "",
       });
     }
-  }, [open, project, reset]);
+  }, [open, project, terminals, reset]);
 
   const terminalId = watch("terminalId");
   const agentId = watch("agentId");
