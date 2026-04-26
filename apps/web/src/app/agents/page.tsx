@@ -1,15 +1,20 @@
-'use client';
+"use client";
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bot, Pencil, Save, X } from 'lucide-react';
-import { fetchAgents, updateAgent } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { Agent } from '@/lib/api';
-import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Bot, Pencil, Save, X } from "lucide-react";
+import { fetchAgents, updateAgent } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import type { Agent } from "@/lib/api";
+import { useState } from "react";
 
 function AgentSkeleton() {
   return (
@@ -33,7 +38,7 @@ function AgentRow({ agent }: { agent: Agent }) {
   const mutation = useMutation({
     mutationFn: (data: { model: string }) => updateAgent(agent.id, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['agents'] });
+      qc.invalidateQueries({ queryKey: ["agents"] });
       setEditing(false);
     },
   });
@@ -48,7 +53,9 @@ function AgentRow({ agent }: { agent: Agent }) {
             </div>
             <div className="min-w-0">
               <p className="font-medium text-sm truncate">{agent.name}</p>
-              <p className="text-xs text-muted-foreground truncate">{agent.tag}</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {agent.tag}
+              </p>
               <div className="flex items-center gap-2 mt-2">
                 {editing ? (
                   <div className="flex items-center gap-2">
@@ -58,26 +65,27 @@ function AgentRow({ agent }: { agent: Agent }) {
                       className="h-7 text-xs w-48"
                       autoFocus
                     />
-                    <Button
-                      size="icon-sm"
-                      variant="ghost"
-                      onClick={() => mutation.mutate({ model })}
-                      disabled={mutation.isPending || !model}
-                      className="text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10"
-                    >
-                      <Save className="size-3.5" />
-                    </Button>
-                    <Button
-                      size="icon-sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setEditing(false);
-                        setModel(agent.model);
-                      }}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="size-3.5" />
-                    </Button>
+
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => mutation.mutate({ model })}
+                        disabled={mutation.isPending || !model}
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setEditing(false);
+                          setModel(agent.model);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
@@ -112,7 +120,7 @@ function AgentRow({ agent }: { agent: Agent }) {
 
 export default function AgentsPage() {
   const { data: agents = [], isLoading } = useQuery<Agent[]>({
-    queryKey: ['agents'],
+    queryKey: ["agents"],
     queryFn: fetchAgents,
   });
 
