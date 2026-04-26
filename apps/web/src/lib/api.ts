@@ -35,6 +35,8 @@ export const createProject = (data: { name: string; description?: string; defaul
 export const updateProject = (id: string, data: { name?: string; description?: string; defaultAgentId?: string | null; defaultModel?: string | null }) =>
   httpClient.patch<Project>(`/projects/${id}`, data);
 
+export const deleteProject = (id: string) => httpClient.delete<void>(`/projects/${id}`);
+
 export const fetchProject = (id: string) => httpClient.get<Project>(`/projects/${id}`);
 
 export const fetchAgents = () => httpClient.get<Agent[]>('/agents');

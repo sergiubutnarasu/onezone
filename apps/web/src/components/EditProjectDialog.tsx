@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateProject } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { updateProject, deleteProject } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,8 +44,8 @@ export function EditProjectDialog({
   onOpenChange,
 }: EditProjectDialogProps) {
   const qc = useQueryClient();
-
-  console.log("Project", project);
+  const router = useRouter();
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const {
     register,
@@ -79,12 +81,21 @@ export function EditProjectDialog({
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteProject(project.id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      onOpenChange(false);
+      router.push("/");
+    },
+  });
+
   const onSubmit = (data: EditProjectForm) => {
     mutation.mutate(data);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { setConfirmDelete(false); onOpenChange(v); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Project settings</DialogTitle>
@@ -143,6 +154,42 @@ export function EditProjectDialog({
             {mutation.isPending ? "Saving…" : "Save changes"}
           </Button>
         </form>
+
+        <div className="border-t border-border/60 pt-3 mt-1">
+          {confirmDelete ? (
+            <div className="flex flex-col gap-2">
+              <p className="text-sm text-destructive font-medium">
+                Delete &ldquo;{project.name}&rdquo;? This will permanently remove all its tasks and disconnect any assigned terminals.
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={() => deleteMutation.mutate()}
+                  disabled={deleteMutation.isPending}
+                >
+                  {deleteMutation.isPending ? "Deleting…" : "Yes, delete"}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setConfirmDelete(false)}
+                  disabled={deleteMutation.isPending}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={() => setConfirmDelete(true)}
+            >
+              Delete project
+            </Button>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

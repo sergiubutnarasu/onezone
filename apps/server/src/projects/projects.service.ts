@@ -1,11 +1,15 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TerminalRegistryService } from '../gateways/terminal-registry.service';
 
 @Injectable()
 export class ProjectsService {
   private readonly logger = new Logger(ProjectsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly terminalRegistry: TerminalRegistryService,
+  ) {}
 
   async create(data: { name: string; description?: string; defaultAgentId: string; defaultModel: string }) {
     const project = await this.prisma.project.create({ data });
@@ -35,8 +39,18 @@ export class ProjectsService {
 
   async remove(id: string) {
     await this.findOne(id);
+
+    const tasks = await this.prisma.task.findMany({
+      where: { projectId: id },
+      select: { id: true },
+    });
+
+    for (const task of tasks) {
+      this.terminalRegistry.cleanupTaskRoom(task.id);
+    }
+
     const project = await this.prisma.project.delete({ where: { id } });
-    this.logger.log(`Deleted project ${id}`);
+    this.logger.log(`Deleted project ${id} and cleaned up ${tasks.length} task room(s)`);
     return project;
   }
 }
