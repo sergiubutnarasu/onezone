@@ -22,16 +22,14 @@ export function CreateTaskButton({ projectId, project, terminals, agents }: Crea
   return (
     <>
       <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button
-              disabled={noTerminals}
-              onClick={() => setOpen(true)}
-            />
-          }
-        >
-          <Plus data-icon="inline-start" />
-          New Task
+        <TooltipTrigger render={<span className="inline-flex" />}>
+          <Button
+            disabled={noTerminals}
+            onClick={() => setOpen(true)}
+          >
+            <Plus data-icon="inline-start" />
+            New Task
+          </Button>
         </TooltipTrigger>
         {noTerminals && (
           <TooltipContent>No terminals available — start one first</TooltipContent>

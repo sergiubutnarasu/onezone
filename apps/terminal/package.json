@@ -16,7 +16,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "node --loader ts-node/esm ./bin/dev.js",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@oclif/core": "^4.0.27",
