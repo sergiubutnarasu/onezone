@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { EditTaskDialog } from '@/components/EditTaskDialog';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface TaskMoreMenuProps {
   task: Task;
@@ -28,6 +29,7 @@ interface TaskMoreMenuProps {
 
 export function TaskMoreMenu({ task, projectId, agents, terminals, onDeleted }: TaskMoreMenuProps) {
   const [editOpen, setEditOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const qc = useQueryClient();
 
   const assignMutation = useMutation({
@@ -55,9 +57,7 @@ export function TaskMoreMenu({ task, projectId, agents, terminals, onDeleted }: 
   });
 
   function handleDelete() {
-    if (confirm(`Delete task "${task.name}"? This cannot be undone.`)) {
-      deleteMutation.mutate();
-    }
+    setConfirmOpen(true);
   }
 
   return (
@@ -191,6 +191,13 @@ export function TaskMoreMenu({ task, projectId, agents, terminals, onDeleted }: 
       agents={agents}
       open={editOpen}
       onOpenChange={setEditOpen}
+    />
+    <ConfirmDialog
+      open={confirmOpen}
+      onOpenChange={setConfirmOpen}
+      title="Delete task"
+      description={`Delete task "${task.name}"? This cannot be undone.`}
+      onConfirm={() => deleteMutation.mutate()}
     />
   </>
   );

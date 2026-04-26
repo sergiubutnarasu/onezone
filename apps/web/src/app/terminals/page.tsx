@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bot, Trash2, Clock, Wifi, WifiOff } from 'lucide-react';
 import { CopyButton } from '@/components/CopyButton';
@@ -9,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { Terminal } from '@onezone/shared';
 
 function TerminalSkeleton() {
@@ -27,6 +29,7 @@ function TerminalSkeleton() {
 
 export default function TerminalsPage() {
   const qc = useQueryClient();
+  const [confirmTerminal, setConfirmTerminal] = useState<Terminal | null>(null);
   const { data: terminals = [], isLoading } = useQuery<Terminal[]>({
     queryKey: ['terminals'],
     queryFn: fetchTerminals,
@@ -39,9 +42,7 @@ export default function TerminalsPage() {
   });
 
   function handleDelete(terminal: Terminal) {
-    if (confirm(`Delete terminal "${terminal.name}"? This will disconnect it if connected.`)) {
-      deleteMutation.mutate(terminal.id);
-    }
+    setConfirmTerminal(terminal);
   }
 
   return (
@@ -144,6 +145,13 @@ export default function TerminalsPage() {
           )}
         </div>
       </div>
+      <ConfirmDialog
+        open={confirmTerminal !== null}
+        onOpenChange={(open) => { if (!open) setConfirmTerminal(null); }}
+        title="Delete terminal"
+        description={`Delete terminal "${confirmTerminal?.name}"? This will disconnect it if connected.`}
+        onConfirm={() => confirmTerminal && deleteMutation.mutate(confirmTerminal.id)}
+      />
     </TooltipProvider>
   );
 }
