@@ -1,11 +1,11 @@
 "use client";
 
-import { useForm, FormProvider } from "react-hook-form";
+import { useForm, FormProvider, Controller } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateTask } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   Select,
   SelectContent,
@@ -159,11 +159,16 @@ export function EditTaskDialog({
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Description</label>
-              <Textarea
-                {...register("description")}
-                placeholder="Task description (optional)"
-                rows={3}
-                className="break-all"
+              <Controller
+                name="description"
+                control={methods.control}
+                render={({ field }) => (
+                  <RichTextEditor
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Task description (optional)"
+                  />
+                )}
               />
             </div>
 

@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createTask } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   Select,
   SelectContent,
@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Controller } from "react-hook-form";
 import type { Terminal, Agent } from "@onezone/shared";
 import type { Project } from "@/lib/api";
 
@@ -55,6 +56,7 @@ export function CreateTaskDialog({
     handleSubmit,
     setValue,
     watch,
+    control,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<CreateTaskForm>({
@@ -199,10 +201,16 @@ export function CreateTaskDialog({
             <p className="text-xs text-destructive">{errors.model.message}</p>
           )}
 
-          <Textarea
-            {...register("description")}
-            placeholder="Description (optional)"
-            className="break-all"
+          <Controller
+            name="description"
+            control={control}
+            render={({ field }) => (
+              <RichTextEditor
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Description (optional)"
+              />
+            )}
           />
 
           <Button

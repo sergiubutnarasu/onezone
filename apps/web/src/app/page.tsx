@@ -9,6 +9,7 @@ import { fetchProjects, fetchAgents, fetchTerminals } from '@/lib/api';
 import { CreateProjectButton } from '@/components/CreateProjectButton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { lexicalToPlainText } from '@/lib/lexical-utils';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -102,7 +103,7 @@ export default function ProjectsPage() {
                           </div>
                           {p.description ? (
                             <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
-                              {p.description}
+                              {lexicalToPlainText(p.description)}
                             </p>
                           ) : (
                             <p className="text-xs text-muted-foreground/40 mt-1 italic">No description</p>

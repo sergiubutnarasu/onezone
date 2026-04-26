@@ -11,6 +11,7 @@ import { CreateTaskButton } from '@/components/CreateTaskButton';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { RichTextViewer } from '@/components/ui/rich-text-viewer';
 import type { Terminal, Task, Agent } from '@onezone/shared';
 import type { Project } from '@/lib/api';
 
@@ -66,7 +67,9 @@ export default function ProjectPage() {
                 <>
                   <h1 className="text-xl font-semibold tracking-tight">{project?.name}</h1>
                   {project?.description && (
-                    <p className="text-sm text-muted-foreground mt-0.5">{project.description}</p>
+                    <div className="text-sm text-muted-foreground mt-0.5">
+                      <RichTextViewer value={project.description} />
+                    </div>
                   )}
                 </>
               )}
