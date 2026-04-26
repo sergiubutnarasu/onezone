@@ -246,7 +246,10 @@ export class ChatGateway
     @MessageBody() data: OutputLineData,
     @ConnectedSocket() client: Socket,
   ) {
-    return this.outputLineHandler.handle(data, client, this.server);
+    const meta = this.socketMeta.get(client.id);
+    const terminalId = meta?.role === 'terminal' ? meta.terminalId : undefined;
+    const terminalName = meta?.role === 'terminal' ? meta.terminalName : undefined;
+    return this.outputLineHandler.handle({ ...data, terminalId, terminalName }, client, this.server);
   }
 
   @SubscribeMessage('terminal:command:start')
@@ -254,7 +257,10 @@ export class ChatGateway
     @MessageBody() data: CommandStartData,
     @ConnectedSocket() client: Socket,
   ) {
-    return this.commandStartHandler.handle(data, client, this.server);
+    const meta = this.socketMeta.get(client.id);
+    const terminalId = meta?.role === 'terminal' ? meta.terminalId : undefined;
+    const terminalName = meta?.role === 'terminal' ? meta.terminalName : undefined;
+    return this.commandStartHandler.handle({ ...data, terminalId, terminalName }, client, this.server);
   }
 
   @SubscribeMessage('terminal:command:exit')
@@ -263,7 +269,8 @@ export class ChatGateway
     @ConnectedSocket() client: Socket,
   ) {
     const meta = this.socketMeta.get(client.id);
+    const terminalId = meta?.role === 'terminal' ? meta.terminalId : undefined;
     const terminalName = meta?.role === 'terminal' ? meta.terminalName : undefined;
-    return this.commandExitHandler.handle({ ...data, terminalName }, client, this.server);
+    return this.commandExitHandler.handle({ ...data, terminalId, terminalName }, client, this.server);
   }
 }

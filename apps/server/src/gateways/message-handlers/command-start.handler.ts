@@ -10,8 +10,8 @@ import { IMessageHandler } from './message-handler.interface';
 
 export interface CommandStartData {
   roomId: string;
-  terminalId: string;
-  terminalName: string;
+  terminalId?: string;
+  terminalName?: string;
   jobId: string;
   command: string;
 }
@@ -37,8 +37,6 @@ export class CommandStartHandler implements IMessageHandler<CommandStartData> {
         role: MessageRole.System,
         terminalId: data.terminalId,
         terminalName: data.terminalName,
-        jobId: data.jobId,
-        command: data.command,
         messageType: MessageType.COMMAND_START,
         content: `[${data.terminalName}] started: ${data.command}`,
         ts,

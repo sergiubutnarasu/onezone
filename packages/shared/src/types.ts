@@ -24,6 +24,7 @@ export enum MessageStream {
 }
 
 export enum MessageType {
+  Chat = "CHAT",
   CommandStart = "COMMAND_START",
   CommandExit = "COMMAND_EXIT",
 }
@@ -109,6 +110,9 @@ export interface TaskDetails {
   name: string;
   description?: string | null;
   status: TaskStatus;
+  agentId: string;
+  agent?: Pick<Agent, 'id' | 'name' | 'tag'> | null;
+  model: string;
   project: ProjectInfo;
 }
 
@@ -181,11 +185,11 @@ export interface UserChatMessage extends BaseRoomMessage {
   content: string;
   terminalId?: null;
   terminalName?: null;
+  messageType: MessageType.Chat;
   jobId?: null;
   command?: null;
   stream?: null;
   exitCode?: null;
-  messageType?: null;
 }
 
 export interface TerminalOutputMessage extends BaseRoomMessage {

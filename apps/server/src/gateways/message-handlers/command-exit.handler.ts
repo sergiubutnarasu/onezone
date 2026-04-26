@@ -10,7 +10,7 @@ import { IMessageHandler } from './message-handler.interface';
 
 export interface CommandExitData {
   roomId: string;
-  terminalId: string;
+  terminalId?: string;
   terminalName?: string;
   jobId: string;
   command: string;
@@ -38,10 +38,8 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
         role: MessageRole.System,
         terminalId: data.terminalId,
         terminalName: data.terminalName,
-        jobId: data.jobId,
-        command: data.command,
         messageType: MessageType.COMMAND_EXIT,
-        content: `[${data.terminalId}] exited with code ${data.exitCode}: ${data.command}`,
+        content: `[${data.terminalId ?? 'terminal'}] exited with code ${data.exitCode}: ${data.command}`,
         ts,
       });
 

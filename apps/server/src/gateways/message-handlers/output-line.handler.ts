@@ -9,8 +9,8 @@ import { IMessageHandler } from './message-handler.interface';
 
 export interface OutputLineData {
   roomId: string;
-  terminalId: string;
-  terminalName: string;
+  terminalId?: string;
+  terminalName?: string;
   jobId?: string;
   command?: string;
   stream: MessageStream;
@@ -38,16 +38,20 @@ export class OutputLineHandler implements IMessageHandler<OutputLineData> {
         role: MessageRole.Terminal,
         terminalId: data.terminalId,
         terminalName: data.terminalName,
-        jobId: data.jobId,
-        command: data.command,
-        stream: data.stream,
+        messageType: 'CHAT',
         content: data.content,
         ts,
       });
 
       server
         ?.to(data.roomId)
-        .emit('output:line', { ...message, ts: Number(message.ts) });
+        .emit('output:line', {
+          ...message,
+          ts: Number(message.ts),
+          jobId: data.jobId,
+          command: data.command,
+          stream: data.stream,
+        });
 
       return { status: 'ok' };
     } catch (error) {

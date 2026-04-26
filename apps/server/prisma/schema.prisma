@@ -8,6 +8,7 @@ datasource db {
 }
 
 enum MessageType {
+  CHAT
   COMMAND_START
   COMMAND_EXIT
 }
@@ -84,10 +85,7 @@ model Message {
   role        String
   terminalId  String?
   terminalName String?
-  jobId       String?
-  command     String?
-  stream      String?
-  messageType MessageType?
+  messageType MessageType
   content     String   @db.Text
   ts          BigInt
   createdAt   DateTime @default(now())
@@ -95,7 +93,6 @@ model Message {
   @@index([roomId])
   @@index([taskId])
   @@index([ts])
-  @@index([jobId])
   @@map("messages")
 }
 

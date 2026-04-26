@@ -31,16 +31,18 @@ export class ChatMessageHandler implements IMessageHandler<ChatMessageData> {
       const taskId = extractTaskId(data.roomId);
       const ts = Date.now();
 
-      const [message, task] = await Promise.all([
-        this.messagesService.create({
-          roomId: data.roomId,
-          taskId,
-          role: MessageRole.User,
-          content: data.content,
-          ts,
-        }),
-        this.tasksService.findOne(taskId).catch(() => null),
-      ]);
+      const task = await this.tasksService.findOne(taskId).catch(() => null);
+
+      const message = await this.messagesService.create({
+        roomId: data.roomId,
+        taskId,
+        role: MessageRole.User,
+        terminalId: (task?.terminal as { id?: string } | null)?.id ?? undefined,
+        terminalName: (task?.terminal as { name?: string } | null)?.name ?? undefined,
+        messageType: 'CHAT',
+        content: data.content,
+        ts,
+      });
 
       const taskDetails = task
         ? {
@@ -48,10 +50,16 @@ export class ChatMessageHandler implements IMessageHandler<ChatMessageData> {
             name: task.name,
             description: task.description,
             status: task.status,
+            agentId: task.agentId,
+            agent: task.agent ?? null,
+            model: task.model,
             project: {
               id: task.project.id,
               name: task.project.name,
               description: task.project.description,
+              defaultAgentId: task.project.defaultAgentId,
+              defaultAgent: task.project.defaultAgent,
+              defaultModel: task.project.defaultModel,
             },
           }
         : null;

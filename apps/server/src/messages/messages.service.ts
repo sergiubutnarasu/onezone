@@ -8,10 +8,7 @@ export interface CreateMessageDto {
   role: string;
   terminalId?: string;
   terminalName?: string;
-  jobId?: string;
-  command?: string;
-  stream?: string;
-  messageType?: MessageType;
+  messageType: MessageType;
   content: string;
   ts: number;
 }

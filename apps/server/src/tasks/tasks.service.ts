@@ -46,7 +46,7 @@ export class TasksService {
   async findOne(id: string) {
     const task = await this.prisma.task.findUnique({
       where: { id },
-      include: { terminalAssignment: { include: { terminal: true } }, project: true, agent: true },
+      include: { terminalAssignment: { include: { terminal: true } }, project: { include: { defaultAgent: true } }, agent: true },
     });
     if (!task) throw new NotFoundException(`Task ${id} not found`);
     return this.flattenTask(task);
