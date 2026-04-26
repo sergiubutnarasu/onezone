@@ -302,7 +302,7 @@ export default function TaskChatPage() {
               </span>
 
               {/* Terminal chip */}
-              {task.terminal && (
+              {task.terminal ? (
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border ${
                     task.terminal.isConnected
@@ -314,6 +314,11 @@ export default function TaskChatPage() {
                     className={`size-1.5 rounded-full ${task.terminal.isConnected ? "bg-emerald-400" : "bg-muted-foreground"}`}
                   />
                   {task.terminal.name}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border bg-destructive/10 text-destructive border-destructive/20">
+                  <span className="size-1.5 rounded-full bg-destructive" />
+                  No terminal
                 </span>
               )}
 

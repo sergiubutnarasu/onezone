@@ -48,7 +48,10 @@ export function TaskMoreMenu({ task, projectId, agents, terminals, onDeleted }: 
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteTask(task.id),
-    onSuccess: onDeleted,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tasks', projectId] });
+      onDeleted();
+    },
   });
 
   function handleDelete() {
@@ -143,19 +146,23 @@ export function TaskMoreMenu({ task, projectId, agents, terminals, onDeleted }: 
             </span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
-            {terminals.map((t) => (
-              <DropdownMenuItem
-                key={t.id}
-                onClick={() => assignMutation.mutate(t.id)}
-                className="text-xs"
-              >
-                <span className={`mr-2 size-2 rounded-full ${t.isConnected ? 'bg-emerald-400' : 'bg-muted-foreground'}`} />
-                {t.name}
-                {task.terminalId === t.id && (
-                  <span className="ml-auto text-[10px] text-muted-foreground">Current</span>
-                )}
-              </DropdownMenuItem>
-            ))}
+            {terminals.length === 0 ? (
+              <div className="px-2 py-2 text-xs text-muted-foreground">No terminals</div>
+            ) : (
+              terminals.map((t) => (
+                <DropdownMenuItem
+                  key={t.id}
+                  onClick={() => assignMutation.mutate(t.id)}
+                  className="text-xs"
+                >
+                  <span className={`mr-2 size-2 rounded-full ${t.isConnected ? 'bg-emerald-400' : 'bg-muted-foreground'}`} />
+                  {t.name}
+                  {task.terminal?.id === t.id && (
+                    <span className="ml-auto text-[10px] text-muted-foreground">Current</span>
+                  )}
+                </DropdownMenuItem>
+              ))
+            )}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 

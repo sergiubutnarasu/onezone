@@ -36,14 +36,14 @@ export class TerminalsService implements OnModuleInit {
       include: {
         _count: {
           select: {
-            tasks: { where: { status: { not: 'DONE' } } },
+            taskAssignments: true,
           },
         },
       },
     }).then((terminals) =>
       terminals.map(({ _count, ...terminal }) => ({
         ...terminal,
-        pendingTaskCount: _count.tasks,
+        pendingTaskCount: _count.taskAssignments,
       }))
     );
   }
@@ -118,24 +118,18 @@ export class TerminalsService implements OnModuleInit {
   }
 
   async markDisconnected(terminalId: string) {
-    const terminal = await this.prisma.terminal.update({
+    const result = await this.prisma.terminal.updateMany({
       where: { id: terminalId },
       data: { isConnected: false, lastSeenAt: new Date() },
     });
-    this.logger.log(`Terminal disconnected: ${terminal.id} (${terminal.name})`);
-    return terminal;
+    if (result.count > 0) {
+      this.logger.log(`Terminal disconnected: ${terminalId}`);
+    }
   }
 
   async delete(terminalId: string) {
     const terminal = await this.prisma.terminal.findUnique({ where: { id: terminalId } });
     if (!terminal) throw new NotFoundException(`Terminal ${terminalId} not found`);
-
-    const taskCount = await this.prisma.task.count({ where: { terminalId } });
-    if (taskCount > 0) {
-      throw new ConflictException(
-        `Terminal "${terminal.name}" has ${taskCount} task(s) assigned. Reassign or delete them first.`,
-      );
-    }
 
     await this.prisma.terminal.delete({ where: { id: terminalId } });
     this.logger.log(`Deleted terminal ${terminalId} (${terminal.name})`);

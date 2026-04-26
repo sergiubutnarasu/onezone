@@ -13,28 +13,43 @@ export class TasksService {
     private readonly terminalRegistry: TerminalRegistryService,
   ) {}
 
+  private flattenTask<T extends { terminalAssignment: { terminal: unknown; assignedAt: unknown } | null }>(
+    task: T,
+  ) {
+    const { terminalAssignment, ...rest } = task;
+    return { ...rest, terminal: terminalAssignment?.terminal ?? null };
+  }
+
   async create(projectId: string, data: { name: string; description?: string; terminalId: string; agentId: string; model: string }) {
     const count = await this.prisma.task.count({ where: { projectId, status: 'BACKLOG' } });
-    const task = await this.prisma.task.create({
-      data: { ...data, projectId, order: count },
+    const task = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.task.create({
+        data: { name: data.name, description: data.description, agentId: data.agentId, model: data.model, projectId, order: count },
+      });
+      await tx.taskTerminal.create({ data: { taskId: created.id, terminalId: data.terminalId } });
+      return tx.task.findUniqueOrThrow({ where: { id: created.id }, include: { terminalAssignment: { include: { terminal: true } }, agent: true } });
     });
     this.logger.log(`Created task ${task.id} for project ${projectId}`);
     this.terminalRegistry.assignTask(data.terminalId, task.id);
-    return task;
+    return this.flattenTask(task);
   }
 
   async findAllByProject(projectId: string, status?: TaskStatus[]) {
-    return this.prisma.task.findMany({
+    const tasks = await this.prisma.task.findMany({
       where: { projectId, ...(status && status.length > 0 ? { status: { in: status } } : {}) },
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
-      include: { terminal: true, agent: true },
+      include: { terminalAssignment: { include: { terminal: true } }, agent: true },
     });
+    return tasks.map((t) => this.flattenTask(t));
   }
 
   async findOne(id: string) {
-    const task = await this.prisma.task.findUnique({ where: { id }, include: { terminal: true, project: true, agent: true } });
+    const task = await this.prisma.task.findUnique({
+      where: { id },
+      include: { terminalAssignment: { include: { terminal: true } }, project: true, agent: true },
+    });
     if (!task) throw new NotFoundException(`Task ${id} not found`);
-    return task;
+    return this.flattenTask(task);
   }
 
   async updateStatus(id: string, status: TaskStatus) {
@@ -74,22 +89,24 @@ export class TasksService {
   }
 
   async findByTerminal(terminalId: string) {
-    return this.prisma.task.findMany({
+    const assignments = await this.prisma.taskTerminal.findMany({
       where: { terminalId },
-      select: { id: true },
+      select: { taskId: true },
     });
+    return assignments.map((a) => ({ id: a.taskId }));
   }
 
   async assignTerminal(id: string, terminalId: string) {
     await this.findOne(id);
-    const task = await this.prisma.task.update({
-      where: { id },
-      data: { terminalId },
+    await this.prisma.taskTerminal.upsert({
+      where: { taskId: id },
+      create: { taskId: id, terminalId },
+      update: { terminalId, assignedAt: new Date() },
     });
     this.logger.log(`Assigned terminal ${terminalId} to task ${id}`);
     this.terminalRegistry.evictTaskTerminal(id);
     this.terminalRegistry.assignTask(terminalId, id);
-    return task;
+    return this.findOne(id);
   }
 
   async update(id: string, data: { name?: string; description?: string; status?: TaskStatus; agentId?: string; model?: string }) {

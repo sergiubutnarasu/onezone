@@ -79,7 +79,6 @@ export interface Task {
   description?: string | null;
   status: TaskStatus;
   order: number;
-  terminalId: string;
   terminal?: Pick<Terminal, "id" | "name" | "isConnected"> | null;
   agentId: string;
   agent?: Pick<Agent, "id" | "name" | "tag"> | null;

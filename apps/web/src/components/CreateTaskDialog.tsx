@@ -142,16 +142,22 @@ export function CreateTaskDialog({
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              {terminals.map((t) => (
-                <SelectItem key={t.id} value={t.id} label={t.name}>
-                  <span
-                    className={`mr-1.5 ${t.isConnected ? "text-emerald-400" : "text-muted-foreground"}`}
-                  >
-                    {t.isConnected ? "●" : "○"}
-                  </span>
-                  {t.name}
-                </SelectItem>
-              ))}
+              {terminals.length === 0 ? (
+                <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                  No terminals
+                </div>
+              ) : (
+                terminals.map((t) => (
+                  <SelectItem key={t.id} value={t.id} label={t.name}>
+                    <span
+                      className={`mr-1.5 ${t.isConnected ? "text-emerald-400" : "text-muted-foreground"}`}
+                    >
+                      {t.isConnected ? "●" : "○"}
+                    </span>
+                    {t.name}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
           <Select

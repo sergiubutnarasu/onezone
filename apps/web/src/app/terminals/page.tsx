@@ -125,8 +125,7 @@ export default function TerminalsPage() {
                             size="icon-sm"
                             onClick={() => handleDelete(terminal)}
                             disabled={
-                              (deleteMutation.isPending && deleteMutation.variables === terminal.id) ||
-                              (terminal.pendingTaskCount ?? 0) > 0
+                              deleteMutation.isPending && deleteMutation.variables === terminal.id
                             }
                             className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                           >
@@ -134,9 +133,7 @@ export default function TerminalsPage() {
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          {(terminal.pendingTaskCount ?? 0) > 0
-                            ? `${terminal.pendingTaskCount} pending task(s) — reassign first`
-                            : 'Delete terminal'}
+                          Delete terminal
                         </TooltipContent>
                       </Tooltip>
                     </div>

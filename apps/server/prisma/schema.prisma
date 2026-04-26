@@ -47,23 +47,33 @@ model Project {
 }
 
 model Task {
-  id          String    @id @default(uuid())
-  projectId   String
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  name        String
-  description String?
-  status      TaskStatus @default(BACKLOG)
-  order       Int        @default(0)
-  terminalId  String
-  terminal    Terminal   @relation(fields: [terminalId], references: [id], onDelete: Restrict)
-  agentId     String
-  agent       Agent     @relation(fields: [agentId], references: [id], onDelete: Restrict)
-  model       String
-  createdAt   DateTime  @default(now())
-  messages    Message[]
+  id                 String       @id @default(uuid())
+  projectId          String
+  project            Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name               String
+  description        String?
+  status             TaskStatus   @default(BACKLOG)
+  order              Int          @default(0)
+  agentId            String
+  agent              Agent        @relation(fields: [agentId], references: [id], onDelete: Restrict)
+  model              String
+  createdAt          DateTime     @default(now())
+  messages           Message[]
+  terminalAssignment TaskTerminal?
 
   @@index([projectId])
   @@map("tasks")
+}
+
+model TaskTerminal {
+  taskId     String   @id
+  terminalId String
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  terminal   Terminal @relation(fields: [terminalId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+
+  @@index([terminalId])
+  @@map("task_terminals")
 }
 
 model Message {
@@ -90,13 +100,13 @@ model Message {
 }
 
 model Terminal {
-  id          String    @id
-  name        String    @unique
-  hostname    String
-  isConnected Boolean   @default(false)
-  lastSeenAt  DateTime?
-  createdAt   DateTime  @default(now())
-  tasks       Task[]
+  id              String         @id
+  name            String         @unique
+  hostname        String
+  isConnected     Boolean        @default(false)
+  lastSeenAt      DateTime?
+  createdAt       DateTime       @default(now())
+  taskAssignments TaskTerminal[]
 
   @@map("terminals")
 }
