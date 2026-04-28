@@ -6,19 +6,8 @@ import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { ListNode, ListItemNode } from "@lexical/list";
-import {
-  $convertFromMarkdownString,
-  TEXT_FORMAT_TRANSFORMERS,
-  ORDERED_LIST,
-  UNORDERED_LIST,
-} from "@lexical/markdown";
+import { $convertFromMarkdownString, TRANSFORMERS } from "@lexical/markdown";
 import { cn } from "@/lib/utils";
-
-const MARKDOWN_TRANSFORMERS = [
-  ...TEXT_FORMAT_TRANSFORMERS,
-  ORDERED_LIST,
-  UNORDERED_LIST,
-];
 
 const viewerTheme = {
   list: {
@@ -53,17 +42,14 @@ export function RichTextViewer({ value, className }: RichTextViewerProps) {
     theme: viewerTheme,
     onError: (error: Error) => console.error(error),
     nodes: [ListNode, ListItemNode],
-    editorState: () =>
-      $convertFromMarkdownString(value, MARKDOWN_TRANSFORMERS),
+    editorState: () => $convertFromMarkdownString(value, TRANSFORMERS),
   };
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
       <RichTextPlugin
         contentEditable={
-          <ContentEditable
-            className={cn("outline-none text-sm", className)}
-          />
+          <ContentEditable className={cn("outline-none text-sm", className)} />
         }
         placeholder={null}
         ErrorBoundary={LexicalErrorBoundary}

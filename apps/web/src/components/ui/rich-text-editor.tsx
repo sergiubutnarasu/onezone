@@ -1,40 +1,28 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { LexicalComposer } from "@lexical/react/LexicalComposer";
-import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
-import { ContentEditable } from "@lexical/react/LexicalContentEditable";
-import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
-import { ListPlugin } from "@lexical/react/LexicalListPlugin";
-import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import {
-  $getSelection,
-  $isRangeSelection,
-  FORMAT_TEXT_COMMAND,
-} from "lexical";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   INSERT_ORDERED_LIST_COMMAND,
   INSERT_UNORDERED_LIST_COMMAND,
-  ListNode,
   ListItemNode,
+  ListNode,
 } from "@lexical/list";
 import {
   $convertFromMarkdownString,
   $convertToMarkdownString,
-  TEXT_FORMAT_TRANSFORMERS,
-  ORDERED_LIST,
-  UNORDERED_LIST,
+  TRANSFORMERS,
 } from "@lexical/markdown";
-import { Bold, Italic, Underline, List, ListOrdered } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-
-export const MARKDOWN_TRANSFORMERS = [
-  ...TEXT_FORMAT_TRANSFORMERS,
-  ORDERED_LIST,
-  UNORDERED_LIST,
-];
+import { LexicalComposer } from "@lexical/react/LexicalComposer";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import { ContentEditable } from "@lexical/react/LexicalContentEditable";
+import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
+import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
+import { ListPlugin } from "@lexical/react/LexicalListPlugin";
+import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
+import { $getSelection, $isRangeSelection, FORMAT_TEXT_COMMAND } from "lexical";
+import { Bold, Italic, List, ListOrdered, Underline } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 // ---------------------------------------------------------------------------
 // Theme
@@ -70,16 +58,20 @@ function MarkdownOnChangePlugin({
 }) {
   const [editor] = useLexicalComposerContext();
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  useLayoutEffect(() => {
+    onChangeRef.current = onChange;
+  });
 
   useEffect(() => {
-    return editor.registerUpdateListener(({ editorState, dirtyElements, dirtyLeaves }) => {
-      if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return;
-      editorState.read(() => {
-        const markdown = $convertToMarkdownString(MARKDOWN_TRANSFORMERS);
-        onChangeRef.current(markdown);
-      });
-    });
+    return editor.registerUpdateListener(
+      ({ editorState, dirtyElements, dirtyLeaves }) => {
+        if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return;
+        editorState.read(() => {
+          const markdown = $convertToMarkdownString(TRANSFORMERS);
+          onChangeRef.current(markdown);
+        });
+      },
+    );
   }, [editor]);
 
   return null;
@@ -198,7 +190,7 @@ export function RichTextEditor({
     onError: (error: Error) => console.error(error),
     nodes: [ListNode, ListItemNode],
     editorState: () =>
-      $convertFromMarkdownString(value ?? "", MARKDOWN_TRANSFORMERS),
+      $convertFromMarkdownString(value ?? "", TRANSFORMERS),
   };
 
   return (
