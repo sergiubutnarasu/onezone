@@ -1,47 +1,16 @@
 /**
- * Returns true if the string looks like serialised Lexical JSON.
- */
-export function isLexicalJson(value: string): boolean {
-  try {
-    const parsed = JSON.parse(value);
-    return typeof parsed === "object" && parsed !== null && "root" in parsed;
-  } catch {
-    return false;
-  }
-}
-
-interface LexicalNode {
-  type: string;
-  text?: string;
-  children?: LexicalNode[];
-}
-
-function extractText(node: LexicalNode): string {
-  if (node.type === "text") return node.text ?? "";
-  if (!node.children?.length) return "";
-  const childText = node.children.map(extractText).join("");
-  // Add newline after block-level nodes
-  if (
-    node.type === "paragraph" ||
-    node.type === "heading" ||
-    node.type === "listitem"
-  ) {
-    return childText + "\n";
-  }
-  return childText;
-}
-
-/**
- * Extracts plain text from a serialised Lexical JSON string.
- * Falls back to returning the raw value for plain-text descriptions.
+ * Extracts a plain-text preview from a markdown string.
+ * Strips common markdown syntax so the home-page card shows readable text.
  */
 export function lexicalToPlainText(value: string | null | undefined): string {
   if (!value) return "";
-  if (!isLexicalJson(value)) return value;
-  try {
-    const parsed = JSON.parse(value) as { root: LexicalNode };
-    return extractText(parsed.root).trim();
-  } catch {
-    return value;
-  }
+  return value
+    .replace(/^#{1,6}\s+/gm, "")      // headings
+    .replace(/\*\*(.+?)\*\*/g, "$1")  // bold
+    .replace(/\*(.+?)\*/g, "$1")      // italic
+    .replace(/~~(.+?)~~/g, "$1")      // strikethrough
+    .replace(/`(.+?)`/g, "$1")        // inline code
+    .replace(/^[*-]\s+/gm, "")        // unordered list bullets
+    .replace(/^\d+\.\s+/gm, "")       // ordered list numbers
+    .trim();
 }

@@ -16,6 +16,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@lexical/history": "^0.43.0",
     "@lexical/list": "^0.43.0",
+    "@lexical/markdown": "^0.43.0",
     "@lexical/react": "^0.43.0",
     "@onezone/shared": "workspace:*",
     "@radix-ui/react-dropdown-menu": "^2.1.16",

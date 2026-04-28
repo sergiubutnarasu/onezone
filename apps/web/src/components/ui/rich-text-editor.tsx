@@ -1,22 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
-import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
-  $getRoot,
   $getSelection,
   $isRangeSelection,
   FORMAT_TEXT_COMMAND,
-  type EditorState,
-  $createParagraphNode,
-  $createTextNode,
 } from "lexical";
 import {
   INSERT_ORDERED_LIST_COMMAND,
@@ -24,10 +19,22 @@ import {
   ListNode,
   ListItemNode,
 } from "@lexical/list";
+import {
+  $convertFromMarkdownString,
+  $convertToMarkdownString,
+  TEXT_FORMAT_TRANSFORMERS,
+  ORDERED_LIST,
+  UNORDERED_LIST,
+} from "@lexical/markdown";
 import { Bold, Italic, Underline, List, ListOrdered } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { isLexicalJson } from "@/lib/lexical-utils";
+
+export const MARKDOWN_TRANSFORMERS = [
+  ...TEXT_FORMAT_TRANSFORMERS,
+  ORDERED_LIST,
+  UNORDERED_LIST,
+];
 
 // ---------------------------------------------------------------------------
 // Theme
@@ -51,6 +58,32 @@ const editorTheme = {
   },
   paragraph: "mb-1 last:mb-0",
 };
+
+// ---------------------------------------------------------------------------
+// Markdown change plugin
+// ---------------------------------------------------------------------------
+
+function MarkdownOnChangePlugin({
+  onChange,
+}: {
+  onChange: (md: string) => void;
+}) {
+  const [editor] = useLexicalComposerContext();
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  useEffect(() => {
+    return editor.registerUpdateListener(({ editorState, dirtyElements, dirtyLeaves }) => {
+      if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return;
+      editorState.read(() => {
+        const markdown = $convertToMarkdownString(MARKDOWN_TRANSFORMERS);
+        onChangeRef.current(markdown);
+      });
+    });
+  }, [editor]);
+
+  return null;
+}
 
 // ---------------------------------------------------------------------------
 // Toolbar
@@ -164,22 +197,8 @@ export function RichTextEditor({
     theme: editorTheme,
     onError: (error: Error) => console.error(error),
     nodes: [ListNode, ListItemNode],
-    editorState: value
-      ? isLexicalJson(value)
-        ? value
-        : () => {
-            const root = $getRoot();
-            if (root.getFirstChild() === null) {
-              const p = $createParagraphNode();
-              p.append($createTextNode(value ?? ""));
-              root.append(p);
-            }
-          }
-      : undefined,
-  };
-
-  const handleChange = (editorState: EditorState) => {
-    onChange?.(JSON.stringify(editorState.toJSON()));
+    editorState: () =>
+      $convertFromMarkdownString(value ?? "", MARKDOWN_TRANSFORMERS),
   };
 
   return (
@@ -214,7 +233,7 @@ export function RichTextEditor({
       </div>
       <HistoryPlugin />
       <ListPlugin />
-      <OnChangePlugin onChange={handleChange} ignoreSelectionChange />
+      {onChange && <MarkdownOnChangePlugin onChange={onChange} />}
     </LexicalComposer>
   );
 }

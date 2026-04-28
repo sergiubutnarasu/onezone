@@ -6,13 +6,19 @@ import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { ListNode, ListItemNode } from "@lexical/list";
-import { cn } from "@/lib/utils";
-import { isLexicalJson } from "@/lib/lexical-utils";
 import {
-  $getRoot,
-  $createParagraphNode,
-  $createTextNode,
-} from "lexical";
+  $convertFromMarkdownString,
+  TEXT_FORMAT_TRANSFORMERS,
+  ORDERED_LIST,
+  UNORDERED_LIST,
+} from "@lexical/markdown";
+import { cn } from "@/lib/utils";
+
+const MARKDOWN_TRANSFORMERS = [
+  ...TEXT_FORMAT_TRANSFORMERS,
+  ORDERED_LIST,
+  UNORDERED_LIST,
+];
 
 const viewerTheme = {
   list: {
@@ -47,16 +53,8 @@ export function RichTextViewer({ value, className }: RichTextViewerProps) {
     theme: viewerTheme,
     onError: (error: Error) => console.error(error),
     nodes: [ListNode, ListItemNode],
-    editorState: isLexicalJson(value)
-      ? value
-      : () => {
-          const root = $getRoot();
-          if (root.getFirstChild() === null) {
-            const p = $createParagraphNode();
-            p.append($createTextNode(value));
-            root.append(p);
-          }
-        },
+    editorState: () =>
+      $convertFromMarkdownString(value, MARKDOWN_TRANSFORMERS),
   };
 
   return (
