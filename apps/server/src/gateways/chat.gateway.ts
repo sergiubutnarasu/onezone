@@ -58,6 +58,7 @@ export class ChatGateway
 
   private readonly logger = new Logger(ChatGateway.name);
   private readonly socketMeta = new Map<string, SocketMeta>();
+  private readonly disconnectTimers = new Map<string, NodeJS.Timeout>();
 
   constructor(
     private readonly tasksService: TasksService,
@@ -157,15 +158,26 @@ export class ChatGateway
   ): Promise<void> {
     const { role, terminalId, terminalName, terminalHostname } = auth;
 
-    await client.join(SYSTEM_TERMINALS_ROOM);
-
     if (role === 'terminal' && terminalId) {
+      // Set meta before any await so hasTerminalAnyConnection() sees this socket
+      // immediately, even if a deferred disconnect timer fires during client.join().
       this.socketMeta.set(client.id, {
         role: 'terminal',
         terminalId,
         terminalName: terminalName ?? terminalId,
         terminalHostname,
       });
+    }
+
+    await client.join(SYSTEM_TERMINALS_ROOM);
+
+    if (role === 'terminal' && terminalId) {
+      // Cancel any pending markDisconnected from a recent disconnect/reconnect cycle
+      const pendingTimer = this.disconnectTimers.get(terminalId);
+      if (pendingTimer) {
+        clearTimeout(pendingTimer);
+        this.disconnectTimers.delete(terminalId);
+      }
 
       this.terminalRegistry.register(terminalId, client.id);
       await this.terminalsService.markConnected(terminalId);
@@ -197,10 +209,22 @@ export class ChatGateway
         });
       } else {
         this.terminalRegistry.deregister(terminalId);
+
+        // Defer markDisconnected so a fast reconnect's markConnected can cancel it,
+        // preventing a race where markDisconnected commits after markConnected.
+        const timer = setTimeout(async () => {
+          this.disconnectTimers.delete(terminalId);
+          if (!this.hasTerminalAnyConnection(terminalId, client.id)) {
+            await this.terminalsService.markDisconnected(terminalId);
+          }
+        }, 2000);
+        this.disconnectTimers.set(terminalId, timer);
+
+        this.socketMeta.delete(client.id);
+        return;
       }
 
-      // Check if terminal has any other active socket connections
-      // before marking it as disconnected in the database
+      // Task-room terminal: no reconnect race, mark disconnected immediately
       const hasOtherConnection = this.hasTerminalAnyConnection(terminalId, client.id);
       if (!hasOtherConnection) {
         await this.terminalsService.markDisconnected(terminalId);
