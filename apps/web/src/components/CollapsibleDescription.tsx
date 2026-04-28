@@ -1,0 +1,59 @@
+"use client";
+
+import { useRef, useState, useLayoutEffect } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { RichTextViewer } from "@/components/ui/rich-text-viewer";
+import { cn } from "@/lib/utils";
+
+const COLLAPSED_MAX_HEIGHT = 72; // ~3 lines
+
+interface CollapsibleDescriptionProps {
+  value?: string | null;
+  className?: string;
+}
+
+export function CollapsibleDescription({ value, className }: CollapsibleDescriptionProps) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+
+  useLayoutEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    setIsOverflowing(el.scrollHeight > COLLAPSED_MAX_HEIGHT + 4);
+  }, [value]);
+
+  if (!value) return null;
+
+  return (
+    <div className={cn(className)}>
+      <div
+        ref={contentRef}
+        className="relative overflow-hidden transition-all duration-200"
+        style={{ maxHeight: isExpanded ? "none" : `${COLLAPSED_MAX_HEIGHT}px` }}
+      >
+        <RichTextViewer value={value} />
+        {isOverflowing && !isExpanded && (
+          <div className="absolute bottom-0 left-0 right-0 h-8 bg-linear-to-t from-card/80 to-transparent pointer-events-none" />
+        )}
+      </div>
+
+      {isOverflowing && (
+        <button
+          onClick={() => setIsExpanded((p) => !p)}
+          className="mt-1 flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {isExpanded ? (
+            <>
+              <ChevronUp className="size-3" /> Show less
+            </>
+          ) : (
+            <>
+              <ChevronDown className="size-3" /> Read more
+            </>
+          )}
+        </button>
+      )}
+    </div>
+  );
+}

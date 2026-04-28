@@ -22,7 +22,7 @@ import { CopyButton } from "@/components/CopyButton";
 import { TaskMoreMenu } from "@/components/TaskMoreMenu";
 import { Badge } from "@/components/ui/badge";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { RichTextViewer } from "@/components/ui/rich-text-viewer";
+import { CollapsibleDescription } from '@/components/CollapsibleDescription';
 import { TASK_STATUS_LABELS, type Terminal, type Agent } from "@onezone/shared";
 import type { RoomMessage } from "@/hooks/useTaskRoom";
 
@@ -347,7 +347,7 @@ export default function TaskChatPage() {
                 Details
               </label>
               <div className="px-5 pb-3 border-b border-border/60 text-sm text-muted-foreground bg-card/50 backdrop-blur-sm">
-                <RichTextViewer value={task.description} />
+                <CollapsibleDescription value={task.description} />
               </div>
             </div>
           )}
