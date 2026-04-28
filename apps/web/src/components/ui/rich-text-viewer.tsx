@@ -46,7 +46,7 @@ export function RichTextViewer({ value, className }: RichTextViewerProps) {
   };
 
   return (
-    <LexicalComposer initialConfig={initialConfig}>
+    <LexicalComposer key={value} initialConfig={initialConfig}>
       <RichTextPlugin
         contentEditable={
           <ContentEditable className={cn("outline-none text-sm", className)} />

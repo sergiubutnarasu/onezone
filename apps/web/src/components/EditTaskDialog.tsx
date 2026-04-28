@@ -1,6 +1,7 @@
 "use client";
 
 import { useForm, FormProvider, Controller } from "react-hook-form";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateTask } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ export function EditTaskDialog({
   onOpenChange,
 }: EditTaskDialogProps) {
   const qc = useQueryClient();
+  const [editorKey, setEditorKey] = useState(0);
 
   const methods = useForm<EditTaskForm>({
     defaultValues: {
@@ -68,6 +70,20 @@ export function EditTaskDialog({
 
   const agentId = watch("agentId");
 
+  useEffect(() => {
+    if (open) {
+      methods.reset({
+        name: task.name,
+        description: task.description ?? "",
+        status: task.status,
+        agentId: task.agentId,
+        model: task.model,
+      });
+      setEditorKey((k) => k + 1);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   const mutation = useMutation({
     mutationFn: (data: EditTaskForm) =>
       updateTask(task.id, {
@@ -81,7 +97,6 @@ export function EditTaskDialog({
       qc.invalidateQueries({ queryKey: ["task", task.id] });
       qc.invalidateQueries({ queryKey: ["tasks", projectId] });
       onOpenChange(false);
-      reset();
     },
   });
 
@@ -164,6 +179,7 @@ export function EditTaskDialog({
                 control={methods.control}
                 render={({ field }) => (
                   <RichTextEditor
+                    key={editorKey}
                     value={field.value}
                     onChange={field.onChange}
                     placeholder="Task description (optional)"

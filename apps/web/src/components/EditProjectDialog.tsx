@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -47,6 +47,7 @@ export function EditProjectDialog({
   const qc = useQueryClient();
   const router = useRouter();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editorKey, setEditorKey] = useState(0);
 
   const {
     register,
@@ -67,6 +68,19 @@ export function EditProjectDialog({
 
   const defaultAgentId = watch("defaultAgentId");
 
+  useEffect(() => {
+    if (open) {
+      reset({
+        name: project.name,
+        description: project.description ?? "",
+        defaultAgentId: project.defaultAgentId,
+        defaultModel: project.defaultModel,
+      });
+      setEditorKey((k) => k + 1);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   const mutation = useMutation({
     mutationFn: (data: EditProjectForm) =>
       updateProject(project.id, {
@@ -79,7 +93,6 @@ export function EditProjectDialog({
       qc.invalidateQueries({ queryKey: ["project", project.id] });
       qc.invalidateQueries({ queryKey: ["projects"] });
       onOpenChange(false);
-      reset();
     },
   });
 
@@ -147,6 +160,7 @@ export function EditProjectDialog({
             control={control}
             render={({ field }) => (
               <RichTextEditor
+                key={editorKey}
                 value={field.value}
                 onChange={field.onChange}
                 placeholder="Description (optional)"
