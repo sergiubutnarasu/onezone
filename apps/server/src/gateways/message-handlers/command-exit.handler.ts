@@ -39,6 +39,9 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
         terminalId: data.terminalId,
         terminalName: data.terminalName,
         messageType: MessageType.COMMAND_EXIT,
+        jobId: data.jobId,
+        command: data.command,
+        exitCode: data.exitCode,
         content: `[${data.terminalId ?? 'terminal'}] exited with code ${data.exitCode}: ${data.command}`,
         ts,
       });

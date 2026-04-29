@@ -38,6 +38,8 @@ export class CommandStartHandler implements IMessageHandler<CommandStartData> {
         terminalId: data.terminalId,
         terminalName: data.terminalName,
         messageType: MessageType.COMMAND_START,
+        jobId: data.jobId,
+        command: data.command,
         content: `[${data.terminalName}] started: ${data.command}`,
         ts,
       });

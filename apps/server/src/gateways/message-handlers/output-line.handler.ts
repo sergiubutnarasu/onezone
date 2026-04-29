@@ -39,6 +39,9 @@ export class OutputLineHandler implements IMessageHandler<OutputLineData> {
         terminalId: data.terminalId,
         terminalName: data.terminalName,
         messageType: 'CHAT',
+        jobId: data.jobId,
+        command: data.command,
+        stream: data.stream,
         content: data.content,
         ts,
       });

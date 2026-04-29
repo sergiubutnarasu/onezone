@@ -9,6 +9,10 @@ export interface CreateMessageDto {
   terminalId?: string;
   terminalName?: string;
   messageType: MessageType;
+  jobId?: string;
+  command?: string;
+  exitCode?: number;
+  stream?: string;
   content: string;
   ts: number;
 }

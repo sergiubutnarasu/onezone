@@ -110,12 +110,15 @@ export class TerminalsService implements OnModuleInit {
   }
 
   async markConnected(terminalId: string) {
-    const terminal = await this.prisma.terminal.update({
+    const result = await this.prisma.terminal.updateMany({
       where: { id: terminalId },
       data: { isConnected: true, lastSeenAt: new Date() },
     });
-    this.logger.log(`Terminal connected: ${terminal.id} (${terminal.name})`);
-    return terminal;
+    if (result.count > 0) {
+      this.logger.log(`Terminal connected: ${terminalId}`);
+    } else {
+      this.logger.warn(`markConnected: terminal ${terminalId} not found in DB (needs re-registration)`);
+    }
   }
 
   async markDisconnected(terminalId: string) {

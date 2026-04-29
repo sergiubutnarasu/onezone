@@ -86,6 +86,10 @@ model Message {
   terminalId  String?
   terminalName String?
   messageType MessageType
+  jobId       String?
+  command     String?
+  exitCode    Int?
+  stream      String?
   content     String   @db.Text
   ts          BigInt
   createdAt   DateTime @default(now())
