@@ -11,11 +11,12 @@ import {
 } from "@onezone/shared";
 import { randomUUID } from "node:crypto";
 import { hostname } from "node:os";
+import { setupTerminalAgent } from "../agents/setup.js";
+import { shellQuote, stripAnsi } from "../lib/helper.js";
 import { registerCleanupHandlers, runProcess } from "../lib/process-runner.js";
-import { stripAnsi } from "../lib/helper.js";
-import { registerTerminal } from "../lib/terminal-registration.js";
-import { createLobbySocket, createTaskSocket } from "../lib/task-socket.js";
 import { setupProject } from "../lib/setup.js";
+import { createLobbySocket, createTaskSocket } from "../lib/task-socket.js";
+import { registerTerminal } from "../lib/terminal-registration.js";
 
 export default class Listen extends Command {
   private readonly activeTaskIds = new Set<string>();
@@ -192,6 +193,14 @@ export default class Listen extends Command {
               return;
             }
 
+            const terminalAgent = setupTerminalAgent(payload);
+            if (!terminalAgent) {
+              this.log(
+                `[${terminalName}] [${roomId}] No terminal agent configured, skipping command execution.`,
+              );
+              return;
+            }
+
             this.log(`[${terminalName}] [${roomId}] Spawning: ${content}`);
 
             const jobId = randomUUID();
@@ -207,13 +216,15 @@ export default class Listen extends Command {
 
             const stderrBuffer: string[] = [];
             const projectWorkDir = setupResult.projectWorkDir;
+            const command = `${terminalAgent.cmd} ${shellQuote(content)}`;
 
-            const cmdContent = `cd ${projectWorkDir} && ${content}`;
+            const cmdContent = `cd ${shellQuote(projectWorkDir)} && ${command}`;
 
-            const proc = runProcess(
-              cmdContent,
-              [],
-              (stream, line) => {
+            const proc = runProcess({
+              cmd: cmdContent,
+              args: [],
+              shell: true,
+              onLine: (stream, line) => {
                 const clean = stripAnsi(line);
                 if (!clean) return;
 
@@ -228,7 +239,7 @@ export default class Listen extends Command {
                   content: clean,
                 });
               },
-              (exitCode) => {
+              onExit: (exitCode) => {
                 activeProcesses.delete(jobId);
 
                 if (exitCode !== 0) {
@@ -251,8 +262,8 @@ export default class Listen extends Command {
                   `[${terminalName}] [${roomId}] ${badge}: "${content}"`,
                 );
               },
-              true, // shell
-            );
+            });
+
             activeProcesses.set(jobId, proc);
           },
           onConnectError: (_, err) => {

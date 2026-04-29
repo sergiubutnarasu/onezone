@@ -38,6 +38,11 @@ export enum TaskStatus {
   DONE = "DONE",
 }
 
+export enum AgentTag {
+  ClaudeCode = "claude-code",
+  CopilotCLI = "copilot-cli",
+}
+
 export const TASK_STATUS_COLUMNS: readonly TaskStatus[] = [
   TaskStatus.BACKLOG,
   TaskStatus.TODO,
@@ -68,7 +73,7 @@ export interface ProjectInfo {
 export interface Agent {
   id: string;
   name: string;
-  tag: string;
+  tag: AgentTag;
   model: string;
   createdAt: string;
 }
@@ -111,7 +116,7 @@ export interface TaskDetails {
   description?: string | null;
   status: TaskStatus;
   agentId: string;
-  agent?: Pick<Agent, 'id' | 'name' | 'tag'> | null;
+  agent?: Pick<Agent, "id" | "name" | "tag"> | null;
   model: string;
   project: ProjectInfo;
 }

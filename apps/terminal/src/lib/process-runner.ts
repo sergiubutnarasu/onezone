@@ -22,13 +22,19 @@ export function registerCleanupHandlers(): void {
   process.on("SIGTERM", () => process.exit(0));
 }
 
-export function runProcess(
-  cmd: string,
-  args: string[],
-  onLine: (stream: MessageStream, line: string) => void,
-  onExit: (code: number) => void,
+export function runProcess({
+  cmd,
+  args,
+  onLine,
+  onExit,
   shell = false,
-): ChildProcess {
+}: {
+  cmd: string;
+  args: string[];
+  onLine: (stream: MessageStream, line: string) => void;
+  onExit: (code: number) => void;
+  shell?: boolean;
+}): ChildProcess {
   // detached: true puts the child in its own process group so process.kill(-pid)
   // correctly targets only that child's group.
   const proc = spawn(cmd, args, {

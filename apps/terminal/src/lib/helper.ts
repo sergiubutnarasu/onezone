@@ -1,3 +1,10 @@
+// Wrap a string in single quotes for safe shell interpolation.
+// Single-quoted strings are treated literally in POSIX sh — no variable
+// expansion, no command substitution.  The only special case is an
+// embedded single-quote, which must be closed, escaped, then reopened.
+export const shellQuote = (arg: string): string =>
+  `'${arg.replace(/'/g, "\'\\''\'")}'`;
+
 // Strip ANSI escape sequences and simulate \r overwrite so chat output is readable
 export const stripAnsi = (str: string): string => {
   // Split on \r to simulate terminal overwrite — take the last segment
