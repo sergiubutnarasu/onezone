@@ -122,6 +122,13 @@ export class ChatGateway
         taskId,
       });
 
+      // Cancel any pending markDisconnected from a recent disconnect/reconnect cycle
+      const pendingTimer = this.disconnectTimers.get(terminalId);
+      if (pendingTimer) {
+        clearTimeout(pendingTimer);
+        this.disconnectTimers.delete(terminalId);
+      }
+
       this.terminalRegistry.registerTaskSocket(taskId, client.id);
       await this.terminalsService.markConnected(terminalId);
 
@@ -224,11 +231,18 @@ export class ChatGateway
         return;
       }
 
-      // Task-room terminal: no reconnect race, mark disconnected immediately
-      const hasOtherConnection = this.hasTerminalAnyConnection(terminalId, client.id);
-      if (!hasOtherConnection) {
-        await this.terminalsService.markDisconnected(terminalId);
-      }
+      // Defer markDisconnected so a fast reconnect's markConnected can cancel it,
+      // preventing a race where markDisconnected commits after markConnected.
+      const pendingTimer = this.disconnectTimers.get(terminalId);
+      if (pendingTimer) clearTimeout(pendingTimer);
+      const disconnectedSocketId = client.id;
+      const timer = setTimeout(async () => {
+        this.disconnectTimers.delete(terminalId);
+        if (!this.hasTerminalAnyConnection(terminalId, disconnectedSocketId)) {
+          await this.terminalsService.markDisconnected(terminalId);
+        }
+      }, 2000);
+      this.disconnectTimers.set(terminalId, timer);
     }
 
     this.socketMeta.delete(client.id);
