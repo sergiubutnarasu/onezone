@@ -12,11 +12,14 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { CollapsibleDescription } from '@/components/CollapsibleDescription';
+import { useProjectTasksSocket } from '@/hooks/useProjectTasksSocket';
 import type { Terminal, Task, Agent } from '@onezone/shared';
 import type { Project } from '@/lib/api';
 
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();
+
+  useProjectTasksSocket(id);
 
   const { data: project, isLoading: projectLoading } = useQuery<Project>({
     queryKey: ['project', id],

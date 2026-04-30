@@ -4,9 +4,9 @@ import { memo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
-import { GripVertical, Bot, Clock } from "lucide-react";
+import { GripVertical, Bot, Clock, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Task } from "@onezone/shared";
+import { TaskStatus, type Task } from "@onezone/shared";
 
 interface KanbanCardProps {
   task: Task;
@@ -25,7 +25,10 @@ function timeAgo(iso: string) {
   });
 }
 
-export const KanbanCard = memo(function KanbanCard({ task, projectId }: KanbanCardProps) {
+export const KanbanCard = memo(function KanbanCard({
+  task,
+  projectId,
+}: KanbanCardProps) {
   const {
     attributes,
     listeners,
@@ -34,6 +37,11 @@ export const KanbanCard = memo(function KanbanCard({ task, projectId }: KanbanCa
     transition,
     isDragging,
   } = useSortable({ id: task.id, data: { task } });
+
+  const isActive =
+    !!task.terminal?.isConnected &&
+    task.status !== TaskStatus.BACKLOG &&
+    task.status !== TaskStatus.DONE;
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -44,16 +52,23 @@ export const KanbanCard = memo(function KanbanCard({ task, projectId }: KanbanCa
     <div ref={setNodeRef} style={style} {...attributes}>
       <div
         className={cn(
-          "relative rounded-lg border border-border/70 bg-card overflow-hidden select-none",
+          "relative rounded-lg border bg-card overflow-hidden select-none",
           "transition-[border-color,box-shadow,color,opacity] duration-200",
-          // glow on hover
-          "hover:border-primary/40 hover:shadow-[0_0_0_1px_hsl(var(--primary)/0.15),0_4px_16px_-4px_hsl(var(--primary)/0.25)]",
+          isActive
+            ? "border-primary/50 shadow-[0_0_0_1px_hsl(var(--primary)/0.2),0_4px_20px_-4px_hsl(var(--primary)/0.35)]"
+            : "border-border/70 hover:border-primary/40 hover:shadow-[0_0_0_1px_hsl(var(--primary)/0.15),0_4px_16px_-4px_hsl(var(--primary)/0.25)]",
           isDragging &&
             "opacity-50 shadow-[0_0_0_2px_hsl(var(--primary)/0.5),0_8px_24px_-4px_hsl(var(--primary)/0.4)]",
         )}
       >
-        {/* Subtle top shimmer line */}
-        <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        {/* Active progress bar / hover shimmer */}
+        {isActive ? (
+          <div className="absolute inset-x-0 top-0 h-0.5 overflow-hidden">
+            <div className="h-full w-1/2 bg-linear-to-r from-transparent via-primary to-transparent animate-[shimmer_1.4s_ease-in-out_infinite]" />
+          </div>
+        ) : (
+          <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        )}
 
         <div className="flex group">
           {/* Drag handle */}

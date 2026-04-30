@@ -20,6 +20,7 @@ export const CreateTaskSchema = baseEntitySchema.extend({
 
 export const SocketAuthSchema = z.object({
   taskId: z.string().uuid().optional(),
+  projectId: z.string().uuid().optional(),
   role: z.enum(['user', 'terminal']),
   terminalId: z.string().optional(),
   terminalName: z.string().optional(),

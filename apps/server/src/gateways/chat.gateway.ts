@@ -16,6 +16,7 @@ import {
   EventCommands,
   SocketAuthSchema,
   createTaskRoomId,
+  createProjectRoomId,
 } from '@onezone/shared';
 import { TerminalRegistryService } from './terminal-registry.service';
 import { SYSTEM_TERMINALS_ROOM } from './constants';
@@ -38,6 +39,7 @@ interface TerminalSocketMeta {
 interface UserSocketMeta {
   role: 'user';
   taskId?: string;
+  projectId?: string;
 }
 
 type SocketMeta = TerminalSocketMeta | UserSocketMeta;
@@ -86,10 +88,12 @@ export class ChatGateway
       return;
     }
 
-    const { taskId, role, terminalId, terminalName, terminalHostname } = result.data;
+    const { taskId, projectId, role, terminalId, terminalName, terminalHostname } = result.data;
 
     if (taskId) {
       await this.connectToTaskRoom(client, { taskId, role, terminalId, terminalName, terminalHostname });
+    } else if (projectId && role === 'user') {
+      await this.connectToProjectRoom(client, projectId);
     } else {
       await this.connectToLobby(client, { role, terminalId, terminalName, terminalHostname });
     }
@@ -157,6 +161,12 @@ export class ChatGateway
         }
       }
     }
+  }
+
+  private async connectToProjectRoom(client: Socket, projectId: string): Promise<void> {
+    const roomId = createProjectRoomId(projectId);
+    await client.join(roomId);
+    this.socketMeta.set(client.id, { role: 'user', projectId });
   }
 
   private async connectToLobby(

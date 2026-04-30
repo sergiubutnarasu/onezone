@@ -93,6 +93,13 @@ export function useKanbanDnd(projectId: string, initialTasks: Task[]): KanbanDnd
     onSuccess: (updated: Task[]) => {
       syncTasks(updated);
       qc.setQueryData(['tasks', projectId], updated);
+      // Invalidate individual task caches for tasks whose status changed.
+      const prevMap = new Map(preDropSnapshotRef.current.map((t) => [t.id, t.status]));
+      for (const t of updated) {
+        if (prevMap.get(t.id) !== t.status) {
+          qc.invalidateQueries({ queryKey: ['task', t.id] });
+        }
+      }
     },
     onError: () => {
       // Roll back to the state before the drag started.

@@ -5,7 +5,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { Home, ChevronRight, Wifi, WifiOff, Bot, Cpu } from "lucide-react";
+import { Home, ChevronRight, Wifi, WifiOff, Bot, Cpu, Loader2 } from "lucide-react";
 import {
   fetchTask,
   fetchMessages,
@@ -23,7 +23,7 @@ import { TaskMoreMenu } from "@/components/TaskMoreMenu";
 import { Badge } from "@/components/ui/badge";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CollapsibleDescription } from '@/components/CollapsibleDescription';
-import { TASK_STATUS_LABELS, type Terminal, type Agent } from "@onezone/shared";
+import { TASK_STATUS_LABELS, TaskStatus, type Terminal, type Agent } from "@onezone/shared";
 import type { RoomMessage } from "@/hooks/useTaskRoom";
 
 type ChatItem =
@@ -152,6 +152,12 @@ export default function TaskChatPage() {
   } = useTaskRoom(taskId, {
     onTaskDeleted: () => router.push(`/projects/${projectId}`),
   });
+
+  const isTerminalActive =
+    connectedTerminals.length > 0 &&
+    !!task &&
+    task.status !== TaskStatus.BACKLOG &&
+    task.status !== TaskStatus.DONE;
 
   // Load history into the room on mount
   useEffect(() => {
@@ -284,21 +290,25 @@ export default function TaskChatPage() {
                             : "bg-muted text-muted-foreground border-border"
                 }`}
               >
-                <span
-                  className={`size-1.5 rounded-full ${
-                    task.status === "DONE"
-                      ? "bg-emerald-400"
-                      : task.status === "IN_PROGRESS"
-                        ? "bg-amber-400"
-                        : task.status === "IN_REVIEW"
-                          ? "bg-sky-400"
-                          : task.status === "TESTING"
-                            ? "bg-violet-400"
-                            : task.status === "TODO"
-                              ? "bg-blue-400"
-                              : "bg-muted-foreground"
-                  }`}
-                />
+                {isTerminalActive ? (
+                  <Loader2 className="size-3 animate-spin" />
+                ) : (
+                  <span
+                    className={`size-1.5 rounded-full ${
+                      task.status === "DONE"
+                        ? "bg-emerald-400"
+                        : task.status === "IN_PROGRESS"
+                          ? "bg-amber-400"
+                          : task.status === "IN_REVIEW"
+                            ? "bg-sky-400"
+                            : task.status === "TESTING"
+                              ? "bg-violet-400"
+                              : task.status === "TODO"
+                                ? "bg-blue-400"
+                                : "bg-muted-foreground"
+                    }`}
+                  />
+                )}
                 {TASK_STATUS_LABELS[task.status]}
               </span>
 

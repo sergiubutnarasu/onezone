@@ -5,6 +5,7 @@ import {
   EventCommands,
   TaskDetails,
   createTaskRoomId,
+  createProjectRoomId,
 } from "@onezone/shared";
 import { Server } from "socket.io";
 
@@ -102,6 +103,11 @@ export class TerminalRegistryService {
     if (!this.server) return;
     const roomId = createTaskRoomId(taskId);
     this.server.to(roomId).emit(EventCommands.TaskStatusUpdated, message);
+    const projectId = message.task?.project?.id;
+    if (projectId) {
+      const projectRoomId = createProjectRoomId(projectId);
+      this.server.to(projectRoomId).emit(EventCommands.TaskStatusUpdated, message);
+    }
     this.logger.log(
       `Notified task room ${roomId} of status update: ${message?.task?.status}`,
     );

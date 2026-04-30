@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { io, Socket } from "socket.io-client";
 import { EventCommands } from "@onezone/shared";
 import { reducer, initialState } from "./useTaskRoom.reducer";
@@ -23,6 +24,7 @@ export function useTaskRoom(
   const [isConnected, setIsConnected] = useReducerState(false);
   const socketRef = useRef<Socket | null>(null);
   const onTaskDeletedRef = useRef(options?.onTaskDeleted);
+  const qc = useQueryClient();
 
   useEffect(() => {
     onTaskDeletedRef.current = options?.onTaskDeleted;
@@ -41,6 +43,10 @@ export function useTaskRoom(
     socket.on(EventCommands.TaskDeleted, () => {
       socket.disconnect();
       onTaskDeletedRef.current?.();
+    });
+
+    socket.on(EventCommands.TaskStatusUpdated, () => {
+      qc.invalidateQueries({ queryKey: ["task", taskId] });
     });
 
     socket.on("chat:message", (msg: RoomMessage) => {
@@ -91,7 +97,7 @@ export function useTaskRoom(
     return () => {
       socket.disconnect();
     };
-  }, [taskId, setIsConnected]);
+  }, [taskId, setIsConnected, qc]);
 
   const sendMessage = useCallback(
     (content: string) => {

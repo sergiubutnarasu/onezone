@@ -18,3 +18,8 @@ export function createTaskRoomId(taskId: string): string {
 export function extractTaskId(roomId: string): string {
   return roomId.replace('task:', '');
 }
+
+/** Constructs the socket room ID for a given project. */
+export function createProjectRoomId(projectId: string): string {
+  return `project:${projectId}`;
+}
