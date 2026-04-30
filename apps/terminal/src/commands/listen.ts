@@ -16,22 +16,16 @@ export default class Listen extends Command {
   }
 
   static description =
-    "Connect to a task room (or wait for one to be assigned) and stay open, spawning commands as users send messages in the chat";
+    "Starts a terminal instance that listens for task assignments and executes commands accordingly. " +
+    "The terminal will automatically execute commands for tasks assigned to it, based on the task's status. " +
+    "Use this command to keep a terminal instance running in the background, ready to handle incoming tasks.";
 
   static examples = [
     "<%= config.bin %> listen",
-    "<%= config.bin %> listen --task <taskId>",
-    "<%= config.bin %> listen --task <taskId1> --task <taskId2>",
-    "<%= config.bin %> listen --task <taskId> --name my-terminal",
+    "<%= config.bin %> listen --name my-terminal",
   ];
 
   static flags = {
-    task: Flags.string({
-      description:
-        "Task ID to connect to (can be repeated). If omitted, waits for the server to assign one.",
-      required: false,
-      multiple: true,
-    }),
     server: Flags.string({
       description: "Server URL",
       default: "http://localhost:5026",
@@ -47,7 +41,6 @@ export default class Listen extends Command {
     const { flags } = await this.parse(Listen);
 
     const terminalName = flags.name;
-    const taskIds = flags.task;
 
     let terminalId: string;
     try {
@@ -82,24 +75,6 @@ export default class Listen extends Command {
         log: (msg, ...args) => this.log(msg, ...args),
       }),
     ];
-
-    if (taskIds?.length) {
-      for (const taskId of taskIds) {
-        this.activeTaskIds.add(taskId);
-      }
-      connections.push(
-        ...taskIds.map((taskId) =>
-          connectToTask({
-            serverUrl: flags.server,
-            taskId,
-            terminalId,
-            terminalName,
-            activeTaskIds: this.activeTaskIds,
-            log: (msg, ...args) => this.log(msg, ...args),
-          }),
-        ),
-      );
-    }
 
     await Promise.all(connections);
   }
