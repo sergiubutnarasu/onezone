@@ -192,7 +192,7 @@ export class ChatGateway
 
       const assignedTasks = await this.tasksService.findByTerminal(terminalId);
       for (const task of assignedTasks) {
-        this.terminalRegistry.assignTask(terminalId, task.id);
+        this.terminalRegistry.assignTask(terminalId, task);
       }
     } else {
       this.socketMeta.set(client.id, { role: 'user' });

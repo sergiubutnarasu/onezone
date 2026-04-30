@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, NotFoundException, Param, Post } from '@nestjs/common';
 import { TerminalsService } from './terminals.service';
 import { TerminalRegistryService } from '../gateways/terminal-registry.service';
+import { TasksService } from '../tasks/tasks.service';
 import { AssignTaskDto, RegisterTerminalDto } from './terminals.dto';
 
 @Controller('terminals')
@@ -8,6 +9,7 @@ export class TerminalsController {
   constructor(
     private readonly terminalsService: TerminalsService,
     private readonly terminalRegistry: TerminalRegistryService,
+    private readonly tasksService: TasksService,
   ) {}
 
   @Get()
@@ -26,8 +28,9 @@ export class TerminalsController {
   }
 
   @Post(':terminalId/assign-task')
-  assignTask(@Param('terminalId') terminalId: string, @Body() dto: AssignTaskDto) {
-    const sent = this.terminalRegistry.assignTask(terminalId, dto.taskId);
+  async assignTask(@Param('terminalId') terminalId: string, @Body() dto: AssignTaskDto) {
+    const task = await this.tasksService.findOneDetails(dto.taskId);
+    const sent = this.terminalRegistry.assignTask(terminalId, task);
     if (!sent) {
       throw new NotFoundException(`Terminal ${terminalId} is not currently connected`);
     }

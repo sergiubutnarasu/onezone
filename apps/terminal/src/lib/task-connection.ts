@@ -4,6 +4,7 @@ import {
   ChatMessage,
   EventCommands,
   MessageRole,
+  TaskDetails,
   createTaskRoomId,
 } from "@onezone/shared";
 import { createTaskSocket } from "../lib/task-socket.js";
@@ -13,7 +14,7 @@ import { taskRunner } from "./task-runner.js";
 
 export interface TaskConnectionDeps {
   serverUrl: string;
-  taskId: string;
+  task: TaskDetails;
   terminalId: string;
   terminalName: string;
   activeTaskIds: Set<string>;
@@ -26,8 +27,9 @@ export interface TaskConnectionDeps {
  * disconnections.
  */
 export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
-  const { serverUrl, taskId, terminalId, terminalName, activeTaskIds, log } =
+  const { serverUrl, task, terminalId, terminalName, activeTaskIds, log } =
     deps;
+  const taskId = task.id;
   const roomId = createTaskRoomId(taskId);
 
   return new Promise<void>((resolve, reject) => {
@@ -40,9 +42,17 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
       terminalName,
       {
         onConnect: () => {
+          const deps = { socket, roomId, terminalId, terminalName, log };
+
           log(
             `[${terminalName}] Connected to ${serverUrl} | room: ${roomId} | Listening for commands...`,
           );
+
+          taskRunner({
+            payload: { task },
+            deps,
+            activeProcesses,
+          });
         },
         onMessage: (event, payload) => {
           const deps = { socket, roomId, terminalId, terminalName, log };

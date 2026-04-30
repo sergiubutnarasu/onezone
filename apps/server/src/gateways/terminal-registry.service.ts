@@ -86,15 +86,15 @@ export class TerminalRegistryService {
     return this.terminalSocketIds.get(terminalId);
   }
 
-  assignTask(terminalId: string, taskId: string): boolean {
+  assignTask(terminalId: string, task: TaskDetails): boolean {
     const socketId = this.terminalSocketIds.get(terminalId);
     if (!socketId || !this.server) {
       this.logger.warn(`assignTask: terminal ${terminalId} is not connected`);
       return false;
     }
-    const payload: AssignTaskPayload = { terminalId, taskId };
+    const payload: AssignTaskPayload = { terminalId, task };
     this.server.to(socketId).emit(EventCommands.AssignTask, payload);
-    this.logger.log(`Assigned task ${taskId} to terminal ${terminalId}`);
+    this.logger.log(`Assigned task ${task.id} to terminal ${terminalId}`);
     return true;
   }
 

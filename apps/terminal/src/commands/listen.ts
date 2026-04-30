@@ -63,10 +63,10 @@ export default class Listen extends Command {
         terminalId,
         terminalName,
         activeTaskIds: this.activeTaskIds,
-        onTaskAssigned: (taskId) =>
+        onTaskAssigned: (task) =>
           connectToTask({
             serverUrl: flags.server,
-            taskId,
+            task,
             terminalId,
             terminalName,
             activeTaskIds: this.activeTaskIds,

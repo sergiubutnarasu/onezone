@@ -1,6 +1,6 @@
 // apps/terminal/src/commands/lobby-connection.ts
 
-import { AssignTaskPayload, EventCommands } from "@onezone/shared";
+import { AssignTaskPayload, EventCommands, TaskDetails } from "@onezone/shared";
 import { createLobbySocket } from "../lib/task-socket.js";
 
 export interface LobbyConnectionDeps {
@@ -8,7 +8,7 @@ export interface LobbyConnectionDeps {
   terminalId: string;
   terminalName: string;
   activeTaskIds: Set<string>;
-  onTaskAssigned: (taskId: string) => Promise<void>;
+  onTaskAssigned: (task: TaskDetails) => Promise<void>;
   log: (message: string, ...args: unknown[]) => void;
 }
 
@@ -37,20 +37,20 @@ export function connectToLobby(deps: LobbyConnectionDeps): Promise<void> {
       onMessage: (event, payload) => {
         if (event !== EventCommands.AssignTask) return;
 
-        const { taskId } = payload as AssignTaskPayload;
-        if (activeTaskIds.has(taskId)) {
+        const { task } = payload as AssignTaskPayload;
+        if (activeTaskIds.has(task.id)) {
           log(
-            `[${terminalName}] Already connected to task: ${taskId}, skipping`,
+            `[${terminalName}] Already connected to task: ${task.id}, skipping`,
           );
           return;
         }
 
-        log(`[${terminalName}] Assigned to task: ${taskId}`);
-        activeTaskIds.add(taskId);
-        onTaskAssigned(taskId).catch((err: Error) => {
-          activeTaskIds.delete(taskId);
+        log(`[${terminalName}] Assigned to task: ${task.id}`);
+        activeTaskIds.add(task.id);
+        onTaskAssigned(task).catch((err: Error) => {
+          activeTaskIds.delete(task.id);
           log(
-            `[${terminalName}] Task ${taskId} connection failed: ${err.message}`,
+            `[${terminalName}] Task ${task.id} connection failed: ${err.message}`,
           );
         });
       },

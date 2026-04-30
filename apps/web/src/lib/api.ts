@@ -1,6 +1,7 @@
 // apps/web/src/lib/api.ts
 
-import { TaskStatus, type Terminal, type Task, type RoomMessage } from '@onezone/shared';
+import { TaskStatus, type Terminal, type Task, type RoomMessage, type Agent } from '@onezone/shared';
+export type { Agent } from '@onezone/shared';
 import { httpClient } from './http-client';
 
 export interface Project {
@@ -10,14 +11,6 @@ export interface Project {
   defaultAgentId: string;
   defaultAgent: Agent;
   defaultModel: string;
-  createdAt: string;
-}
-
-export interface Agent {
-  id: string;
-  name: string;
-  tag: string;
-  model: string;
   createdAt: string;
 }
 

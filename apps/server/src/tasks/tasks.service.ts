@@ -20,7 +20,57 @@ export class TasksService {
     private readonly terminalRegistry: TerminalRegistryService,
   ) {}
 
-  private toTaskDetails(
+  private mapToTaskDetails(
+    task: {
+      id: string;
+      name: string;
+      description?: string | null;
+      agentId: string;
+      model: string;
+      agent: { id: string; name: string; tag: string } | null;
+    },
+    status: SharedTaskStatus,
+    project: {
+      id: string;
+      name: string;
+      description?: string | null;
+      defaultAgentId: string;
+      defaultModel: string;
+      defaultAgent: { id: string; name: string; tag: string; model: string; createdAt: Date };
+    },
+  ): TaskDetails {
+    return {
+      id: task.id,
+      name: task.name,
+      description: task.description,
+      status,
+      agentId: task.agentId,
+      agent: task.agent
+        ? {
+            id: task.agent.id,
+            name: task.agent.name,
+            tag: task.agent.tag as unknown as AgentTag,
+          }
+        : null,
+      model: task.model,
+      project: {
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        defaultAgentId: project.defaultAgentId,
+        defaultModel: project.defaultModel,
+        defaultAgent: {
+          id: project.defaultAgent.id,
+          name: project.defaultAgent.name,
+          tag: project.defaultAgent.tag as unknown as AgentTag,
+          model: project.defaultAgent.model,
+          createdAt: project.defaultAgent.createdAt.toISOString(),
+        },
+      },
+    };
+  }
+
+  private toChatMessage(
     task: Awaited<ReturnType<typeof this.findOne>>,
     statusOverride?: TaskStatus,
   ): ChatMessage {
@@ -30,35 +80,7 @@ export class TasksService {
     return {
       content: "",
       role: MessageRole.System,
-      task: {
-        id: task.id,
-        name: task.name,
-        description: task.description,
-        status,
-        agentId: task.agentId,
-        agent: task.agent
-          ? {
-              id: task.agent.id,
-              name: task.agent.name,
-              tag: task.agent.tag as unknown as AgentTag,
-            }
-          : null,
-        model: task.model,
-        project: {
-          id: project.id,
-          name: project.name,
-          description: project.description,
-          defaultAgentId: project.defaultAgentId,
-          defaultModel: project.defaultModel,
-          defaultAgent: {
-            id: project.defaultAgent.id,
-            name: project.defaultAgent.name,
-            tag: project.defaultAgent.tag as unknown as AgentTag,
-            model: project.defaultAgent.model,
-            createdAt: project.defaultAgent.createdAt.toISOString(),
-          },
-        },
-      },
+      task: this.mapToTaskDetails(task, status, project),
     };
   }
 
@@ -107,7 +129,8 @@ export class TasksService {
       });
     });
     this.logger.log(`Created task ${task.id} for project ${projectId}`);
-    this.terminalRegistry.assignTask(data.terminalId, task.id);
+    const fullTask = await this.findOne(task.id);
+    this.terminalRegistry.assignTask(data.terminalId, this.toChatMessage(fullTask).task!);
     return this.flattenTask(task);
   }
 
@@ -139,6 +162,11 @@ export class TasksService {
     return this.flattenTask(task);
   }
 
+  async findOneDetails(id: string): Promise<TaskDetails> {
+    const task = await this.findOne(id);
+    return this.toChatMessage(task).task!;
+  }
+
   async updateStatus(id: string, status: TaskStatus) {
     const existing = await this.findOne(id);
     const task = await this.prisma.task.update({
@@ -148,7 +176,7 @@ export class TasksService {
     this.logger.log(`Updated task ${id} status to ${status}`);
     this.terminalRegistry.notifyTaskStatusUpdated(
       id,
-      this.toTaskDetails(existing, status),
+      this.toChatMessage(existing, status),
     );
     return task;
   }
@@ -176,7 +204,7 @@ export class TasksService {
         const updated = await this.findOne(item.id);
         this.terminalRegistry.notifyTaskStatusUpdated(
           item.id,
-          this.toTaskDetails(updated, item.status),
+          this.toChatMessage(updated, item.status),
         );
       }
     }
@@ -195,12 +223,26 @@ export class TasksService {
     return task;
   }
 
-  async findByTerminal(terminalId: string) {
+  async findByTerminal(terminalId: string): Promise<TaskDetails[]> {
     const assignments = await this.prisma.taskTerminal.findMany({
       where: { terminalId },
-      select: { taskId: true },
+      include: {
+        task: {
+          include: {
+            project: { include: { defaultAgent: true } },
+            agent: true,
+          },
+        },
+      },
     });
-    return assignments.map((a) => ({ id: a.taskId }));
+    return assignments.map((a): TaskDetails => {
+      const t = a.task;
+      return this.mapToTaskDetails(
+        t,
+        t.status as unknown as SharedTaskStatus,
+        t.project,
+      );
+    });
   }
 
   async assignTerminal(id: string, terminalId: string) {
@@ -212,8 +254,9 @@ export class TasksService {
     });
     this.logger.log(`Assigned terminal ${terminalId} to task ${id}`);
     this.terminalRegistry.evictTaskTerminal(id);
-    this.terminalRegistry.assignTask(terminalId, id);
-    return this.findOne(id);
+    const task = await this.findOne(id);
+    this.terminalRegistry.assignTask(terminalId, this.toChatMessage(task).task!);
+    return task;
   }
 
   async update(

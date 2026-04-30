@@ -96,7 +96,7 @@ export interface Task {
 
 export interface AssignTaskPayload {
   terminalId: string;
-  taskId: string;
+  task: TaskDetails;
 }
 
 export interface Terminal {
