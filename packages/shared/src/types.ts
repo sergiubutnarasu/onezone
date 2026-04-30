@@ -10,6 +10,7 @@ export enum EventCommands {
   TerminalHeartbeat = "terminal:heartbeat",
   AssignTask = "terminal:assign-task",
   TaskDeleted = "task:deleted",
+  TaskStatusUpdated = "task:status-updated",
 }
 
 export enum MessageRole {
@@ -168,6 +169,7 @@ export interface ServerToClientEvents {
   }) => void;
   [EventCommands.AssignTask]: (payload: AssignTaskPayload) => void;
   [EventCommands.TaskDeleted]: (payload: { taskId: string }) => void;
+  [EventCommands.TaskStatusUpdated]: (task: TaskDetails) => void;
 }
 
 export interface ClientToServerEvents {

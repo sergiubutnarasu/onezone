@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { TaskStatus } from '@prisma/client';
+import { AgentTag, TaskDetails, TaskStatus as SharedTaskStatus } from '@onezone/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { TaskOrderItemDto } from './tasks.dto';
 import { TerminalRegistryService } from '../gateways/terminal-registry.service';
@@ -12,6 +13,34 @@ export class TasksService {
     private readonly prisma: PrismaService,
     private readonly terminalRegistry: TerminalRegistryService,
   ) {}
+
+  private toTaskDetails(task: Awaited<ReturnType<typeof this.findOne>>, statusOverride?: TaskStatus): TaskDetails {
+    const status = (statusOverride ?? task.status) as unknown as SharedTaskStatus;
+    const project = task.project!;
+    return {
+      id: task.id,
+      name: task.name,
+      description: task.description,
+      status,
+      agentId: task.agentId,
+      agent: task.agent ? { id: task.agent.id, name: task.agent.name, tag: task.agent.tag as unknown as AgentTag } : null,
+      model: task.model,
+      project: {
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        defaultAgentId: project.defaultAgentId,
+        defaultModel: project.defaultModel,
+        defaultAgent: {
+          id: project.defaultAgent.id,
+          name: project.defaultAgent.name,
+          tag: project.defaultAgent.tag as unknown as AgentTag,
+          model: project.defaultAgent.model,
+          createdAt: project.defaultAgent.createdAt.toISOString(),
+        },
+      },
+    };
+  }
 
   private flattenTask<T extends { terminalAssignment: { terminal: unknown; assignedAt: unknown } | null }>(
     task: T,
@@ -53,19 +82,20 @@ export class TasksService {
   }
 
   async updateStatus(id: string, status: TaskStatus) {
-    await this.findOne(id);
+    const existing = await this.findOne(id);
     const task = await this.prisma.task.update({ where: { id }, data: { status } });
     this.logger.log(`Updated task ${id} status to ${status}`);
+    this.terminalRegistry.notifyTaskStatusUpdated(id, this.toTaskDetails(existing, status));
     return task;
   }
 
   async reorder(projectId: string, items: TaskOrderItemDto[]) {
     const existing = await this.prisma.task.findMany({
       where: { id: { in: items.map((i) => i.id) }, projectId },
-      select: { id: true },
+      select: { id: true, name: true, status: true },
     });
-    const validIds = new Set(existing.map((t) => t.id));
-    const validItems = items.filter((i) => validIds.has(i.id));
+    const existingMap = new Map(existing.map((t) => [t.id, t]));
+    const validItems = items.filter((i) => existingMap.has(i.id));
 
     await this.prisma.$transaction(
       validItems.map((item) =>
@@ -75,6 +105,14 @@ export class TasksService {
         }),
       ),
     );
+
+    for (const item of validItems) {
+      const prev = existingMap.get(item.id)!;
+      if (prev.status !== item.status) {
+        const updated = await this.findOne(item.id);
+        this.terminalRegistry.notifyTaskStatusUpdated(item.id, this.toTaskDetails(updated, item.status));
+      }
+    }
 
     this.logger.log(`Reordered ${validItems.length} tasks for project ${projectId}`);
     return this.findAllByProject(projectId);

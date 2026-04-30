@@ -45,6 +45,7 @@ export function createTaskSocket(
     EventCommands.ChatMessage,
     EventCommands.AssignTask,
     EventCommands.TaskDeleted,
+    EventCommands.TaskStatusUpdated,
   ] as const;
 
   for (const event of forwardedEvents) {

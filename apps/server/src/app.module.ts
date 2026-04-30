@@ -8,12 +8,14 @@ import { MessagesModule } from './messages/messages.module';
 import { GatewaysModule } from './gateways/gateways.module';
 import { TerminalsModule } from './terminals/terminals.module';
 import { AgentsModule } from './agents/agents.module';
+import { TerminalRegistryModule } from './gateways/terminal-registry.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
     PrismaModule,
+    TerminalRegistryModule,
     ProjectsModule,
     TasksModule,
     MessagesModule,

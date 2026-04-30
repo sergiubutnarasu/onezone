@@ -7,6 +7,7 @@ import {
   EventCommands,
   MessageRole,
   MessageStream,
+  TaskDetails,
   createTaskRoomId,
 } from "@onezone/shared";
 import { randomUUID } from "node:crypto";
@@ -175,6 +176,13 @@ export default class Listen extends Command {
                 `[${terminalName}] [${roomId}] Task deleted, disconnecting...`,
               );
               this.activeTaskIds.delete(taskId);
+              return;
+            }
+            if (event === EventCommands.TaskStatusUpdated) {
+              const task = payload as TaskDetails;
+              this.log(
+                `[${terminalName}] [${roomId}] Task status updated: ${task.name} → ${task.status}`,
+              );
               return;
             }
             if (event !== EventCommands.ChatMessage) return;

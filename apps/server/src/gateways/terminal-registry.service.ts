@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AssignTaskPayload, EventCommands, createTaskRoomId } from '@onezone/shared';
+import { AssignTaskPayload, EventCommands, TaskDetails, createTaskRoomId } from '@onezone/shared';
 import { Server } from 'socket.io';
 
 /**
@@ -84,5 +84,12 @@ export class TerminalRegistryService {
     this.server.to(socketId).emit(EventCommands.AssignTask, payload);
     this.logger.log(`Assigned task ${taskId} to terminal ${terminalId}`);
     return true;
+  }
+
+  notifyTaskStatusUpdated(taskId: string, task: TaskDetails): void {
+    if (!this.server) return;
+    const roomId = createTaskRoomId(taskId);
+    this.server.to(roomId).emit(EventCommands.TaskStatusUpdated, task);
+    this.logger.log(`Notified task room ${roomId} of status update: ${task.status}`);
   }
 }
