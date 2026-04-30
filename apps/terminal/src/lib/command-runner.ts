@@ -77,6 +77,8 @@ export function spawnCommand({
   const command = `${terminalAgent.cmd} ${shellQuote(content)}`;
   const cmdContent = `cd ${shellQuote(projectWorkDir)} && ${command}`;
 
+  let cancelled = false;
+
   const proc = runProcess({
     cmd: cmdContent,
     args: [],
@@ -116,9 +118,22 @@ export function spawnCommand({
 
       const badge = exitCode === 0 ? "✔ done" : `✖ error (${exitCode})`;
       log(`[${terminalName}] [${roomId}] ${badge}: "${content}"`);
-      void onComplete?.(exitCode);
+      if (!cancelled) {
+        void onComplete?.(exitCode);
+      }
     },
   });
 
-  activeProcesses.set(jobId, { cleanup: () => proc.kill() });
+  activeProcesses.set(jobId, {
+    cleanup: () => {
+      cancelled = true;
+      try {
+        // Kill the entire process group so any child processes the agent
+        // spawned (sub-shells, editors, etc.) are also terminated.
+        process.kill(-proc.pid!, 'SIGTERM');
+      } catch {
+        proc.kill();
+      }
+    },
+  });
 }

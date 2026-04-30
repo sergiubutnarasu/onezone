@@ -72,6 +72,12 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
                 `[${terminalName}] [${roomId}] Task status updated: ${message?.task?.name} → ${message?.task?.status}`,
               );
 
+              // Terminate any running processes before handling the new status
+              for (const entry of activeProcesses.values()) {
+                entry.cleanup();
+              }
+              activeProcesses.clear();
+
               taskRunner({
                 payload,
                 deps,
