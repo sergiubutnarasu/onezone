@@ -1,9 +1,15 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { TaskStatus } from '@prisma/client';
-import { AgentTag, TaskDetails, TaskStatus as SharedTaskStatus } from '@onezone/shared';
-import { PrismaService } from '../prisma/prisma.service';
-import { TaskOrderItemDto } from './tasks.dto';
-import { TerminalRegistryService } from '../gateways/terminal-registry.service';
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { TaskStatus } from "@prisma/client";
+import {
+  AgentTag,
+  TaskDetails,
+  TaskStatus as SharedTaskStatus,
+  ChatMessage,
+  MessageRole,
+} from "@onezone/shared";
+import { PrismaService } from "../prisma/prisma.service";
+import { TaskOrderItemDto } from "./tasks.dto";
+import { TerminalRegistryService } from "../gateways/terminal-registry.service";
 
 @Injectable()
 export class TasksService {
@@ -14,49 +20,91 @@ export class TasksService {
     private readonly terminalRegistry: TerminalRegistryService,
   ) {}
 
-  private toTaskDetails(task: Awaited<ReturnType<typeof this.findOne>>, statusOverride?: TaskStatus): TaskDetails {
-    const status = (statusOverride ?? task.status) as unknown as SharedTaskStatus;
+  private toTaskDetails(
+    task: Awaited<ReturnType<typeof this.findOne>>,
+    statusOverride?: TaskStatus,
+  ): ChatMessage {
+    const status = (statusOverride ??
+      task.status) as unknown as SharedTaskStatus;
     const project = task.project!;
     return {
-      id: task.id,
-      name: task.name,
-      description: task.description,
-      status,
-      agentId: task.agentId,
-      agent: task.agent ? { id: task.agent.id, name: task.agent.name, tag: task.agent.tag as unknown as AgentTag } : null,
-      model: task.model,
-      project: {
-        id: project.id,
-        name: project.name,
-        description: project.description,
-        defaultAgentId: project.defaultAgentId,
-        defaultModel: project.defaultModel,
-        defaultAgent: {
-          id: project.defaultAgent.id,
-          name: project.defaultAgent.name,
-          tag: project.defaultAgent.tag as unknown as AgentTag,
-          model: project.defaultAgent.model,
-          createdAt: project.defaultAgent.createdAt.toISOString(),
+      content: "",
+      role: MessageRole.System,
+      task: {
+        id: task.id,
+        name: task.name,
+        description: task.description,
+        status,
+        agentId: task.agentId,
+        agent: task.agent
+          ? {
+              id: task.agent.id,
+              name: task.agent.name,
+              tag: task.agent.tag as unknown as AgentTag,
+            }
+          : null,
+        model: task.model,
+        project: {
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          defaultAgentId: project.defaultAgentId,
+          defaultModel: project.defaultModel,
+          defaultAgent: {
+            id: project.defaultAgent.id,
+            name: project.defaultAgent.name,
+            tag: project.defaultAgent.tag as unknown as AgentTag,
+            model: project.defaultAgent.model,
+            createdAt: project.defaultAgent.createdAt.toISOString(),
+          },
         },
       },
     };
   }
 
-  private flattenTask<T extends { terminalAssignment: { terminal: unknown; assignedAt: unknown } | null }>(
-    task: T,
-  ) {
+  private flattenTask<
+    T extends {
+      terminalAssignment: { terminal: unknown; assignedAt: unknown } | null;
+    },
+  >(task: T) {
     const { terminalAssignment, ...rest } = task;
     return { ...rest, terminal: terminalAssignment?.terminal ?? null };
   }
 
-  async create(projectId: string, data: { name: string; description?: string; terminalId: string; agentId: string; model: string }) {
-    const count = await this.prisma.task.count({ where: { projectId, status: 'BACKLOG' } });
+  async create(
+    projectId: string,
+    data: {
+      name: string;
+      description?: string;
+      terminalId: string;
+      agentId: string;
+      model: string;
+    },
+  ) {
+    const count = await this.prisma.task.count({
+      where: { projectId, status: "BACKLOG" },
+    });
     const task = await this.prisma.$transaction(async (tx) => {
       const created = await tx.task.create({
-        data: { name: data.name, description: data.description, agentId: data.agentId, model: data.model, projectId, order: count },
+        data: {
+          name: data.name,
+          description: data.description,
+          agentId: data.agentId,
+          model: data.model,
+          projectId,
+          order: count,
+        },
       });
-      await tx.taskTerminal.create({ data: { taskId: created.id, terminalId: data.terminalId } });
-      return tx.task.findUniqueOrThrow({ where: { id: created.id }, include: { terminalAssignment: { include: { terminal: true } }, agent: true } });
+      await tx.taskTerminal.create({
+        data: { taskId: created.id, terminalId: data.terminalId },
+      });
+      return tx.task.findUniqueOrThrow({
+        where: { id: created.id },
+        include: {
+          terminalAssignment: { include: { terminal: true } },
+          agent: true,
+        },
+      });
     });
     this.logger.log(`Created task ${task.id} for project ${projectId}`);
     this.terminalRegistry.assignTask(data.terminalId, task.id);
@@ -65,9 +113,15 @@ export class TasksService {
 
   async findAllByProject(projectId: string, status?: TaskStatus[]) {
     const tasks = await this.prisma.task.findMany({
-      where: { projectId, ...(status && status.length > 0 ? { status: { in: status } } : {}) },
-      orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
-      include: { terminalAssignment: { include: { terminal: true } }, agent: true },
+      where: {
+        projectId,
+        ...(status && status.length > 0 ? { status: { in: status } } : {}),
+      },
+      orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+      include: {
+        terminalAssignment: { include: { terminal: true } },
+        agent: true,
+      },
     });
     return tasks.map((t) => this.flattenTask(t));
   }
@@ -75,7 +129,11 @@ export class TasksService {
   async findOne(id: string) {
     const task = await this.prisma.task.findUnique({
       where: { id },
-      include: { terminalAssignment: { include: { terminal: true } }, project: { include: { defaultAgent: true } }, agent: true },
+      include: {
+        terminalAssignment: { include: { terminal: true } },
+        project: { include: { defaultAgent: true } },
+        agent: true,
+      },
     });
     if (!task) throw new NotFoundException(`Task ${id} not found`);
     return this.flattenTask(task);
@@ -83,9 +141,15 @@ export class TasksService {
 
   async updateStatus(id: string, status: TaskStatus) {
     const existing = await this.findOne(id);
-    const task = await this.prisma.task.update({ where: { id }, data: { status } });
+    const task = await this.prisma.task.update({
+      where: { id },
+      data: { status },
+    });
     this.logger.log(`Updated task ${id} status to ${status}`);
-    this.terminalRegistry.notifyTaskStatusUpdated(id, this.toTaskDetails(existing, status));
+    this.terminalRegistry.notifyTaskStatusUpdated(
+      id,
+      this.toTaskDetails(existing, status),
+    );
     return task;
   }
 
@@ -110,11 +174,16 @@ export class TasksService {
       const prev = existingMap.get(item.id)!;
       if (prev.status !== item.status) {
         const updated = await this.findOne(item.id);
-        this.terminalRegistry.notifyTaskStatusUpdated(item.id, this.toTaskDetails(updated, item.status));
+        this.terminalRegistry.notifyTaskStatusUpdated(
+          item.id,
+          this.toTaskDetails(updated, item.status),
+        );
       }
     }
 
-    this.logger.log(`Reordered ${validItems.length} tasks for project ${projectId}`);
+    this.logger.log(
+      `Reordered ${validItems.length} tasks for project ${projectId}`,
+    );
     return this.findAllByProject(projectId);
   }
 
@@ -147,7 +216,16 @@ export class TasksService {
     return this.findOne(id);
   }
 
-  async update(id: string, data: { name?: string; description?: string; status?: TaskStatus; agentId?: string; model?: string }) {
+  async update(
+    id: string,
+    data: {
+      name?: string;
+      description?: string;
+      status?: TaskStatus;
+      agentId?: string;
+      model?: string;
+    },
+  ) {
     await this.findOne(id);
     const task = await this.prisma.task.update({
       where: { id },

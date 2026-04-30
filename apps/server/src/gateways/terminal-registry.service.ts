@@ -1,6 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { AssignTaskPayload, EventCommands, TaskDetails, createTaskRoomId } from '@onezone/shared';
-import { Server } from 'socket.io';
+import { Injectable, Logger } from "@nestjs/common";
+import {
+  AssignTaskPayload,
+  ChatMessage,
+  EventCommands,
+  TaskDetails,
+  createTaskRoomId,
+} from "@onezone/shared";
+import { Server } from "socket.io";
 
 /**
  * Tracks terminalId → socketId for connected terminals and owns the logic for
@@ -32,7 +38,9 @@ export class TerminalRegistryService {
   disconnectTerminal(terminalId: string): void {
     const socketId = this.terminalSocketIds.get(terminalId);
     if (socketId && this.server) {
-      this.logger.log(`Force-disconnecting terminal ${terminalId} (socket ${socketId})`);
+      this.logger.log(
+        `Force-disconnecting terminal ${terminalId} (socket ${socketId})`,
+      );
       this.server.to(socketId).disconnectSockets(true);
     }
     this.terminalSocketIds.delete(terminalId);
@@ -41,7 +49,9 @@ export class TerminalRegistryService {
   registerTaskSocket(taskId: string, socketId: string): void {
     const existing = this.taskTerminalSockets.get(taskId);
     if (existing && existing !== socketId && this.server) {
-      this.logger.log(`Evicting previous terminal socket ${existing} from task ${taskId}`);
+      this.logger.log(
+        `Evicting previous terminal socket ${existing} from task ${taskId}`,
+      );
       this.server.to(existing).disconnectSockets(true);
     }
     this.taskTerminalSockets.set(taskId, socketId);
@@ -50,7 +60,9 @@ export class TerminalRegistryService {
   evictTaskTerminal(taskId: string): void {
     const existing = this.taskTerminalSockets.get(taskId);
     if (existing && this.server) {
-      this.logger.log(`Evicting terminal socket ${existing} from task ${taskId} (reassignment)`);
+      this.logger.log(
+        `Evicting terminal socket ${existing} from task ${taskId} (reassignment)`,
+      );
       this.server.to(existing).disconnectSockets(true);
     }
   }
@@ -86,10 +98,12 @@ export class TerminalRegistryService {
     return true;
   }
 
-  notifyTaskStatusUpdated(taskId: string, task: TaskDetails): void {
+  notifyTaskStatusUpdated(taskId: string, message: ChatMessage): void {
     if (!this.server) return;
     const roomId = createTaskRoomId(taskId);
-    this.server.to(roomId).emit(EventCommands.TaskStatusUpdated, task);
-    this.logger.log(`Notified task room ${roomId} of status update: ${task.status}`);
+    this.server.to(roomId).emit(EventCommands.TaskStatusUpdated, message);
+    this.logger.log(
+      `Notified task room ${roomId} of status update: ${message?.task?.status}`,
+    );
   }
 }

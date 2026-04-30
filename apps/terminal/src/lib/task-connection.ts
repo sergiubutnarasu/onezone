@@ -4,12 +4,12 @@ import {
   ChatMessage,
   EventCommands,
   MessageRole,
-  TaskDetails,
   createTaskRoomId,
 } from "@onezone/shared";
 import { createTaskSocket } from "../lib/task-socket.js";
 import type { ActiveProcessEntry } from "./command-runner.js";
 import { spawnCommand } from "./command-runner.js";
+import { taskRunner } from "./task-runner.js";
 
 export interface TaskConnectionDeps {
   serverUrl: string;
@@ -45,6 +45,8 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
           );
         },
         onMessage: (event, payload) => {
+          const deps = { socket, roomId, terminalId, terminalName, log };
+
           switch (event) {
             case EventCommands.TaskDeleted: {
               log(
@@ -55,10 +57,17 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
             }
 
             case EventCommands.TaskStatusUpdated: {
-              const task = payload as TaskDetails;
+              const message = payload as ChatMessage;
               log(
-                `[${terminalName}] [${roomId}] Task status updated: ${task.name} → ${task.status}`,
+                `[${terminalName}] [${roomId}] Task status updated: ${message?.task?.name} → ${message?.task?.status}`,
               );
+
+              taskRunner({
+                payload,
+                deps,
+                activeProcesses,
+              });
+
               break;
             }
 
@@ -72,7 +81,7 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
               spawnCommand({
                 content,
                 payload,
-                deps: { socket, roomId, terminalId, terminalName, log },
+                deps,
                 activeProcesses,
               });
               break;

@@ -24,8 +24,6 @@ export const agentFactory = ({
 };
 
 export const setupTerminalAgent = (payload?: unknown) => {
-  console.log("Payload", payload);
-
   const task = (payload as { task?: unknown }).task;
 
   if (!task || typeof task !== "object") {
