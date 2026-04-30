@@ -50,8 +50,6 @@ const createProjectWorkDirFolder = (projectId: string): boolean => {
 };
 
 export const setupProject = (payload: unknown): TaskJobConfig | null => {
-  console.log("Project setup: ", JSON.stringify(payload));
-
   if (!payload || typeof payload !== "object" || !("task" in payload)) {
     return null;
   }

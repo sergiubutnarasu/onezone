@@ -1,5 +1,12 @@
-import { TaskDetails, TaskStatus } from "@onezone/shared";
-import { SpawnCommandProps } from "./command-runner.js";
+import { TASK_STATUS_COLUMNS, TaskDetails, TaskStatus } from "@onezone/shared";
+import { spawnCommand, SpawnCommandProps } from "./command-runner.js";
+
+const getNextStatus = (current: TaskStatus): TaskStatus | undefined => {
+  const idx = TASK_STATUS_COLUMNS.indexOf(current);
+  return idx >= 0 && idx < TASK_STATUS_COLUMNS.length - 1
+    ? TASK_STATUS_COLUMNS[idx + 1]
+    : undefined;
+};
 
 export interface TaskRunnerProps extends Omit<SpawnCommandProps, "content"> {}
 
@@ -19,36 +26,86 @@ export const taskRunner = ({
     return;
   }
 
+  const nextStatus = getNextStatus(task.status);
+  const onComplete = nextStatus
+    ? async (_exitCode: number) => {
+        await fetch(`${deps.serverUrl}/tasks/${task.id}/status`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: nextStatus }),
+        });
+      }
+    : undefined;
+
   switch (task.status) {
-    case TaskStatus.BACKLOG:
+    case TaskStatus.BACKLOG: {
       log(
         `[${terminalName}] [${roomId}] Task is in BACKLOG status, skipping command execution.`,
       );
       return;
-    case TaskStatus.TODO:
+    }
+    case TaskStatus.TODO: {
       log(
-        `[${terminalName}] [${roomId}] Task is in TODO status, skipping command execution.`,
+        `[${terminalName}] [${roomId}] Task is in TODO status, starting command execution...`,
       );
-      return;
-    case TaskStatus.IN_PROGRESS:
+
+      spawnCommand({
+        content: task.description || "",
+        payload,
+        deps,
+        activeProcesses,
+        onComplete,
+      });
+
+      break;
+    }
+    case TaskStatus.IN_PROGRESS: {
       log(
         `[${terminalName}] [${roomId}] Task is IN_PROGRESS, executing command...`,
       );
+
+      spawnCommand({
+        content: task.description || "",
+        payload,
+        deps,
+        activeProcesses,
+        onComplete,
+      });
+
       break;
-    case TaskStatus.IN_REVIEW:
+    }
+    case TaskStatus.IN_REVIEW: {
       log(
-        `[${terminalName}] [${roomId}] Task is IN_REVIEW status, skipping command execution.`,
+        `[${terminalName}] [${roomId}] Task is IN_REVIEW status, executing command...`,
       );
-      return;
-    case TaskStatus.TESTING:
+      spawnCommand({
+        content: task.description || "",
+        payload,
+        deps,
+        activeProcesses,
+        onComplete,
+      });
+
+      break;
+    }
+    case TaskStatus.TESTING: {
       log(
-        `[${terminalName}] [${roomId}] Task is in TESTING status, skipping command execution.`,
+        `[${terminalName}] [${roomId}] Task is in TESTING status, executing command...`,
       );
-      return;
-    case TaskStatus.DONE:
+      spawnCommand({
+        content: task.description || "",
+        payload,
+        deps,
+        activeProcesses,
+        onComplete,
+      });
+      break;
+    }
+    case TaskStatus.DONE: {
       log(
         `[${terminalName}] [${roomId}] Task is in DONE status, skipping command execution.`,
       );
       return;
+    }
   }
 };

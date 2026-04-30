@@ -13,6 +13,7 @@ export interface CommandRunnerDeps {
   roomId: string;
   terminalId: string;
   terminalName: string;
+  serverUrl: string;
   log: (message: string, ...args: unknown[]) => void;
 }
 
@@ -25,6 +26,7 @@ export interface SpawnCommandProps {
   payload: unknown;
   deps: CommandRunnerDeps;
   activeProcesses: Map<string, ActiveProcessEntry>;
+  onComplete?: (exitCode: number) => Promise<void>;
 }
 
 /**
@@ -37,6 +39,7 @@ export function spawnCommand({
   payload,
   deps,
   activeProcesses,
+  onComplete,
 }: SpawnCommandProps): void {
   const { socket, roomId, terminalId, terminalName, log } = deps;
 
@@ -113,6 +116,7 @@ export function spawnCommand({
 
       const badge = exitCode === 0 ? "✔ done" : `✖ error (${exitCode})`;
       log(`[${terminalName}] [${roomId}] ${badge}: "${content}"`);
+      void onComplete?.(exitCode);
     },
   });
 

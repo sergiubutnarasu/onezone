@@ -42,7 +42,7 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
       terminalName,
       {
         onConnect: () => {
-          const deps = { socket, roomId, terminalId, terminalName, log };
+          const deps = { socket, roomId, terminalId, terminalName, serverUrl, log };
 
           log(
             `[${terminalName}] Connected to ${serverUrl} | room: ${roomId} | Listening for commands...`,
@@ -55,7 +55,7 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
           });
         },
         onMessage: (event, payload) => {
-          const deps = { socket, roomId, terminalId, terminalName, log };
+          const deps = { socket, roomId, terminalId, terminalName, serverUrl, log };
 
           switch (event) {
             case EventCommands.TaskDeleted: {
