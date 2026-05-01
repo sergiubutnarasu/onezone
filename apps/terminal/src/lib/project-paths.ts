@@ -130,6 +130,22 @@ export const createClaudeSettings = (projectId: string): boolean => {
       console.warn(`Warning: rules.md not found at ${rulesSourcePath}`);
     }
 
+    // copy skills folder to the claude config folder
+    const skillsSourcePath = path.join(
+      __dirname,
+      "..",
+      "static",
+      "claude",
+      "skills",
+    );
+    const skillsDestPath = path.join(claudeDir, "skills");
+
+    if (fs.existsSync(skillsSourcePath)) {
+      fs.cpSync(skillsSourcePath, skillsDestPath, { recursive: true });
+    } else {
+      console.warn(`Warning: skills folder not found at ${skillsSourcePath}`);
+    }
+
     return true;
   } catch (err) {
     console.error(`Error creating Claude settings: ${(err as Error).message}`);

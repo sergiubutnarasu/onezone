@@ -50,7 +50,7 @@ export const taskRunner = ({
       );
 
       spawnCommand({
-        content: task.description || "",
+        content: `/onezone-planner ${task.description || ""}`,
         payload,
         deps,
         activeProcesses,
@@ -65,7 +65,7 @@ export const taskRunner = ({
       );
 
       spawnCommand({
-        content: task.description || "",
+        content: `/onezone-developer`,
         payload,
         deps,
         activeProcesses,
@@ -79,7 +79,7 @@ export const taskRunner = ({
         `[${terminalName}] [${roomId}] Task is IN_REVIEW status, executing command...`,
       );
       spawnCommand({
-        content: task.description || "",
+        content: `/onezone-reviewer`,
         payload,
         deps,
         activeProcesses,
@@ -93,7 +93,7 @@ export const taskRunner = ({
         `[${terminalName}] [${roomId}] Task is in TESTING status, executing command...`,
       );
       spawnCommand({
-        content: task.description || "",
+        content: `/onezone-tester`,
         payload,
         deps,
         activeProcesses,
