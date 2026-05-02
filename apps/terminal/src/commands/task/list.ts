@@ -6,8 +6,8 @@ export default class TaskList extends Command {
 
   static examples = [
     "<%= config.bin %> task list --project <uuid>",
-    "<%= config.bin %> task list --project <uuid> --status TODO",
-    "<%= config.bin %> task list --project <uuid> --status IN_PROGRESS --status TODO",
+    "<%= config.bin %> task list --project <uuid> --status PLANNING",
+    "<%= config.bin %> task list --project <uuid> --status IN_PROGRESS --status PLANNING",
     "<%= config.bin %> task list --project <uuid> --server http://localhost:5026",
   ];
 

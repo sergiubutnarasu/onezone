@@ -78,7 +78,7 @@ export function TaskMoreMenu({ task, projectId, agents, terminals, onDeleted }: 
                 task.status === 'IN_PROGRESS' ? 'bg-amber-400' :
                 task.status === 'IN_REVIEW' ? 'bg-sky-400' :
                 task.status === 'TESTING' ? 'bg-violet-400' :
-                task.status === 'TODO' ? 'bg-blue-400' :
+                task.status === 'PLANNING' ? 'bg-blue-400' :
                 'bg-muted-foreground'
               }`} />
               Change status
@@ -96,7 +96,7 @@ export function TaskMoreMenu({ task, projectId, agents, terminals, onDeleted }: 
                   s === 'IN_PROGRESS' ? 'bg-amber-400' :
                   s === 'IN_REVIEW' ? 'bg-sky-400' :
                   s === 'TESTING' ? 'bg-violet-400' :
-                  s === 'TODO' ? 'bg-blue-400' :
+                  s === 'PLANNING' ? 'bg-blue-400' :
                   'bg-muted-foreground'
                 }`} />
                 {TASK_STATUS_LABELS[s]}

@@ -12,7 +12,7 @@ import { TASK_STATUS_LABELS } from '@onezone/shared';
 
 const STATUS_COLORS: Record<TaskStatus, string> = {
   [TaskStatus.BACKLOG]: 'text-slate-400',
-  [TaskStatus.TODO]: 'text-sky-400',
+  [TaskStatus.PLANNING]: 'text-sky-400',
   [TaskStatus.IN_PROGRESS]: 'text-amber-400',
   [TaskStatus.IN_REVIEW]: 'text-violet-400',
   [TaskStatus.TESTING]: 'text-orange-400',

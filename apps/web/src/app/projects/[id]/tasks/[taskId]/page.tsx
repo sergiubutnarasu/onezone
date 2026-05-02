@@ -285,7 +285,7 @@ export default function TaskChatPage() {
                         ? "bg-sky-500/10 text-sky-400 border-sky-500/20"
                         : task.status === "TESTING"
                           ? "bg-violet-500/10 text-violet-400 border-violet-500/20"
-                          : task.status === "TODO"
+                          : task.status === "PLANNING"
                             ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
                             : "bg-muted text-muted-foreground border-border"
                 }`}
@@ -303,7 +303,7 @@ export default function TaskChatPage() {
                             ? "bg-sky-400"
                             : task.status === "TESTING"
                               ? "bg-violet-400"
-                              : task.status === "TODO"
+                              : task.status === "PLANNING"
                                 ? "bg-blue-400"
                                 : "bg-muted-foreground"
                     }`}

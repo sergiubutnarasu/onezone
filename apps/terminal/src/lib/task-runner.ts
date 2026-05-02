@@ -44,9 +44,9 @@ export const taskRunner = ({
       );
       return;
     }
-    case TaskStatus.TODO: {
+    case TaskStatus.PLANNING: {
       log(
-        `[${terminalName}] [${roomId}] Task is in TODO status, starting command execution...`,
+        `[${terminalName}] [${roomId}] Task is in PLANNING status, starting command execution...`,
       );
 
       spawnCommand({

@@ -32,7 +32,7 @@ export enum MessageType {
 
 export enum TaskStatus {
   BACKLOG = "BACKLOG",
-  TODO = "TODO",
+  PLANNING = "PLANNING",
   IN_PROGRESS = "IN_PROGRESS",
   IN_REVIEW = "IN_REVIEW",
   TESTING = "TESTING",
@@ -46,7 +46,7 @@ export enum AgentTag {
 
 export const TASK_STATUS_COLUMNS: readonly TaskStatus[] = [
   TaskStatus.BACKLOG,
-  TaskStatus.TODO,
+  TaskStatus.PLANNING,
   TaskStatus.IN_PROGRESS,
   TaskStatus.IN_REVIEW,
   TaskStatus.TESTING,
@@ -55,7 +55,7 @@ export const TASK_STATUS_COLUMNS: readonly TaskStatus[] = [
 
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   [TaskStatus.BACKLOG]: "Backlog",
-  [TaskStatus.TODO]: "To Do",
+  [TaskStatus.PLANNING]: "Planning",
   [TaskStatus.IN_PROGRESS]: "In Progress",
   [TaskStatus.IN_REVIEW]: "In Review",
   [TaskStatus.TESTING]: "Testing",

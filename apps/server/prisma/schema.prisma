@@ -15,7 +15,7 @@ enum MessageType {
 
 enum TaskStatus {
   BACKLOG
-  TODO
+  PLANNING
   IN_PROGRESS
   IN_REVIEW
   TESTING
