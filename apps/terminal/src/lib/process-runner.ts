@@ -1,25 +1,56 @@
 import { MessageStream } from "@onezone/shared";
-import { ChildProcess, spawn } from "node:child_process";
+import { ChildProcess, execSync, spawn } from "node:child_process";
 import { createInterface } from "node:readline";
+
+/**
+ * Recursively kill a process and all its descendants by walking the PPID tree.
+ * This catches processes that were spawned in new process groups (e.g. detached
+ * child processes started by the agent, like dev servers).
+ */
+export function killTree(pid: number): void {
+  // Kill children first (depth-first) before the parent disappears.
+  try {
+    const out = execSync(`pgrep -P ${pid}`, { encoding: "utf8" }).trim();
+    for (const child of out.split("\n").filter(Boolean)) {
+      killTree(parseInt(child, 10));
+    }
+  } catch {
+    // No children or pgrep failed — continue.
+  }
+  // Kill the process group (catches siblings that share the group).
+  try {
+    process.kill(-pid, "SIGTERM");
+  } catch {
+    /* already gone */
+  }
+  // Kill the process itself in case it's not a group leader.
+  try {
+    process.kill(pid, "SIGTERM");
+  } catch {
+    /* already gone */
+  }
+}
 
 // Track all active child processes so we can clean them up on exit.
 const activeProcs = new Set<ChildProcess>();
 
 function killAll() {
   for (const proc of activeProcs) {
-    try {
-      process.kill(-proc.pid!, "SIGTERM");
-    } catch {
-      /* already dead */
-    }
+    if (proc.pid) killTree(proc.pid);
   }
 }
 
 // Call once at the application entry point to register process cleanup handlers.
 export function registerCleanupHandlers(): void {
   process.on("exit", killAll);
-  process.on("SIGINT", () => process.exit(0));
-  process.on("SIGTERM", () => process.exit(0));
+  process.on("SIGINT", () => {
+    killAll();
+    process.exit(0);
+  });
+  process.on("SIGTERM", () => {
+    killAll();
+    process.exit(0);
+  });
 }
 
 export function runProcess({
@@ -61,13 +92,9 @@ export function runProcess({
     exited = true;
     activeProcs.delete(proc);
     // Kill any remaining processes the agent spawned (e.g. dev servers, test watchers).
-    // Since the child runs detached in its own process group, this terminates the whole group.
+    // Walk the full PPID tree so detached child process groups are also terminated.
     if (proc.pid) {
-      try {
-        process.kill(-proc.pid, "SIGTERM");
-      } catch {
-        // Process group is already gone — nothing to do.
-      }
+      killTree(proc.pid);
     }
     onExit(code);
   };

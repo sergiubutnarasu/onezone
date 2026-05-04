@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import type { Socket } from "socket.io-client";
 import { setupTerminalAgent } from "../agents/setup.js";
 import { shellQuote, stripAnsi } from "../lib/helper.js";
-import { runProcess } from "../lib/process-runner.js";
+import { killTree, runProcess } from "../lib/process-runner.js";
 import { setupProject } from "../lib/setup.js";
 
 export interface CommandRunnerDeps {
@@ -105,11 +105,7 @@ export function spawnCommand({
         const parsed = JSON.parse(clean);
         if (parsed?.type === "result") {
           resultSeen = true;
-          try {
-            process.kill(-proc.pid!, "SIGTERM");
-          } catch {
-            proc.kill();
-          }
+          if (proc.pid) killTree(proc.pid);
         }
       } catch {
         // Not JSON — ignore.
@@ -148,13 +144,7 @@ export function spawnCommand({
   activeProcesses.set(jobId, {
     cleanup: () => {
       cancelled = true;
-      try {
-        // Kill the entire process group so any child processes the agent
-        // spawned (sub-shells, editors, etc.) are also terminated.
-        process.kill(-proc.pid!, 'SIGTERM');
-      } catch {
-        proc.kill();
-      }
+      if (proc.pid) killTree(proc.pid);
     },
   });
 }
