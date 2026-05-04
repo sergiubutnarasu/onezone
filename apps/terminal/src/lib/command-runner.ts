@@ -78,6 +78,7 @@ export function spawnCommand({
   const cmdContent = `cd ${shellQuote(projectWorkDir)} && ${command}`;
 
   let cancelled = false;
+  let resultSeen = false;
 
   const proc = runProcess({
     cmd: cmdContent,
@@ -97,11 +98,31 @@ export function spawnCommand({
         stream,
         content: clean,
       });
+
+      // Detect the final stream-json result line and kill the process so it
+      // doesn't hang when Claude started child processes (e.g. dev servers).
+      try {
+        const parsed = JSON.parse(clean);
+        if (parsed?.type === "result") {
+          resultSeen = true;
+          try {
+            process.kill(-proc.pid!, "SIGTERM");
+          } catch {
+            proc.kill();
+          }
+        }
+      } catch {
+        // Not JSON — ignore.
+      }
     },
     onExit: (exitCode) => {
       activeProcesses.delete(jobId);
 
-      if (exitCode !== 0) {
+      // If we already received the result line and killed the process ourselves,
+      // treat it as a clean exit regardless of the signal exit code.
+      const effectiveCode = resultSeen ? 0 : exitCode;
+
+      if (effectiveCode !== 0) {
         for (const line of stderrBuffer) {
           socket.emit(EventCommands.OutputLine, {
             ...basePayload,
@@ -113,13 +134,13 @@ export function spawnCommand({
 
       socket.emit(EventCommands.TerminalCommandExit, {
         ...basePayload,
-        exitCode,
+        exitCode: effectiveCode,
       });
 
-      const badge = exitCode === 0 ? "✔ done" : `✖ error (${exitCode})`;
+      const badge = effectiveCode === 0 ? "✔ done" : `✖ error (${effectiveCode})`;
       log(`[${terminalName}] [${roomId}] ${badge}: "${content}"`);
       if (!cancelled) {
-        void onComplete?.(exitCode);
+        void onComplete?.(effectiveCode);
       }
     },
   });

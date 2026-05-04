@@ -60,6 +60,15 @@ export function runProcess({
     if (exited) return;
     exited = true;
     activeProcs.delete(proc);
+    // Kill any remaining processes the agent spawned (e.g. dev servers, test watchers).
+    // Since the child runs detached in its own process group, this terminates the whole group.
+    if (proc.pid) {
+      try {
+        process.kill(-proc.pid, "SIGTERM");
+      } catch {
+        // Process group is already gone — nothing to do.
+      }
+    }
     onExit(code);
   };
 
