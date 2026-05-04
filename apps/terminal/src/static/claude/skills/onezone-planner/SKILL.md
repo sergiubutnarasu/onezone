@@ -24,4 +24,6 @@ Please provide your analysis and plan in a clear and organized manner, using bul
 1. Create a plan file under the `workdir/.onezone/` directory with the name `project-plan.md` that contains the structured plan for the project.
 2. Add your analysis and plan to the `project-plan.md` file in a clear and organized manner, using bullet points or numbered lists where appropriate.
 
+**Important**: Do not wait for the user input. If need the user input, please make a reasonable assumption and continue with the task.
+
 ---

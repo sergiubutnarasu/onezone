@@ -14,4 +14,6 @@ When reviewing the implementation, consider the following:
 
 Please provide your feedback and suggestions for improvement in a clear and organized manner, highlighting any areas where the implementation may not align with the project plan or where there may be opportunities for enhancement.
 
+**Important**: Do not wait for the user input. If need the user input, please make a reasonable assumption and continue with the task.
+
 ---

@@ -14,4 +14,6 @@ When developing based on the project plan, consider the following:
 
 Please implement the tasks and structure defined in the `project-plan.md` file in a clear and organized manner, following the guidelines and best practices mentioned in the plan.
 
+**Important**: Do not wait for the user input. If need the user input, please make a reasonable assumption and continue with the task.
+
 ---

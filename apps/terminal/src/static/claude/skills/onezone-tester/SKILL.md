@@ -14,4 +14,6 @@ When testing the implementation, consider the following:
 
 Please provide a detailed report of your testing results, highlighting any issues or discrepancies found in the implementation compared to the project plan, as well as any suggestions for improvement or further testing that may be needed.
 
+**Important**: Do not wait for the user input. If need the user input, please make a reasonable assumption and continue with the task.
+
 ---
