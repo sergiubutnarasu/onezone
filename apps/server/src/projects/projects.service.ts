@@ -11,7 +11,7 @@ export class ProjectsService {
     private readonly terminalRegistry: TerminalRegistryService,
   ) {}
 
-  async create(data: { name: string; description?: string; defaultAgentId: string; defaultModel: string }) {
+  async create(data: { name: string; description?: string; repository?: string; defaultAgentId: string; defaultModel: string }) {
     const project = await this.prisma.project.create({ data });
     this.logger.log(`Created project ${project.id}`);
     return project;
@@ -30,7 +30,7 @@ export class ProjectsService {
     return project;
   }
 
-  async update(id: string, data: { name?: string; description?: string; defaultAgentId?: string; defaultModel?: string }) {
+  async update(id: string, data: { name?: string; description?: string; repository?: string; defaultAgentId?: string; defaultModel?: string }) {
     await this.findOne(id);
     const project = await this.prisma.project.update({ where: { id }, data });
     this.logger.log(`Updated project ${id}`);

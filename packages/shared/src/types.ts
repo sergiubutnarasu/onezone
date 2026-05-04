@@ -66,6 +66,7 @@ export interface ProjectInfo {
   id: string;
   name: string;
   description?: string | null;
+  repository?: string | null;
   defaultAgentId: string;
   defaultAgent: Agent;
   defaultModel: string;

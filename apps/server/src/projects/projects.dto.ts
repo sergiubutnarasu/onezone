@@ -8,6 +8,10 @@ export class CreateProjectDto {
   @IsString()
   description?: string;
 
+  @IsOptional()
+  @IsString()
+  repository?: string;
+
   @IsUUID()
   defaultAgentId!: string;
 
@@ -23,6 +27,10 @@ export class UpdateProjectDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsString()
+  repository?: string;
 
   @IsOptional()
   @IsUUID()

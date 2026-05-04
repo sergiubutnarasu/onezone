@@ -5,7 +5,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { Home, ChevronRight, Wifi, WifiOff, Bot, Cpu, Loader2 } from "lucide-react";
+import { Home, ChevronRight, Wifi, WifiOff, Bot, Cpu, Loader2, GitBranch } from "lucide-react";
 import {
   fetchTask,
   fetchMessages,
@@ -346,6 +346,19 @@ export default function TaskChatPage() {
                 <Cpu className="size-3" />
                 {task.model}
               </span>
+
+              {/* Repository chip */}
+              {task.project?.repository && (
+                <a
+                  href={task.project.repository}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-muted text-muted-foreground border border-border hover:text-foreground transition-colors"
+                >
+                  <GitBranch className="size-3" />
+                  Repository
+                </a>
+              )}
             </div>
           )}
         </div>

@@ -27,6 +27,7 @@ import type { ProjectInfo, Agent } from "@onezone/shared";
 interface EditProjectForm {
   name: string;
   description: string;
+  repository: string;
   defaultAgentId: string;
   defaultModel: string;
 }
@@ -61,6 +62,7 @@ export function EditProjectDialog({
     defaultValues: {
       name: project.name,
       description: project.description ?? "",
+      repository: project.repository ?? "",
       defaultAgentId: project.defaultAgentId,
       defaultModel: project.defaultModel,
     },
@@ -73,6 +75,7 @@ export function EditProjectDialog({
       reset({
         name: project.name,
         description: project.description ?? "",
+        repository: project.repository ?? "",
         defaultAgentId: project.defaultAgentId,
         defaultModel: project.defaultModel,
       });
@@ -86,6 +89,7 @@ export function EditProjectDialog({
       updateProject(project.id, {
         name: data.name,
         description: data.description,
+        repository: data.repository || null,
         defaultAgentId: data.defaultAgentId,
         defaultModel: data.defaultModel,
       }),
@@ -127,6 +131,12 @@ export function EditProjectDialog({
           {errors.name && (
             <p className="text-xs text-destructive">{errors.name.message}</p>
           )}
+
+          <Input
+            {...register("repository")}
+            placeholder="Repository URL (optional)"
+            type="url"
+          />
 
           <Select
             value={defaultAgentId}

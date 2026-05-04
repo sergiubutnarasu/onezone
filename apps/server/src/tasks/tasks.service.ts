@@ -34,6 +34,7 @@ export class TasksService {
       id: string;
       name: string;
       description?: string | null;
+      repository?: string | null;
       defaultAgentId: string;
       defaultModel: string;
       defaultAgent: { id: string; name: string; tag: string; model: string; createdAt: Date };
@@ -57,6 +58,7 @@ export class TasksService {
         id: project.id,
         name: project.name,
         description: project.description,
+        repository: project.repository,
         defaultAgentId: project.defaultAgentId,
         defaultModel: project.defaultModel,
         defaultAgent: {

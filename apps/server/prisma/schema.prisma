@@ -38,6 +38,7 @@ model Project {
   id             String   @id @default(uuid())
   name           String
   description    String?
+  repository     String?
   defaultAgentId String
   defaultAgent   Agent    @relation(fields: [defaultAgentId], references: [id], onDelete: Restrict)
   defaultModel   String

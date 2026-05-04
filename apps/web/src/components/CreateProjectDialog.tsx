@@ -26,6 +26,7 @@ import type { Agent } from "@onezone/shared";
 interface CreateProjectForm {
   name: string;
   description: string;
+  repository: string;
   defaultAgentId: string;
   defaultModel: string;
 }
@@ -55,6 +56,7 @@ export function CreateProjectDialog({
     defaultValues: {
       name: "",
       description: "",
+      repository: "",
       defaultAgentId: agents[0]?.id ?? "",
       defaultModel: agents[0]?.model ?? "",
     },
@@ -67,6 +69,7 @@ export function CreateProjectDialog({
       reset({
         name: "",
         description: "",
+        repository: "",
         defaultAgentId: agents[0].id,
         defaultModel: agents[0].model,
       });
@@ -78,6 +81,7 @@ export function CreateProjectDialog({
       createProject({
         name: data.name,
         description: data.description,
+        repository: data.repository || undefined,
         defaultAgentId: data.defaultAgentId,
         defaultModel: data.defaultModel,
       }),
@@ -110,6 +114,12 @@ export function CreateProjectDialog({
           {errors.name && (
             <p className="text-xs text-destructive">{errors.name.message}</p>
           )}
+
+          <Input
+            {...register("repository")}
+            placeholder="Repository URL (optional)"
+            type="url"
+          />
 
           <Select
             value={defaultAgentId}

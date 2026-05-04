@@ -8,6 +8,7 @@ export interface Project {
   id: string;
   name: string;
   description?: string | null;
+  repository?: string | null;
   defaultAgentId: string;
   defaultAgent: Agent;
   defaultModel: string;
@@ -22,10 +23,10 @@ export interface TaskOrderItem {
 
 export const fetchProjects = () => httpClient.get<Project[]>('/projects');
 
-export const createProject = (data: { name: string; description?: string; defaultAgentId?: string; defaultModel?: string }) =>
+export const createProject = (data: { name: string; description?: string; repository?: string; defaultAgentId?: string; defaultModel?: string }) =>
   httpClient.post<Project>('/projects', data);
 
-export const updateProject = (id: string, data: { name?: string; description?: string; defaultAgentId?: string | null; defaultModel?: string | null }) =>
+export const updateProject = (id: string, data: { name?: string; description?: string; repository?: string | null; defaultAgentId?: string | null; defaultModel?: string | null }) =>
   httpClient.patch<Project>(`/projects/${id}`, data);
 
 export const deleteProject = (id: string) => httpClient.delete<void>(`/projects/${id}`);
