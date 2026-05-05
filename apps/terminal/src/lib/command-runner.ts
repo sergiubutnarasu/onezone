@@ -79,6 +79,7 @@ export function spawnCommand({
 
   let cancelled = false;
   let resultSeen = false;
+  let resultUsage: { totalCostUsd?: number; inputTokens?: number; outputTokens?: number } | null = null;
 
   const proc = runProcess({
     cmd: cmdContent,
@@ -93,23 +94,35 @@ export function spawnCommand({
         return;
       }
 
-      socket.emit(EventCommands.OutputLine, {
-        ...basePayload,
-        stream,
-        content: clean,
-      });
+      let inputTokens: number | undefined;
+      let outputTokens: number | undefined;
 
-      // Detect the final stream-json result line and kill the process so it
-      // doesn't hang when Claude started child processes (e.g. dev servers).
       try {
         const parsed = JSON.parse(clean);
-        if (parsed?.type === "result") {
+        if (parsed?.type === "assistant" && parsed?.message?.usage) {
+          inputTokens = parsed.message.usage.input_tokens ?? undefined;
+          outputTokens = parsed.message.usage.output_tokens ?? undefined;
+        } else if (parsed?.type === "result") {
+          resultUsage = {
+            totalCostUsd: parsed.total_cost_usd ?? undefined,
+            inputTokens: parsed.usage?.input_tokens ?? undefined,
+            outputTokens: parsed.usage?.output_tokens ?? undefined,
+          };
           resultSeen = true;
           if (proc.pid) killTree(proc.pid);
         }
       } catch {
         // Not JSON — ignore.
       }
+
+      socket.emit(EventCommands.OutputLine, {
+        ...basePayload,
+        stream,
+        content: clean,
+        ...(inputTokens !== undefined || outputTokens !== undefined
+          ? { inputTokens, outputTokens }
+          : {}),
+      });
     },
     onExit: (exitCode) => {
       activeProcesses.delete(jobId);
@@ -131,6 +144,7 @@ export function spawnCommand({
       socket.emit(EventCommands.TerminalCommandExit, {
         ...basePayload,
         exitCode: effectiveCode,
+        ...(resultUsage ?? {}),
       });
 
       const badge = effectiveCode === 0 ? "✔ done" : `✖ error (${effectiveCode})`;

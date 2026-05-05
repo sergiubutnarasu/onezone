@@ -1,3 +1,5 @@
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { RoomMessage } from '@/hooks/useTaskRoom';
 
 export function MessageLine({ message }: { message: RoomMessage }) {
@@ -56,7 +58,11 @@ export function MessageLine({ message }: { message: RoomMessage }) {
     <div className="py-1 px-4 flex items-baseline gap-2">
       <span className="text-muted-foreground/40 text-xs shrink-0">{timestamp}</span>
       <span className="text-primary font-semibold text-xs shrink-0">you</span>
-      <span className="text-foreground/90 text-sm">{message.content}</span>
+      <div className="prose prose-sm prose-invert max-w-none text-foreground/90 text-sm leading-relaxed
+        prose-p:my-0 prose-pre:bg-muted/60 prose-pre:text-xs prose-code:text-xs
+        prose-code:bg-muted/60 prose-code:px-1 prose-code:rounded">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+      </div>
     </div>
   );
 }

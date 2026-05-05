@@ -59,6 +59,9 @@ model Task {
   agentId            String
   agent              Agent        @relation(fields: [agentId], references: [id], onDelete: Restrict)
   model              String
+  totalCostUsd       Float?
+  inputTokens        Int?
+  outputTokens       Int?
   createdAt          DateTime     @default(now())
   messages           Message[]
   terminalAssignment TaskTerminal?
@@ -87,13 +90,15 @@ model Message {
   terminalId  String?
   terminalName String?
   messageType MessageType
-  jobId       String?
-  command     String?
-  exitCode    Int?
-  stream      String?
-  content     String   @db.Text
-  ts          BigInt
-  createdAt   DateTime @default(now())
+  jobId        String?
+  command      String?
+  exitCode     Int?
+  stream       String?
+  content      String   @db.Text
+  inputTokens  Int?
+  outputTokens Int?
+  ts           BigInt
+  createdAt    DateTime @default(now())
 
   @@index([roomId])
   @@index([taskId])

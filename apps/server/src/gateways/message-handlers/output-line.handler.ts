@@ -15,6 +15,8 @@ export interface OutputLineData {
   command?: string;
   stream: MessageStream;
   content: string;
+  inputTokens?: number;
+  outputTokens?: number;
 }
 
 @Injectable()
@@ -43,6 +45,8 @@ export class OutputLineHandler implements IMessageHandler<OutputLineData> {
         command: data.command,
         stream: data.stream,
         content: data.content,
+        inputTokens: data.inputTokens,
+        outputTokens: data.outputTokens,
         ts,
       });
 

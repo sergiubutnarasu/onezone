@@ -14,6 +14,8 @@ export interface CreateMessageDto {
   exitCode?: number;
   stream?: string;
   content: string;
+  inputTokens?: number;
+  outputTokens?: number;
   ts: number;
 }
 

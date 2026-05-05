@@ -279,4 +279,19 @@ export class TasksService {
     this.logger.log(`Updated task ${id}`);
     return task;
   }
+
+  async updateUsage(
+    id: string,
+    data: { totalCostUsd?: number; inputTokens?: number; outputTokens?: number },
+  ) {
+    await this.prisma.task.update({
+      where: { id },
+      data: {
+        ...(data.totalCostUsd !== undefined && { totalCostUsd: data.totalCostUsd }),
+        ...(data.inputTokens !== undefined && { inputTokens: data.inputTokens }),
+        ...(data.outputTokens !== undefined && { outputTokens: data.outputTokens }),
+      },
+    });
+    this.logger.log(`Updated usage for task ${id}`);
+  }
 }
