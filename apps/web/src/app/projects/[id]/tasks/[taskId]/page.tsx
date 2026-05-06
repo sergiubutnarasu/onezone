@@ -1,127 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useMemo } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import Link from "next/link";
-import { Home, ChevronRight, Wifi, WifiOff, Bot, Cpu, Loader2, GitBranch, DollarSign, Hash } from "lucide-react";
-import {
-  fetchTask,
-  fetchMessages,
-  fetchTerminals,
-  fetchAgents,
-} from "@/lib/api";
+import { fetchTask, fetchMessages, fetchTerminals, fetchAgents } from "@/lib/api";
 import { useTaskRoom } from "@/hooks/useTaskRoom";
-import { MessageType } from "@onezone/shared";
-import { MessageLine } from "@/components/MessageLine";
-import { CommandGroup, type CommandGroupData } from "@/components/CommandGroup";
 import { TerminalStatusBar } from "@/components/TerminalStatusBar";
 import { MessageInput } from "@/components/MessageInput";
-import { CopyButton } from "@/components/CopyButton";
-import { TaskMoreMenu } from "@/components/TaskMoreMenu";
-import { Badge } from "@/components/ui/badge";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { CollapsibleDescription } from '@/components/CollapsibleDescription';
-import { TASK_STATUS_LABELS, TaskStatus, type Terminal, type Agent } from "@onezone/shared";
-import type { RoomMessage } from "@/hooks/useTaskRoom";
-
-type ChatItem =
-  | { type: "message"; msg: RoomMessage }
-  | { type: "command"; group: CommandGroupData };
-
-// ---------------------------------------------------------------------------
-// Pure helpers for buildChatItems
-// ---------------------------------------------------------------------------
-
-function handleCommandGroup(
-  msg: RoomMessage,
-  groupMap: Map<string, CommandGroupData>,
-  items: ChatItem[],
-): void {
-  if (!msg.jobId) return;
-  const group: CommandGroupData = {
-    jobId: msg.jobId,
-    command: msg.command ?? msg.content,
-    terminalName: msg.terminalName,
-    startTs: msg.ts,
-    lines: [],
-  };
-  groupMap.set(msg.jobId, group);
-  items.push({ type: "message", msg });
-  items.push({ type: "command", group });
-}
-
-function handleOutputLine(
-  msg: RoomMessage,
-  groupMap: Map<string, CommandGroupData>,
-  items: ChatItem[],
-): void {
-  if (!msg.jobId) return;
-  let group = groupMap.get(msg.jobId);
-  if (!group) {
-    group = {
-      jobId: msg.jobId,
-      command: msg.command ?? "(unknown)",
-      terminalName: msg.terminalName,
-      startTs: msg.ts,
-      lines: [],
-    };
-    groupMap.set(msg.jobId, group);
-    items.push({ type: "command", group });
-  }
-  group.lines.push(msg);
-}
-
-function handleCommandExit(
-  msg: RoomMessage,
-  groupMap: Map<string, CommandGroupData>,
-  items: ChatItem[],
-): void {
-  if (!msg.jobId) return;
-  const group = groupMap.get(msg.jobId);
-  const code =
-    msg.exitCode ??
-    parseInt(msg.content.match(/exited with code (\d+)/)?.[1] ?? "-1", 10);
-  if (group) group.exitCode = code;
-  items.push({
-    type: "message",
-    msg: { ...msg, exitCode: code, content: msg.command ?? msg.content },
-  });
-}
-
-function buildChatItems(messages: RoomMessage[]): ChatItem[] {
-  const groupMap = new Map<string, CommandGroupData>();
-  const items: ChatItem[] = [];
-
-  for (const msg of messages) {
-    if (msg.jobId) {
-      if (msg.messageType === MessageType.CommandStart) {
-        handleCommandGroup(msg, groupMap, items);
-        continue;
-      }
-      if (msg.role === "terminal") {
-        handleOutputLine(msg, groupMap, items);
-        continue;
-      }
-      if (
-        msg.role === "system" &&
-        (msg.exitCode != null || msg.content.includes("exited with code"))
-      ) {
-        handleCommandExit(msg, groupMap, items);
-        continue;
-      }
-    }
-    items.push({ type: "message", msg });
-  }
-
-  return items;
-}
+import { TaskStatus, type Terminal, type Agent } from "@onezone/shared";
+import { buildChatItems } from "./_lib/chat-items";
+import { TaskHeader } from "./_components/TaskHeader";
+import { TaskDetails } from "./_components/TaskDetails";
+import { TaskChatArea } from "./_components/TaskChatArea";
 
 export default function TaskChatPage() {
   const { id: projectId, taskId } = useParams<{ id: string; taskId: string }>();
-  const scrollParentRef = useRef<HTMLDivElement>(null);
-  const isAtBottomRef = useRef(true);
   const router = useRouter();
 
   const { data: task } = useQuery({
@@ -144,15 +38,10 @@ export default function TaskChatPage() {
     queryFn: () => fetchMessages(taskId),
   });
 
-  const {
-    messages,
-    connectedTerminals,
-    isConnected,
-    sendMessage,
-    prependMessages,
-  } = useTaskRoom(taskId, {
-    onTaskDeleted: () => router.push(`/projects/${projectId}`),
-  });
+  const { messages, connectedTerminals, isConnected, sendMessage, prependMessages } =
+    useTaskRoom(taskId, {
+      onTaskDeleted: () => router.push(`/projects/${projectId}`),
+    });
 
   const isTerminalActive =
     connectedTerminals.length > 0 &&
@@ -166,24 +55,6 @@ export default function TaskChatPage() {
       prependMessages(history);
     }
   }, [history, prependMessages]);
-
-  // Track whether user is scrolled to bottom
-  useEffect(() => {
-    const el = scrollParentRef.current;
-    if (!el) return;
-    const handleScroll = () => {
-      isAtBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
-    };
-    el.addEventListener("scroll", handleScroll, { passive: true });
-    return () => el.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Auto-scroll to bottom on new messages only if already at bottom
-  useEffect(() => {
-    if (chatItems.length > 0 && isAtBottomRef.current) {
-      virtualizer.scrollToIndex(chatItems.length - 1, { behavior: "smooth" });
-    }
-  }, [messages]);
 
   const chatItems = useMemo(() => buildChatItems(messages), [messages]);
 
@@ -199,289 +70,38 @@ export default function TaskChatPage() {
   );
 
   const displayInputTokens =
-    task?.inputTokens != null ? task.inputTokens : (msgInputTokens > 0 ? msgInputTokens : null);
+    task?.inputTokens != null ? task.inputTokens : msgInputTokens > 0 ? msgInputTokens : null;
   const displayOutputTokens =
-    task?.outputTokens != null ? task.outputTokens : (msgOutputTokens > 0 ? msgOutputTokens : null);
+    task?.outputTokens != null ? task.outputTokens : msgOutputTokens > 0 ? msgOutputTokens : null;
   const displayCostUsd = task?.totalCostUsd ?? null;
-
-  const virtualizer = useVirtualizer({
-    count: chatItems.length,
-    getScrollElement: () => scrollParentRef.current,
-    estimateSize: (i) => {
-      const item = chatItems[i];
-      if (item.type === "command") return 40 + item.group.lines.length * 18;
-      return 24;
-    },
-    measureElement: (el) => el.getBoundingClientRect().height,
-    overscan: 10,
-  });
 
   return (
     <TooltipProvider>
       <div className="flex flex-col h-screen bg-background">
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-border/60 bg-card/50 backdrop-blur-sm">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-3">
-            <Link
-              href="/"
-              className="flex items-center gap-1 hover:text-foreground transition-colors"
-            >
-              <Home className="size-3" />
-              Projects
-            </Link>
-            <ChevronRight className="size-3" />
-            <Link
-              href={`/projects/${projectId}`}
-              className="hover:text-foreground transition-colors"
-            >
-              Project
-            </Link>
-            <ChevronRight className="size-3" />
-            <span className="text-foreground truncate max-w-50">
-              {task?.name ?? "Loading…"}
-            </span>
-          </div>
+        <TaskHeader
+          projectId={projectId}
+          taskId={taskId}
+          task={task}
+          isConnected={isConnected}
+          isTerminalActive={isTerminalActive}
+          agents={agents}
+          terminals={terminals}
+          onDeleted={() => router.push(`/projects/${projectId}`)}
+        />
 
-          {/* Main header content */}
-          <div className="flex items-start justify-between gap-4">
-            {/* Left: Title + metadata */}
-            <div className="min-w-0 flex-1">
-              <h1 className="text-base font-semibold tracking-tight truncate">
-                {task?.name ?? "Loading…"}
-              </h1>
+        {task && (
+          <TaskDetails
+            task={task}
+            displayInputTokens={displayInputTokens}
+            displayOutputTokens={displayOutputTokens}
+            displayCostUsd={displayCostUsd}
+          />
+        )}
 
-              {!task && (
-                <div className="flex items-center gap-1 mt-1.5">
-                  <span className="text-[11px] text-muted-foreground/50 font-mono">
-                    {taskId.slice(0, 8)}
-                  </span>
-                  <CopyButton value={taskId} />
-                </div>
-              )}
-            </div>
-
-            {/* Right: Actions */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              {/* Connection badge */}
-              <Badge
-                variant={isConnected ? "default" : "secondary"}
-                className={
-                  isConnected
-                    ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20 h-7"
-                    : "text-muted-foreground h-7"
-                }
-              >
-                {isConnected ? (
-                  <Wifi className="size-3 mr-1" />
-                ) : (
-                  <WifiOff className="size-3 mr-1" />
-                )}
-                {isConnected ? "Connected" : "Disconnected"}
-              </Badge>
-
-              {/* Actions dropdown */}
-              {task && (
-                <TaskMoreMenu
-                  task={task}
-                  projectId={projectId}
-                  agents={agents}
-                  terminals={terminals}
-                  onDeleted={() => router.push(`/projects/${projectId}`)}
-                />
-              )}
-            </div>
-          </div>
-
-          <div>
-            {/* ID chip */}
-            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/60 font-mono">
-              {taskId}
-              <CopyButton value={taskId} />
-            </span>
-          </div>
-
-          {task && (
-            <div className="flex flex-wrap items-center gap-2 mt-2">
-              {/* Status chip */}
-              <span
-                className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border ${
-                  task.status === "DONE"
-                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                    : task.status === "IN_PROGRESS"
-                      ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                      : task.status === "IN_REVIEW"
-                        ? "bg-sky-500/10 text-sky-400 border-sky-500/20"
-                        : task.status === "TESTING"
-                          ? "bg-violet-500/10 text-violet-400 border-violet-500/20"
-                          : task.status === "PLANNING"
-                            ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                            : "bg-muted text-muted-foreground border-border"
-                }`}
-              >
-                {isTerminalActive ? (
-                  <Loader2 className="size-3 animate-spin" />
-                ) : (
-                  <span
-                    className={`size-1.5 rounded-full ${
-                      task.status === "DONE"
-                        ? "bg-emerald-400"
-                        : task.status === "IN_PROGRESS"
-                          ? "bg-amber-400"
-                          : task.status === "IN_REVIEW"
-                            ? "bg-sky-400"
-                            : task.status === "TESTING"
-                              ? "bg-violet-400"
-                              : task.status === "PLANNING"
-                                ? "bg-blue-400"
-                                : "bg-muted-foreground"
-                    }`}
-                  />
-                )}
-                {TASK_STATUS_LABELS[task.status]}
-              </span>
-
-              {/* Terminal chip */}
-              {task.terminal ? (
-                <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border ${
-                    task.terminal.isConnected
-                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                      : "bg-muted text-muted-foreground border-border"
-                  }`}
-                >
-                  <span
-                    className={`size-1.5 rounded-full ${task.terminal.isConnected ? "bg-emerald-400" : "bg-muted-foreground"}`}
-                  />
-                  {task.terminal.name}
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border bg-destructive/10 text-destructive border-destructive/20">
-                  <span className="size-1.5 rounded-full bg-destructive" />
-                  No terminal
-                </span>
-              )}
-
-              {/* Agent chip */}
-              {task.agent && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">
-                  <Bot className="size-3" />
-                  {task.agent.name}
-                </span>
-              )}
-
-              {/* Model chip */}
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-mono bg-muted text-muted-foreground border border-border">
-                <Cpu className="size-3" />
-                {task.model}
-              </span>
-
-              {/* Repository chip */}
-              {task.project?.repository && (
-                <a
-                  href={task.project.repository}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-muted text-muted-foreground border border-border hover:text-foreground transition-colors"
-                >
-                  <GitBranch className="size-3" />
-                  Repository
-                </a>
-              )}
-
-
-            </div>
-          )}
-        </div>
-
-        <div>
-          {task?.description && (
-            <div>
-              <label className="px-5 pt-4 text-[11px] text-muted-foreground uppercase font-semibold tracking-wide bg-card/50 backdrop-blur-sm block">
-                Details
-              </label>
-              <div className="px-5 pb-3 border-b border-border/60 text-sm text-muted-foreground bg-card/50 backdrop-blur-sm">
-                <CollapsibleDescription value={task.description} />
-              </div>
-            </div>
-          )}
-          {(displayInputTokens != null || displayOutputTokens != null || displayCostUsd != null) && (
-            <div className="border-b border-border/60 bg-card/50 backdrop-blur-sm">
-              <label className="px-5 pt-4 pb-2 text-[11px] text-muted-foreground uppercase font-semibold tracking-wide block">
-                Usage &amp; Cost
-              </label>
-              <div className="px-5 pb-4 grid grid-cols-3 gap-3">
-                {displayInputTokens != null && (
-                  <div className="rounded-md border border-sky-500/15 bg-card px-3 py-2.5">
-                    <div className="flex items-center gap-1.5 text-[10px] text-sky-400 uppercase font-semibold tracking-wider mb-1.5">
-                      <Hash className="size-3" />
-                      Input tokens
-                    </div>
-                    <div className="text-sm font-mono font-medium text-foreground">
-                      {displayInputTokens.toLocaleString()}
-                    </div>
-                  </div>
-                )}
-                {displayOutputTokens != null && (
-                  <div className="rounded-md border border-violet-500/15 bg-card px-3 py-2.5">
-                    <div className="flex items-center gap-1.5 text-[10px] text-violet-400 uppercase font-semibold tracking-wider mb-1.5">
-                      <Hash className="size-3" />
-                      Output tokens
-                    </div>
-                    <div className="text-sm font-mono font-medium text-foreground">
-                      {displayOutputTokens.toLocaleString()}
-                    </div>
-                  </div>
-                )}
-                {displayCostUsd != null && (
-                  <div className="rounded-md border border-emerald-500/15 bg-card px-3 py-2.5">
-                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 uppercase font-semibold tracking-wider mb-1.5">
-                      <DollarSign className="size-3" />
-                      Total cost
-                    </div>
-                    <div className="text-sm font-mono font-medium text-foreground">
-                      ${displayCostUsd < 0.01
-                        ? displayCostUsd.toFixed(6)
-                        : displayCostUsd.toFixed(4)}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Terminal status bar */}
         <TerminalStatusBar terminals={connectedTerminals} />
 
-        {/* Message area */}
-        <div ref={scrollParentRef} className="flex-1 min-h-0 overflow-y-auto chat-scroll">
-          <div
-            className="relative py-2 pb-4 font-mono text-sm"
-            style={{ height: `${virtualizer.getTotalSize()}px` }}
-          >
-            {virtualizer.getVirtualItems().map((virtualRow) => {
-              const item = chatItems[virtualRow.index];
-              return (
-                <div
-                  key={virtualRow.key}
-                  data-index={virtualRow.index}
-                  ref={virtualizer.measureElement}
-                  className="absolute top-0 left-0 w-full"
-                  style={{ transform: `translateY(${virtualRow.start}px)` }}
-                >
-                  {item.type === "command" ? (
-                    <CommandGroup group={item.group} />
-                  ) : (
-                    <MessageLine message={item.msg} />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <TaskChatArea chatItems={chatItems} />
 
-        {/* Input */}
         <MessageInput onSend={sendMessage} disabled={!isConnected} />
       </div>
     </TooltipProvider>
