@@ -92,6 +92,9 @@ export interface Task {
   agent?: Pick<Agent, "id" | "name" | "tag"> | null;
   model: string;
   project?: ProjectInfo | null;
+  totalCostUsd?: number | null;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
   createdAt: string;
 }
 

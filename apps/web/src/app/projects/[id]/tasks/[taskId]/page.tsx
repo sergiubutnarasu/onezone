@@ -5,7 +5,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { Home, ChevronRight, Wifi, WifiOff, Bot, Cpu, Loader2, GitBranch } from "lucide-react";
+import { Home, ChevronRight, Wifi, WifiOff, Bot, Cpu, Loader2, GitBranch, DollarSign, Hash } from "lucide-react";
 import {
   fetchTask,
   fetchMessages,
@@ -121,6 +121,7 @@ function buildChatItems(messages: RoomMessage[]): ChatItem[] {
 export default function TaskChatPage() {
   const { id: projectId, taskId } = useParams<{ id: string; taskId: string }>();
   const scrollParentRef = useRef<HTMLDivElement>(null);
+  const isAtBottomRef = useRef(true);
   const router = useRouter();
 
   const { data: task } = useQuery({
@@ -166,14 +167,42 @@ export default function TaskChatPage() {
     }
   }, [history, prependMessages]);
 
-  // Auto-scroll to bottom on new messages
+  // Track whether user is scrolled to bottom
   useEffect(() => {
-    if (chatItems.length > 0) {
+    const el = scrollParentRef.current;
+    if (!el) return;
+    const handleScroll = () => {
+      isAtBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+    };
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Auto-scroll to bottom on new messages only if already at bottom
+  useEffect(() => {
+    if (chatItems.length > 0 && isAtBottomRef.current) {
       virtualizer.scrollToIndex(chatItems.length - 1, { behavior: "smooth" });
     }
   }, [messages]);
 
   const chatItems = useMemo(() => buildChatItems(messages), [messages]);
+
+  // task.inputTokens/outputTokens are set from the result message on clean session exit.
+  // Fallback: sum per-turn tokens from assistant messages for interrupted sessions.
+  const msgInputTokens = useMemo(
+    () => messages.reduce((acc, m) => acc + (m.inputTokens ?? 0), 0),
+    [messages],
+  );
+  const msgOutputTokens = useMemo(
+    () => messages.reduce((acc, m) => acc + (m.outputTokens ?? 0), 0),
+    [messages],
+  );
+
+  const displayInputTokens =
+    task?.inputTokens != null ? task.inputTokens : (msgInputTokens > 0 ? msgInputTokens : null);
+  const displayOutputTokens =
+    task?.outputTokens != null ? task.outputTokens : (msgOutputTokens > 0 ? msgOutputTokens : null);
+  const displayCostUsd = task?.totalCostUsd ?? null;
 
   const virtualizer = useVirtualizer({
     count: chatItems.length,
@@ -359,6 +388,8 @@ export default function TaskChatPage() {
                   Repository
                 </a>
               )}
+
+
             </div>
           )}
         </div>
@@ -371,6 +402,50 @@ export default function TaskChatPage() {
               </label>
               <div className="px-5 pb-3 border-b border-border/60 text-sm text-muted-foreground bg-card/50 backdrop-blur-sm">
                 <CollapsibleDescription value={task.description} />
+              </div>
+            </div>
+          )}
+          {(displayInputTokens != null || displayOutputTokens != null || displayCostUsd != null) && (
+            <div className="border-b border-border/60 bg-card/50 backdrop-blur-sm">
+              <label className="px-5 pt-4 pb-2 text-[11px] text-muted-foreground uppercase font-semibold tracking-wide block">
+                Usage &amp; Cost
+              </label>
+              <div className="px-5 pb-4 grid grid-cols-3 gap-3">
+                {displayInputTokens != null && (
+                  <div className="rounded-md border border-sky-500/15 bg-card px-3 py-2.5">
+                    <div className="flex items-center gap-1.5 text-[10px] text-sky-400 uppercase font-semibold tracking-wider mb-1.5">
+                      <Hash className="size-3" />
+                      Input tokens
+                    </div>
+                    <div className="text-sm font-mono font-medium text-foreground">
+                      {displayInputTokens.toLocaleString()}
+                    </div>
+                  </div>
+                )}
+                {displayOutputTokens != null && (
+                  <div className="rounded-md border border-violet-500/15 bg-card px-3 py-2.5">
+                    <div className="flex items-center gap-1.5 text-[10px] text-violet-400 uppercase font-semibold tracking-wider mb-1.5">
+                      <Hash className="size-3" />
+                      Output tokens
+                    </div>
+                    <div className="text-sm font-mono font-medium text-foreground">
+                      {displayOutputTokens.toLocaleString()}
+                    </div>
+                  </div>
+                )}
+                {displayCostUsd != null && (
+                  <div className="rounded-md border border-emerald-500/15 bg-card px-3 py-2.5">
+                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 uppercase font-semibold tracking-wider mb-1.5">
+                      <DollarSign className="size-3" />
+                      Total cost
+                    </div>
+                    <div className="text-sm font-mono font-medium text-foreground">
+                      ${displayCostUsd < 0.01
+                        ? displayCostUsd.toFixed(6)
+                        : displayCostUsd.toFixed(4)}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

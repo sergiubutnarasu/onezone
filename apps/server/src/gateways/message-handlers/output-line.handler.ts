@@ -4,6 +4,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { MessageRole, MessageStream } from '@onezone/shared';
 import { Server, Socket } from 'socket.io';
 import { MessagesService } from '../../messages/messages.service';
+import { TasksService } from '../../tasks/tasks.service';
 import { extractTaskId } from '@onezone/shared';
 import { IMessageHandler } from './message-handler.interface';
 
@@ -23,7 +24,10 @@ export interface OutputLineData {
 export class OutputLineHandler implements IMessageHandler<OutputLineData> {
   private readonly logger = new Logger(OutputLineHandler.name);
 
-  constructor(private readonly messagesService: MessagesService) {}
+  constructor(
+    private readonly messagesService: MessagesService,
+    private readonly tasksService: TasksService,
+  ) {}
 
   async handle(
     data: OutputLineData,
@@ -49,6 +53,13 @@ export class OutputLineHandler implements IMessageHandler<OutputLineData> {
         outputTokens: data.outputTokens,
         ts,
       });
+
+      if (data.inputTokens !== undefined || data.outputTokens !== undefined) {
+        await this.tasksService.updateUsage(taskId, {
+          inputTokens: data.inputTokens,
+          outputTokens: data.outputTokens,
+        });
+      }
 
       server
         ?.to(data.roomId)

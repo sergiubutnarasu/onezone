@@ -51,11 +51,9 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
         ts,
       });
 
-      if (data.totalCostUsd !== undefined || data.inputTokens !== undefined || data.outputTokens !== undefined) {
+      if (data.totalCostUsd !== undefined) {
         await this.tasksService.updateUsage(taskId, {
           totalCostUsd: data.totalCostUsd,
-          inputTokens: data.inputTokens,
-          outputTokens: data.outputTokens,
         });
       }
 

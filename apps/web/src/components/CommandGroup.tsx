@@ -17,7 +17,7 @@ export interface CommandGroupData {
 }
 
 export function CommandGroup({ group }: { group: CommandGroupData }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   const isDone = group.exitCode !== undefined;
   const failed = isDone && group.exitCode !== 0;

@@ -9,7 +9,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
-import { AssignTerminalDto, UpdateTaskDto, UpdateTaskStatusDto } from './tasks.dto';
+import { AssignTerminalDto, UpdateTaskDto, UpdateTaskStatusDto, UpdateUsageDto } from './tasks.dto';
 
 @Controller('tasks')
 export class TasksController {
@@ -42,6 +42,15 @@ export class TasksController {
     @Body() body: UpdateTaskDto,
   ) {
     return this.tasksService.update(taskId, body);
+  }
+
+  @Patch(':taskId/usage')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  updateUsage(
+    @Param('taskId') taskId: string,
+    @Body() body: UpdateUsageDto,
+  ) {
+    return this.tasksService.updateUsage(taskId, body);
   }
 
   @Delete(':taskId')

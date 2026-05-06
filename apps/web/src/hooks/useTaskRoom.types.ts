@@ -10,6 +10,8 @@ export interface RoomMessage {
   exitCode?: number | null;
   content: string;
   messageType?: string | null;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
   ts: number;
 }
 

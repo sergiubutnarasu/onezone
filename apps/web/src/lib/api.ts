@@ -66,5 +66,10 @@ export const deleteTerminal = (terminalId: string) => httpClient.delete<void>(`/
 
 export const deleteTask = (taskId: string) => httpClient.delete<void>(`/tasks/${taskId}`);
 
+export const updateTaskUsage = (
+  taskId: string,
+  data: { totalCostUsd?: number; inputTokens?: number; outputTokens?: number },
+) => httpClient.patch<void>(`/tasks/${taskId}/usage`, data);
+
 export const reorderTasks = (projectId: string, tasks: TaskOrderItem[]) =>
   httpClient.put<Task[]>(`/projects/${projectId}/tasks/reorder`, { tasks });
