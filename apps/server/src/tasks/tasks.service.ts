@@ -74,17 +74,19 @@ export class TasksService {
     };
   }
 
-  private toChatMessage(
+  private async toChatMessage(
     task: Awaited<ReturnType<typeof this.findOne>>,
     statusOverride?: TaskStatus,
-  ): ChatMessage {
+  ): Promise<ChatMessage> {
     const status = (statusOverride ??
       task.status) as unknown as SharedTaskStatus;
     const project = task.project!;
+    const globalSkills = await this.prisma.projectSkill.findMany({ where: { projectId: null } });
+    const projectWithAllSkills = { ...project, skills: [...(project.skills ?? []), ...globalSkills] };
     return {
       content: "",
       role: MessageRole.System,
-      task: this.mapToTaskDetails(task, status, project),
+      task: this.mapToTaskDetails(task, status, projectWithAllSkills),
     };
   }
 
@@ -134,7 +136,7 @@ export class TasksService {
     });
     this.logger.log(`Created task ${task.id} for project ${projectId}`);
     const fullTask = await this.findOne(task.id);
-    this.terminalRegistry.assignTask(data.terminalId, this.toChatMessage(fullTask).task!);
+    this.terminalRegistry.assignTask(data.terminalId, (await this.toChatMessage(fullTask)).task!);
     return this.flattenTask(task);
   }
 
@@ -168,7 +170,15 @@ export class TasksService {
 
   async findOneDetails(id: string): Promise<TaskDetails> {
     const task = await this.findOne(id);
-    return this.toChatMessage(task).task!;
+    const globalSkills = await this.prisma.projectSkill.findMany({
+      where: { projectId: null },
+    });
+    const project = task.project!;
+    const projectWithAllSkills = {
+      ...project,
+      skills: [...(project.skills ?? []), ...globalSkills],
+    };
+    return this.mapToTaskDetails(task, task.status as unknown as SharedTaskStatus, projectWithAllSkills);
   }
 
   async updateStatus(id: string, status: TaskStatus) {
@@ -180,7 +190,7 @@ export class TasksService {
     this.logger.log(`Updated task ${id} status to ${status}`);
     this.terminalRegistry.notifyTaskStatusUpdated(
       id,
-      this.toChatMessage(existing, status),
+      await this.toChatMessage(existing, status),
     );
     return task;
   }
@@ -208,7 +218,7 @@ export class TasksService {
         const updated = await this.findOne(item.id);
         this.terminalRegistry.notifyTaskStatusUpdated(
           item.id,
-          this.toChatMessage(updated, item.status),
+          await this.toChatMessage(updated, item.status),
         );
       }
     }
@@ -228,23 +238,27 @@ export class TasksService {
   }
 
   async findByTerminal(terminalId: string): Promise<TaskDetails[]> {
-    const assignments = await this.prisma.taskTerminal.findMany({
-      where: { terminalId },
-      include: {
-        task: {
-          include: {
-            project: { include: { defaultAgent: true } },
-            agent: true,
+    const [assignments, globalSkills] = await Promise.all([
+      this.prisma.taskTerminal.findMany({
+        where: { terminalId },
+        include: {
+          task: {
+            include: {
+              project: { include: { defaultAgent: true, skills: true } },
+              agent: true,
+            },
           },
         },
-      },
-    });
+      }),
+      this.prisma.projectSkill.findMany({ where: { projectId: null } }),
+    ]);
     return assignments.map((a): TaskDetails => {
       const t = a.task;
+      const projectWithAllSkills = { ...t.project, skills: [...(t.project.skills ?? []), ...globalSkills] };
       return this.mapToTaskDetails(
         t,
         t.status as unknown as SharedTaskStatus,
-        t.project,
+        projectWithAllSkills,
       );
     });
   }
@@ -259,7 +273,7 @@ export class TasksService {
     this.logger.log(`Assigned terminal ${terminalId} to task ${id}`);
     this.terminalRegistry.evictTaskTerminal(id);
     const task = await this.findOne(id);
-    this.terminalRegistry.assignTask(terminalId, this.toChatMessage(task).task!);
+    this.terminalRegistry.assignTask(terminalId, (await this.toChatMessage(task)).task!);
     return task;
   }
 

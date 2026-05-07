@@ -78,3 +78,10 @@ export const installProjectSkill = (projectId: string, data: { source: string; s
 
 export const removeProjectSkill = (projectId: string, skillId: string) =>
   httpClient.delete<void>(`/projects/${projectId}/skills/${skillId}`);
+
+export const fetchGlobalSkills = () => httpClient.get<ProjectSkill[]>('/skills');
+
+export const installGlobalSkill = (data: { source: string; skillName: string }) =>
+  httpClient.post<ProjectSkill>('/skills', data);
+
+export const removeGlobalSkill = (skillId: string) => httpClient.delete<void>(`/skills/${skillId}`);

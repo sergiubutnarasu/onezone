@@ -89,5 +89,38 @@ export class ProjectsService {
     await this.prisma.projectSkill.delete({ where: { id: skillId } });
     this.logger.log(`Removed skill "${skill.skillName}" from project ${projectId}`);
   }
+
+  async listGlobalSkills() {
+    return this.prisma.projectSkill.findMany({
+      where: { projectId: null },
+      orderBy: { installedAt: 'asc' },
+    });
+  }
+
+  async installGlobalSkill(data: { source: string; skillName: string }) {
+    const existing = await this.prisma.projectSkill.findFirst({
+      where: { projectId: null, skillName: data.skillName },
+    });
+    if (existing) {
+      throw new ConflictException(`Global skill "${data.skillName}" is already installed`);
+    }
+
+    const skill = await this.prisma.projectSkill.create({
+      data: { source: data.source, skillName: data.skillName },
+    });
+
+    this.logger.log(`Saved global skill "${data.skillName}"`);
+    return skill;
+  }
+
+  async removeGlobalSkill(skillId: string) {
+    const skill = await this.prisma.projectSkill.findUnique({ where: { id: skillId } });
+    if (!skill || skill.projectId !== null) {
+      throw new NotFoundException(`Global skill ${skillId} not found`);
+    }
+
+    await this.prisma.projectSkill.delete({ where: { id: skillId } });
+    this.logger.log(`Removed global skill "${skill.skillName}"`);
+  }
 }
 

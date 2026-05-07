@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FolderOpen, Bot, Zap, Sun, Moon, Menu, X, Monitor } from 'lucide-react';
+import { FolderOpen, Bot, Zap, Sun, Moon, Menu, X, Monitor, Blocks } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme';
 
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: '/', label: 'Projects', icon: FolderOpen, exact: true },
   { href: '/agents', label: 'Agents', icon: Bot, exact: true },
   { href: '/terminals', label: 'Terminals', icon: Monitor, exact: true },
+  { href: '/skills', label: 'Skills', icon: Blocks, exact: true },
 ];
 
 export function AppNav() {

@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Controller } from "react-hook-form";
-import { Trash2 } from "lucide-react";
+import { SkillsManager } from "@/components/SkillsManager";
 import type { ProjectInfo, Agent } from "@onezone/shared";
 
 interface EditProjectForm {
@@ -51,14 +51,6 @@ export function EditProjectDialog({
   const router = useRouter();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
-  const [skillCmd, setSkillCmd] = useState("");
-
-  const parsedSkill = (() => {
-    // Accept: `npx skills add <source> --skill <name>` or just `<source> --skill <name>`
-    const m = skillCmd.match(/(?:npx\s+(?:--yes\s+)?skills\s+add\s+)?(\S+)\s+--skill\s+(\S+)/);
-    if (!m) return null;
-    return { source: m[1], skillName: m[2] };
-  })();
 
   const {
     register,
@@ -90,7 +82,6 @@ export function EditProjectDialog({
         defaultModel: project.defaultModel,
       });
       setEditorKey((k) => k + 1);
-      setSkillCmd("");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -127,13 +118,9 @@ export function EditProjectDialog({
   });
 
   const installMutation = useMutation({
-    mutationFn: () => {
-      if (!parsedSkill) throw new Error("Invalid command");
-      return installProjectSkill(project.id, parsedSkill);
-    },
+    mutationFn: (data: { source: string; skillName: string }) => installProjectSkill(project.id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["project-skills", project.id] });
-      setSkillCmd("");
     },
   });
 
@@ -268,61 +255,14 @@ export function EditProjectDialog({
           </TabsContent>
 
           <TabsContent value="skills" className="mt-3">
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col gap-2">
-                <Input
-                  value={skillCmd}
-                  onChange={(e) => setSkillCmd(e.target.value)}
-                  placeholder="npx skills add vercel-labs/agent-skills --skill find-skills"
-                />
-                {skillCmd && !parsedSkill && (
-                  <p className="text-xs text-muted-foreground">Paste a <code>npx skills add &lt;source&gt; --skill &lt;name&gt;</code> command</p>
-                )}
-                {parsedSkill && (
-                  <p className="text-xs text-muted-foreground">
-                    Source: <span className="font-medium text-foreground">{parsedSkill.source}</span>
-                    {" · "}Skill: <span className="font-medium text-foreground">{parsedSkill.skillName}</span>
-                  </p>
-                )}
-                <Button
-                  onClick={() => installMutation.mutate()}
-                  disabled={!parsedSkill || installMutation.isPending}
-                >
-                  {installMutation.isPending ? "Installing…" : "Install skill"}
-                </Button>
-                {installMutation.isError && (
-                  <p className="text-xs text-destructive">
-                    {(installMutation.error as Error).message}
-                  </p>
-                )}
-              </div>
-
-              {skills.length > 0 && (
-                <div className="border-t border-border/60 pt-3 flex flex-col gap-1">
-                  {skills.map((skill) => (
-                    <div key={skill.id} className="flex items-center justify-between gap-2 py-1">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{skill.skillName}</p>
-                        <p className="text-xs text-muted-foreground truncate">{skill.source}</p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="shrink-0 text-muted-foreground hover:text-destructive"
-                        onClick={() => removeMutation.mutate(skill.id)}
-                        disabled={removeMutation.isPending}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {skills.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">No skills installed</p>
-              )}
-            </div>
+            <SkillsManager
+              skills={skills}
+              onInstall={(data) => installMutation.mutate(data)}
+              installPending={installMutation.isPending}
+              installError={installMutation.isError ? (installMutation.error as Error) : null}
+              onRemove={(id) => removeMutation.mutate(id)}
+              removePending={removeMutation.isPending}
+            />
           </TabsContent>
         </Tabs>
       </DialogContent>
