@@ -47,45 +47,51 @@ export const setupProject = (
     return null;
   }
 
-  emit?.("Setting up project environment...");
+  const lines: string[] = ["Setting up project environment..."];
+  const flush = () => emit?.(lines.join("\n"));
 
-  emit?.("Checking project folder...");
+  lines.push("Checking project folder...");
   const hasProjectFolder = createProjectFolder(projectId);
   if (!hasProjectFolder) {
-    emit?.("✖ Failed to create project folder.");
+    lines.push("✖ Failed to create project folder.");
+    flush();
     return null;
   }
-  emit?.(`✔ Project folder ready: ${getProjectFolder(projectId)}`);
+  lines.push(`✔ Project folder ready: ${getProjectFolder(projectId)}`);
 
-  emit?.("Checking config folder...");
+  lines.push("Checking config folder...");
   const hasConfigFolder = createProjectConfigFolder(projectId);
   if (!hasConfigFolder) {
-    emit?.("✖ Failed to create config folder.");
+    lines.push("✖ Failed to create config folder.");
+    flush();
     return null;
   }
-  emit?.("✔ Config folder ready.");
+  lines.push("✔ Config folder ready.");
 
-  emit?.("Checking workdir...");
+  lines.push("Checking workdir...");
   const hasWorkDirFolder = createProjectWorkDirFolder(projectId);
   if (!hasWorkDirFolder) {
-    emit?.("✖ Failed to create workdir folder.");
+    lines.push("✖ Failed to create workdir folder.");
+    flush();
     return null;
   }
-  emit?.(`✔ Workdir ready: ${getProjectWorkDir(projectId)}`);
+  lines.push(`✔ Workdir ready: ${getProjectWorkDir(projectId)}`);
 
   if (repository && typeof repository === "string") {
-    emit?.("Checking repository...");
+    lines.push("Checking repository...");
     const cloned = cloneProjectRepo(projectId, repository);
     if (!cloned) {
-      emit?.("✖ Failed to clone repository.");
+      lines.push("✖ Failed to clone repository.");
+      flush();
       return null;
     }
-    emit?.("✔ Repository ready.");
+    lines.push("✔ Repository ready.");
   }
 
-  emit?.("Checking Claude configuration...");
+  lines.push("Checking Claude configuration...");
   createClaudeSettings(projectId);
-  emit?.("✔ Claude configuration ready.");
+  lines.push("✔ Claude configuration ready.");
+  flush();
 
   setupSkills({ project, emit });
 
