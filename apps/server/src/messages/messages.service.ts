@@ -16,6 +16,7 @@ export interface CreateMessageDto {
   content: string;
   inputTokens?: number;
   outputTokens?: number;
+  totalCostUsd?: number;
   ts: number;
 }
 

@@ -77,9 +77,13 @@ export function useTaskRoom(
         jobId: string;
         command: string;
         exitCode: number;
+        inputTokens?: number;
+        outputTokens?: number;
+        totalCostUsd?: number;
         ts: number;
       }) => {
         dispatch({ type: "COMMAND_EXIT", payload, taskId });
+        qc.invalidateQueries({ queryKey: ["task", taskId] });
       },
     );
 
@@ -117,6 +121,7 @@ export function useTaskRoom(
 
   return {
     messages: state.messages,
+    liveMessages: state.liveMessages,
     connectedTerminals: Array.from(state.connectedTerminals.values()),
     isConnected,
     sendMessage,

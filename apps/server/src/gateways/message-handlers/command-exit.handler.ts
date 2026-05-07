@@ -5,7 +5,6 @@ import { Server, Socket } from 'socket.io';
 import { MessagesService } from '../../messages/messages.service';
 import { extractTaskId } from '@onezone/shared';
 import { IMessageHandler } from './message-handler.interface';
-import { TasksService } from '../../tasks/tasks.service';
 
 export interface CommandExitData {
   roomId: string;
@@ -25,7 +24,6 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
 
   constructor(
     private readonly messagesService: MessagesService,
-    private readonly tasksService: TasksService,
   ) {}
 
   async handle(
@@ -48,20 +46,20 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
         command: data.command,
         exitCode: data.exitCode,
         content: `[${data.terminalId ?? 'terminal'}] exited with code ${data.exitCode}: ${data.command}`,
+        inputTokens: data.inputTokens,
+        outputTokens: data.outputTokens,
+        totalCostUsd: data.totalCostUsd,
         ts,
       });
-
-      if (data.totalCostUsd !== undefined) {
-        await this.tasksService.updateUsage(taskId, {
-          totalCostUsd: data.totalCostUsd,
-        });
-      }
 
       server?.to(data.roomId).emit(EventCommands.TerminalCommandExit, {
         terminalId: data.terminalId,
         jobId: data.jobId,
         command: data.command,
         exitCode: data.exitCode,
+        inputTokens: data.inputTokens,
+        outputTokens: data.outputTokens,
+        totalCostUsd: data.totalCostUsd,
         ts,
       });
 

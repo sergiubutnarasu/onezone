@@ -1,4 +1,4 @@
-import { IsArray, IsEnum, IsInt, IsNumber, IsOptional, IsString, IsUUID, Min, ValidateNested } from 'class-validator';
+import { IsArray, IsEnum, IsInt, IsOptional, IsString, IsUUID, Min, ValidateNested } from 'class-validator';
 import { TaskStatus } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
 
@@ -77,18 +77,4 @@ export class UpdateTaskDto {
   @IsOptional()
   @IsString()
   model?: string;
-}
-
-export class UpdateUsageDto {
-  @IsOptional()
-  @IsNumber()
-  totalCostUsd?: number;
-
-  @IsOptional()
-  @IsInt()
-  inputTokens?: number;
-
-  @IsOptional()
-  @IsInt()
-  outputTokens?: number;
 }

@@ -59,9 +59,6 @@ model Task {
   agentId            String
   agent              Agent        @relation(fields: [agentId], references: [id], onDelete: Restrict)
   model              String
-  totalCostUsd       Float?
-  inputTokens        Int?
-  outputTokens       Int?
   createdAt          DateTime     @default(now())
   messages           Message[]
   terminalAssignment TaskTerminal?
@@ -97,6 +94,7 @@ model Message {
   content      String   @db.Text
   inputTokens  Int?
   outputTokens Int?
+  totalCostUsd Float?
   ts           BigInt
   createdAt    DateTime @default(now())
 

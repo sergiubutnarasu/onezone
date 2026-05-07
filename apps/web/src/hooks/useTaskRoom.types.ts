@@ -12,6 +12,7 @@ export interface RoomMessage {
   messageType?: string | null;
   inputTokens?: number | null;
   outputTokens?: number | null;
+  totalCostUsd?: number | null;
   ts: number;
 }
 
@@ -27,9 +28,10 @@ export type Action =
   | { type: 'TERMINAL_CONNECTED'; info: ConnectedTerminal & { ts: number } }
   | { type: 'TERMINAL_DISCONNECTED'; info: { terminalId: string; terminalName?: string; ts: number } }
   | { type: 'COMMAND_START'; payload: { terminalId: string; terminalName: string; jobId: string; command: string; ts: number }; taskId: string }
-  | { type: 'COMMAND_EXIT'; payload: { terminalId: string; jobId: string; command: string; exitCode: number; ts: number }; taskId: string };
+  | { type: 'COMMAND_EXIT'; payload: { terminalId: string; jobId: string; command: string; exitCode: number; inputTokens?: number; outputTokens?: number; totalCostUsd?: number; ts: number }; taskId: string };
 
 export interface State {
   messages: RoomMessage[];
+  liveMessages: RoomMessage[];
   connectedTerminals: Map<string, ConnectedTerminal>;
 }

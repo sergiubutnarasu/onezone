@@ -58,22 +58,25 @@ export default function TaskChatPage() {
 
   const chatItems = useMemo(() => buildChatItems(messages), [messages]);
 
-  // task.inputTokens/outputTokens are set from the result message on clean session exit.
-  // Fallback: sum per-turn tokens from assistant messages for interrupted sessions.
-  const msgInputTokens = useMemo(
-    () => messages.reduce((acc, m) => acc + (m.inputTokens ?? 0), 0),
-    [messages],
-  );
-  const msgOutputTokens = useMemo(
-    () => messages.reduce((acc, m) => acc + (m.outputTokens ?? 0), 0),
-    [messages],
-  );
-
-  const displayInputTokens =
-    task?.inputTokens != null ? task.inputTokens : msgInputTokens > 0 ? msgInputTokens : null;
-  const displayOutputTokens =
-    task?.outputTokens != null ? task.outputTokens : msgOutputTokens > 0 ? msgOutputTokens : null;
-  const displayCostUsd = task?.totalCostUsd ?? null;
+  // Sum token/cost from all COMMAND_EXIT messages (history + live).
+  // Each COMMAND_EXIT represents one completed agent run and carries the final per-run totals.
+  const { displayInputTokens, displayOutputTokens, displayCostUsd } = useMemo(() => {
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let costUsd = 0;
+    for (const m of messages) {
+      if (m.messageType === 'COMMAND_EXIT' || (m.exitCode != null && m.jobId)) {
+        inputTokens += m.inputTokens ?? 0;
+        outputTokens += m.outputTokens ?? 0;
+        costUsd += m.totalCostUsd ?? 0;
+      }
+    }
+    return {
+      displayInputTokens: inputTokens > 0 ? inputTokens : null,
+      displayOutputTokens: outputTokens > 0 ? outputTokens : null,
+      displayCostUsd: costUsd > 0 ? costUsd : null,
+    };
+  }, [messages]);
 
   return (
     <TooltipProvider>

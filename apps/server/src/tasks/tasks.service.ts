@@ -279,29 +279,4 @@ export class TasksService {
     this.logger.log(`Updated task ${id}`);
     return task;
   }
-
-  async updateUsage(
-    id: string,
-    data: { totalCostUsd?: number; inputTokens?: number; outputTokens?: number },
-  ) {
-    const current = await this.prisma.task.findUniqueOrThrow({
-      where: { id },
-      select: { totalCostUsd: true, inputTokens: true, outputTokens: true },
-    });
-    await this.prisma.task.update({
-      where: { id },
-      data: {
-        ...(data.totalCostUsd !== undefined && {
-          totalCostUsd: (current.totalCostUsd ?? 0) + data.totalCostUsd,
-        }),
-        ...(data.inputTokens !== undefined && {
-          inputTokens: (current.inputTokens ?? 0) + data.inputTokens,
-        }),
-        ...(data.outputTokens !== undefined && {
-          outputTokens: (current.outputTokens ?? 0) + data.outputTokens,
-        }),
-      },
-    });
-    this.logger.log(`Updated usage for task ${id}`);
-  }
 }

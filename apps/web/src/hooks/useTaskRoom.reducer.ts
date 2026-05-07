@@ -42,10 +42,14 @@ function buildSyntheticExits(
 export function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'SET_MESSAGES':
-      return { ...state, messages: action.messages };
+      return { ...state, messages: action.messages, liveMessages: [] };
 
     case 'APPEND_MESSAGE':
-      return { ...state, messages: [...state.messages, action.message] };
+      return {
+        ...state,
+        messages: [...state.messages, action.message],
+        liveMessages: [...state.liveMessages, action.message],
+      };
 
     case 'COMMAND_START': {
       const { payload, taskId } = action;
@@ -60,7 +64,7 @@ export function reducer(state: State, action: Action): State {
         messageType: MessageType.CommandStart,
         ts: payload.ts,
       };
-      return { ...state, messages: [...state.messages, msg] };
+      return { ...state, messages: [...state.messages, msg], liveMessages: [...state.liveMessages, msg] };
     }
 
     case 'COMMAND_EXIT': {
@@ -73,9 +77,12 @@ export function reducer(state: State, action: Action): State {
         command: payload.command,
         exitCode: payload.exitCode,
         content: payload.command,
+        inputTokens: payload.inputTokens ?? null,
+        outputTokens: payload.outputTokens ?? null,
+        totalCostUsd: payload.totalCostUsd ?? null,
         ts: payload.ts,
       };
-      return { ...state, messages: [...state.messages, msg] };
+      return { ...state, messages: [...state.messages, msg], liveMessages: [...state.liveMessages, msg] };
     }
 
     case 'TERMINAL_CONNECTED': {
@@ -97,6 +104,7 @@ export function reducer(state: State, action: Action): State {
       return {
         connectedTerminals: next,
         messages: [...state.messages, noticeMsg],
+        liveMessages: [...state.liveMessages, noticeMsg],
       };
     }
 
@@ -125,6 +133,7 @@ export function reducer(state: State, action: Action): State {
       return {
         connectedTerminals: next,
         messages: [...state.messages, ...syntheticExits, noticeMsg],
+        liveMessages: [...state.liveMessages, ...syntheticExits, noticeMsg],
       };
     }
 
@@ -135,5 +144,6 @@ export function reducer(state: State, action: Action): State {
 
 export const initialState: State = {
   messages: [],
+  liveMessages: [],
   connectedTerminals: new Map(),
 };
