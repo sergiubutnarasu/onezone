@@ -1,3 +1,4 @@
+import { execSync } from "child_process";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
@@ -83,6 +84,31 @@ export const createProjectConfigFolder = (projectId: string): boolean => {
   } catch (err) {
     console.error(
       `Error creating project config folder: ${(err as Error).message}`,
+    );
+    return false;
+  }
+};
+
+export const cloneProjectRepo = (
+  projectId: string,
+  repository: string,
+): boolean => {
+  try {
+    const workDir = getProjectWorkDir(projectId);
+    const gitDir = path.join(workDir, ".git");
+
+    if (fs.existsSync(gitDir)) {
+      return true;
+    }
+
+    execSync(`git clone ${JSON.stringify(repository)} ${JSON.stringify(workDir)}`, {
+      stdio: "pipe",
+    });
+
+    return true;
+  } catch (err) {
+    console.error(
+      `Error cloning repository: ${(err as Error).message}`,
     );
     return false;
   }

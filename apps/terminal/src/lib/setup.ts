@@ -1,4 +1,5 @@
 import {
+  cloneProjectRepo,
   createClaudeSettings,
   createProjectConfigFolder,
   createProjectFolder,
@@ -34,6 +35,8 @@ export const setupProject = (
     return null;
   }
 
+  const repository = (project as { repository?: unknown }).repository;
+
   const taskId = (task as { id?: unknown }).id;
 
   if (!taskId || typeof taskId !== "string") {
@@ -65,6 +68,16 @@ export const setupProject = (
     return null;
   }
   emit?.(`✔ Workdir ready: ${getProjectWorkDir(projectId)}`);
+
+  if (repository && typeof repository === "string") {
+    emit?.("Checking repository...");
+    const cloned = cloneProjectRepo(projectId, repository);
+    if (!cloned) {
+      emit?.("✖ Failed to clone repository.");
+      return null;
+    }
+    emit?.("✔ Repository ready.");
+  }
 
   emit?.("Checking Claude configuration...");
   createClaudeSettings(projectId);
