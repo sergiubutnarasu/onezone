@@ -38,6 +38,7 @@ export class TasksService {
       defaultAgentId: string;
       defaultModel: string;
       defaultAgent: { id: string; name: string; tag: string; model: string; createdAt: Date };
+      skills?: { id: string; source: string; skillName: string }[];
     },
   ): TaskDetails {
     return {
@@ -68,6 +69,7 @@ export class TasksService {
           model: project.defaultAgent.model,
           createdAt: project.defaultAgent.createdAt.toISOString(),
         },
+        skills: project.skills?.map((s) => ({ id: s.id, source: s.source, skillName: s.skillName })) ?? [],
       },
     };
   }
@@ -156,7 +158,7 @@ export class TasksService {
       where: { id },
       include: {
         terminalAssignment: { include: { terminal: true } },
-        project: { include: { defaultAgent: true } },
+        project: { include: { defaultAgent: true, skills: true } },
         agent: true,
       },
     });

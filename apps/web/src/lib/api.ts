@@ -1,6 +1,6 @@
 // apps/web/src/lib/api.ts
 
-import { TaskStatus, type Terminal, type Task, type RoomMessage, type Agent } from '@onezone/shared';
+import { TaskStatus, type Terminal, type Task, type RoomMessage, type Agent, type ProjectSkill } from '@onezone/shared';
 export type { Agent } from '@onezone/shared';
 import { httpClient } from './http-client';
 
@@ -13,6 +13,7 @@ export interface Project {
   defaultAgent: Agent;
   defaultModel: string;
   createdAt: string;
+  skills: ProjectSkill[];
 }
 
 export interface TaskOrderItem {
@@ -68,3 +69,12 @@ export const deleteTask = (taskId: string) => httpClient.delete<void>(`/tasks/${
 
 export const reorderTasks = (projectId: string, tasks: TaskOrderItem[]) =>
   httpClient.put<Task[]>(`/projects/${projectId}/tasks/reorder`, { tasks });
+
+export const fetchProjectSkills = (projectId: string) =>
+  httpClient.get<ProjectSkill[]>(`/projects/${projectId}/skills`);
+
+export const installProjectSkill = (projectId: string, data: { source: string; skillName: string }) =>
+  httpClient.post<ProjectSkill>(`/projects/${projectId}/skills`, data);
+
+export const removeProjectSkill = (projectId: string, skillId: string) =>
+  httpClient.delete<void>(`/projects/${projectId}/skills/${skillId}`);

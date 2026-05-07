@@ -1,12 +1,16 @@
+import { ProjectInfo } from "@onezone/shared";
 import {
   cloneProjectRepo,
   createClaudeSettings,
   createProjectConfigFolder,
   createProjectFolder,
   createProjectWorkDirFolder,
+  getAllInstalledSkills,
   getProjectFolder,
   getProjectWorkDir,
+  removeSkill,
 } from "./project-paths.js";
+import { setupSkills } from "./skills.js";
 import type { TaskJobConfig } from "./types.js";
 
 export const setupProject = (
@@ -23,13 +27,13 @@ export const setupProject = (
     return null;
   }
 
-  const project = (task as { project?: unknown }).project;
+  const project = (task as { project?: unknown }).project as ProjectInfo;
 
   if (!project || typeof project !== "object") {
     return null;
   }
 
-  const projectId = (project as { id?: unknown }).id;
+  const projectId = project.id;
 
   if (!projectId || typeof projectId !== "string") {
     return null;
@@ -82,6 +86,8 @@ export const setupProject = (
   emit?.("Checking Claude configuration...");
   createClaudeSettings(projectId);
   emit?.("✔ Claude configuration ready.");
+
+  setupSkills({ project, emit });
 
   return {
     projectId,

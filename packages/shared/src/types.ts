@@ -62,6 +62,12 @@ export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   [TaskStatus.DONE]: "Done",
 };
 
+export interface ProjectSkill {
+  id: string;
+  source: string;
+  skillName: string;
+}
+
 export interface ProjectInfo {
   id: string;
   name: string;
@@ -70,6 +76,7 @@ export interface ProjectInfo {
   defaultAgentId: string;
   defaultAgent: Agent;
   defaultModel: string;
+  skills: ProjectSkill[];
 }
 
 export interface Agent {
@@ -98,6 +105,12 @@ export interface Task {
 export interface AssignTaskPayload {
   terminalId: string;
   task: TaskDetails;
+}
+
+export interface RunSkillCommandPayload {
+  projectId: string;
+  source: string;
+  skillName: string;
 }
 
 export interface Terminal {

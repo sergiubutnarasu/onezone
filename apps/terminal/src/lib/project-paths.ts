@@ -101,15 +101,16 @@ export const cloneProjectRepo = (
       return true;
     }
 
-    execSync(`git clone ${JSON.stringify(repository)} ${JSON.stringify(workDir)}`, {
-      stdio: "pipe",
-    });
+    execSync(
+      `git clone ${JSON.stringify(repository)} ${JSON.stringify(workDir)}`,
+      {
+        stdio: "pipe",
+      },
+    );
 
     return true;
   } catch (err) {
-    console.error(
-      `Error cloning repository: ${(err as Error).message}`,
-    );
+    console.error(`Error cloning repository: ${(err as Error).message}`);
     return false;
   }
 };
@@ -175,6 +176,41 @@ export const createClaudeSettings = (projectId: string): boolean => {
     return true;
   } catch (err) {
     console.error(`Error creating Claude settings: ${(err as Error).message}`);
+    return false;
+  }
+};
+
+export const getAllInstalledSkills = (projectId: string): string[] => {
+  try {
+    const configDir = getProjectConfigFolder(projectId);
+    const skillsDir = path.join(configDir, ".claude", "skills");
+
+    if (!fs.existsSync(skillsDir)) {
+      return [];
+    }
+
+    const skillFiles = fs.readdirSync(skillsDir);
+    return skillFiles.map((file) => path.parse(file).name);
+  } catch (err) {
+    console.error(`Error getting installed skills: ${(err as Error).message}`);
+    return [];
+  }
+};
+
+export const removeSkill = (projectId: string, skillName: string): boolean => {
+  try {
+    const configDir = getProjectConfigFolder(projectId);
+    const skillPath = path.join(configDir, ".claude", "skills", `${skillName}`);
+
+    if (fs.existsSync(skillPath)) {
+      fs.rmSync(skillPath, { recursive: true, force: true });
+      return true;
+    } else {
+      console.warn(`Warning: skill "${skillName}" not found at ${skillPath}`);
+      return false;
+    }
+  } catch (err) {
+    console.error(`Error removing skill: ${(err as Error).message}`);
     return false;
   }
 };

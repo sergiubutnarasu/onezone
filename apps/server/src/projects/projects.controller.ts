@@ -10,7 +10,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
-import { CreateProjectDto, UpdateProjectDto } from './projects.dto';
+import { CreateProjectDto, InstallSkillDto, UpdateProjectDto } from './projects.dto';
 
 @Controller('projects')
 export class ProjectsController {
@@ -41,5 +41,22 @@ export class ProjectsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string) {
     return this.projectsService.remove(id);
+  }
+
+  @Get(':id/skills')
+  listSkills(@Param('id') id: string) {
+    return this.projectsService.listSkills(id);
+  }
+
+  @Post(':id/skills')
+  @HttpCode(HttpStatus.CREATED)
+  installSkill(@Param('id') id: string, @Body() body: InstallSkillDto) {
+    return this.projectsService.installSkill(id, body);
+  }
+
+  @Delete(':id/skills/:skillId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removeSkill(@Param('id') id: string, @Param('skillId') skillId: string) {
+    return this.projectsService.removeSkill(id, skillId);
   }
 }

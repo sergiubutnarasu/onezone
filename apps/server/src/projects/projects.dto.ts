@@ -1,4 +1,14 @@
-import { IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+
+export class InstallSkillDto {
+  @IsString()
+  @IsNotEmpty()
+  source!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  skillName!: string;
+}
 
 export class CreateProjectDto {
   @IsString()
