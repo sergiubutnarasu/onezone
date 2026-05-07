@@ -12,16 +12,24 @@ function handleCommandGroup(
   items: ChatItem[],
 ): void {
   if (!msg.jobId) return;
-  const group: CommandGroupData = {
-    jobId: msg.jobId,
-    command: msg.command ?? msg.content,
-    terminalName: msg.terminalName,
-    startTs: msg.ts,
-    lines: [],
-  };
-  groupMap.set(msg.jobId, group);
+  const existing = groupMap.get(msg.jobId);
+  if (existing) {
+    // Output lines arrived before CommandStart — update metadata in place
+    existing.command = msg.command ?? msg.content;
+    existing.terminalName = msg.terminalName;
+    existing.startTs = msg.ts;
+  } else {
+    const group: CommandGroupData = {
+      jobId: msg.jobId,
+      command: msg.command ?? msg.content,
+      terminalName: msg.terminalName,
+      startTs: msg.ts,
+      lines: [],
+    };
+    groupMap.set(msg.jobId, group);
+    items.push({ type: "command", group });
+  }
   items.push({ type: "message", msg });
-  items.push({ type: "command", group });
 }
 
 function handleOutputLine(

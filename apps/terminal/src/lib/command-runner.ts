@@ -43,14 +43,6 @@ export function spawnCommand({
 }: SpawnCommandProps): void {
   const { socket, roomId, terminalId, terminalName, log } = deps;
 
-  const setupResult = setupProject(payload);
-  if (!setupResult) {
-    log(
-      `[${terminalName}] [${roomId}] Failed to setup project environment, skipping command execution.`,
-    );
-    return;
-  }
-
   const terminalAgent = setupTerminalAgent(payload);
   if (!terminalAgent) {
     log(
@@ -73,13 +65,37 @@ export function spawnCommand({
   socket.emit(EventCommands.TerminalCommandStart, basePayload);
 
   const stderrBuffer: string[] = [];
+
+  // Setup messages are emitted synchronously in a tight loop — Date.now() alone
+  // returns the same ms value for all of them, so we use a counter for strict ordering.
+  let setupTs = Date.now();
+  const emitSetupLine = (message: string) =>
+    socket.emit(EventCommands.OutputLine, {
+      ...basePayload,
+      stream: MessageStream.Stdout,
+      content: message,
+      ts: setupTs++,
+    });
+
+  const setupResult = setupProject(payload, emitSetupLine);
+  if (!setupResult) {
+    log(
+      `[${terminalName}] [${roomId}] Failed to setup project environment, skipping command execution.`,
+    );
+    return;
+  }
+
   const projectWorkDir = setupResult.projectWorkDir;
   const command = `${terminalAgent.cmd} ${shellQuote(content)}`;
   const cmdContent = `cd ${shellQuote(projectWorkDir)} && ${command}`;
 
   let cancelled = false;
   let resultSeen = false;
-  let resultUsage: { totalCostUsd?: number; inputTokens?: number; outputTokens?: number } | null = null;
+  let resultUsage: {
+    totalCostUsd?: number;
+    inputTokens?: number;
+    outputTokens?: number;
+  } | null = null;
 
   const proc = runProcess({
     cmd: cmdContent,
@@ -119,6 +135,7 @@ export function spawnCommand({
         ...basePayload,
         stream,
         content: clean,
+        ts: Date.now(),
         ...(inputTokens !== undefined || outputTokens !== undefined
           ? { inputTokens, outputTokens }
           : {}),
@@ -132,11 +149,13 @@ export function spawnCommand({
       const effectiveCode = resultSeen ? 0 : exitCode;
 
       if (effectiveCode !== 0) {
+        let stderrTs = Date.now();
         for (const line of stderrBuffer) {
           socket.emit(EventCommands.OutputLine, {
             ...basePayload,
             stream: MessageStream.Stderr,
             content: line,
+            ts: stderrTs++,
           });
         }
       }
@@ -144,10 +163,12 @@ export function spawnCommand({
       socket.emit(EventCommands.TerminalCommandExit, {
         ...basePayload,
         exitCode: effectiveCode,
+        ts: Date.now(),
         ...(resultUsage ?? {}),
       });
 
-      const badge = effectiveCode === 0 ? "✔ done" : `✖ error (${effectiveCode})`;
+      const badge =
+        effectiveCode === 0 ? "✔ done" : `✖ error (${effectiveCode})`;
       log(`[${terminalName}] [${roomId}] ${badge}: "${content}"`);
       if (!cancelled) {
         void onComplete?.(effectiveCode);

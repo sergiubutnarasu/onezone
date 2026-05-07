@@ -44,12 +44,14 @@ export function reducer(state: State, action: Action): State {
     case 'SET_MESSAGES':
       return { ...state, messages: action.messages, liveMessages: [] };
 
-    case 'APPEND_MESSAGE':
+    case 'APPEND_MESSAGE': {
+      const messages = [...state.messages, action.message].sort((a, b) => (a.ts ?? 0) - (b.ts ?? 0));
       return {
         ...state,
-        messages: [...state.messages, action.message],
+        messages,
         liveMessages: [...state.liveMessages, action.message],
       };
+    }
 
     case 'COMMAND_START': {
       const { payload, taskId } = action;

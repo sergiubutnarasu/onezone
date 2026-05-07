@@ -15,6 +15,7 @@ export interface OutputLineData {
   command?: string;
   stream: MessageStream;
   content: string;
+  ts?: number;
   inputTokens?: number;
   outputTokens?: number;
 }
@@ -34,7 +35,7 @@ export class OutputLineHandler implements IMessageHandler<OutputLineData> {
   ): Promise<{ status: 'ok' | 'error' }> {
     try {
       const taskId = extractTaskId(data.roomId);
-      const ts = Date.now();
+      const ts = data.ts ?? Date.now();
 
       const message = await this.messagesService.create({
         roomId: data.roomId,

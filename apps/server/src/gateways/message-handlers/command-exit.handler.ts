@@ -13,6 +13,7 @@ export interface CommandExitData {
   jobId: string;
   command: string;
   exitCode: number;
+  ts?: number;
   totalCostUsd?: number;
   inputTokens?: number;
   outputTokens?: number;
@@ -33,7 +34,7 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
   ): Promise<{ status: 'ok' | 'error' }> {
     try {
       const taskId = extractTaskId(data.roomId);
-      const ts = Date.now();
+      const ts = data.ts ?? Date.now();
 
       await this.messagesService.create({
         roomId: data.roomId,

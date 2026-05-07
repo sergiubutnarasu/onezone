@@ -8,7 +8,10 @@ import {
 } from "./project-paths.js";
 import type { TaskJobConfig } from "./types.js";
 
-export const setupProject = (payload: unknown): TaskJobConfig | null => {
+export const setupProject = (
+  payload: unknown,
+  emit?: (message: string) => void,
+): TaskJobConfig | null => {
   if (!payload || typeof payload !== "object" || !("task" in payload)) {
     return null;
   }
@@ -37,25 +40,35 @@ export const setupProject = (payload: unknown): TaskJobConfig | null => {
     return null;
   }
 
+  emit?.("Setting up project environment...");
+
+  emit?.("Checking project folder...");
   const hasProjectFolder = createProjectFolder(projectId);
-
   if (!hasProjectFolder) {
+    emit?.("✖ Failed to create project folder.");
     return null;
   }
+  emit?.(`✔ Project folder ready: ${getProjectFolder(projectId)}`);
 
+  emit?.("Checking config folder...");
   const hasConfigFolder = createProjectConfigFolder(projectId);
-
   if (!hasConfigFolder) {
+    emit?.("✖ Failed to create config folder.");
     return null;
   }
+  emit?.("✔ Config folder ready.");
 
+  emit?.("Checking workdir...");
   const hasWorkDirFolder = createProjectWorkDirFolder(projectId);
-
   if (!hasWorkDirFolder) {
+    emit?.("✖ Failed to create workdir folder.");
     return null;
   }
+  emit?.(`✔ Workdir ready: ${getProjectWorkDir(projectId)}`);
 
+  emit?.("Checking Claude configuration...");
   createClaudeSettings(projectId);
+  emit?.("✔ Claude configuration ready.");
 
   return {
     projectId,
