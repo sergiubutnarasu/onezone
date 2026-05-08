@@ -101,8 +101,12 @@ export const cloneProjectRepo = (
       return true;
     }
 
+    const repoUrl = repository.startsWith("https://")
+      ? repository.replace(/^https:\/\/([^/]+)\/(.+?)(?:\.git)?$/, "git@$1:$2.git")
+      : repository;
+
     execSync(
-      `git clone ${JSON.stringify(repository)} ${JSON.stringify(workDir)}`,
+      `git clone ${JSON.stringify(repoUrl)} ${JSON.stringify(workDir)}`,
       {
         stdio: "pipe",
       },
