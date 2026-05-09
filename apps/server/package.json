@@ -24,6 +24,7 @@
     "@nestjs/websockets": "^10.4.4",
     "@onezone/shared": "workspace:*",
     "@prisma/client": "^5.20.0",
+    "prisma": "^5.20.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
@@ -37,7 +38,6 @@
     "@nestjs/schematics": "^10.1.4",
     "@onezone/tsconfig": "workspace:*",
     "@types/node": "^22.5.0",
-    "prisma": "^5.20.0",
     "typescript": "^5.5.4"
   }
 }
