@@ -87,7 +87,6 @@ export function spawnCommand({
 
   const projectWorkDir = setupResult.projectWorkDir;
   const command = `${terminalAgent.cmd} ${shellQuote(content)}`;
-  const cmdContent = `cd ${shellQuote(projectWorkDir)} && ${command}`;
 
   let cancelled = false;
   let resultSeen = false;
@@ -98,9 +97,10 @@ export function spawnCommand({
   } | null = null;
 
   const proc = runProcess({
-    cmd: cmdContent,
+    cmd: command,
     args: [],
     shell: true,
+    cwd: projectWorkDir,
     onLine: (stream, line) => {
       const clean = stripAnsi(line);
       if (!clean) return;

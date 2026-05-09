@@ -55,12 +55,14 @@ export function registerCleanupHandlers(): void {
 
 export function runProcess({
   cmd,
+  cwd,
   args,
   onLine,
   onExit,
   shell = false,
 }: {
   cmd: string;
+  cwd: string;
   args: string[];
   onLine: (stream: MessageStream, line: string) => void;
   onExit: (code: number) => void;
@@ -72,6 +74,7 @@ export function runProcess({
     stdio: ["ignore", "pipe", "pipe"],
     shell,
     detached: true,
+    cwd,
   });
   activeProcs.add(proc);
 
