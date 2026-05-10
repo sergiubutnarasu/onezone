@@ -30,7 +30,7 @@ const COLUMN_COLORS = [
 interface KanbanColumnProps {
   columnId: string;
   columnName: string;
-  columnDescription: string | null;
+  columnInstructions: string | null;
   columnIndex: number;
   tasks: Task[];
   projectId: string;
@@ -42,7 +42,7 @@ const CARD_ESTIMATE_PX = 110;
 export const KanbanColumn = memo(function KanbanColumn({
   columnId,
   columnName,
-  columnDescription,
+  columnInstructions,
   columnIndex,
   tasks,
   projectId,
@@ -187,7 +187,7 @@ export const KanbanColumn = memo(function KanbanColumn({
             open={editOpen}
             onOpenChange={setEditOpen}
             projectId={projectId}
-            column={{ id: columnId, name: columnName, description: columnDescription }}
+            column={{ id: columnId, name: columnName, instructions: columnInstructions }}
           />
           <ConfirmDialog
             open={deleteOpen}

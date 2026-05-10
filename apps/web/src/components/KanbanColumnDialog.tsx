@@ -20,12 +20,12 @@ interface KanbanColumnDialogProps {
   onOpenChange: (open: boolean) => void;
   projectId: string;
   /** When provided, the dialog is in edit mode */
-  column?: { id: string; name: string; description: string | null };
+  column?: { id: string; name: string; instructions: string | null };
 }
 
 interface FormValues {
   name: string;
-  description: string;
+  instructions: string;
 }
 
 export function KanbanColumnDialog({ open, onOpenChange, projectId, column }: KanbanColumnDialogProps) {
@@ -33,20 +33,20 @@ export function KanbanColumnDialog({ open, onOpenChange, projectId, column }: Ka
   const isEdit = !!column;
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
-    defaultValues: { name: column?.name ?? '', description: column?.description ?? '' },
+    defaultValues: { name: column?.name ?? '', instructions: column?.instructions ?? '' },
   });
 
   useEffect(() => {
     if (open) {
-      reset({ name: column?.name ?? '', description: column?.description ?? '' });
+      reset({ name: column?.name ?? '', instructions: column?.instructions ?? '' });
     }
   }, [open, column, reset]);
 
   const mutation = useMutation({
     mutationFn: (data: FormValues) =>
       isEdit
-        ? updateKanbanColumn(projectId, column!.id, { name: data.name, description: data.description || undefined })
-        : createKanbanColumn(projectId, { name: data.name, description: data.description || undefined }),
+        ? updateKanbanColumn(projectId, column!.id, { name: data.name, instructions: data.instructions || undefined })
+        : createKanbanColumn(projectId, { name: data.name, instructions: data.instructions || undefined }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['kanban-columns', projectId] });
       onOpenChange(false);
@@ -70,12 +70,12 @@ export function KanbanColumnDialog({ open, onOpenChange, projectId, column }: Ka
             {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
           </div>
           <div className="space-y-1.5">
-            <label htmlFor="col-description" className="text-sm font-medium">Description <span className="text-muted-foreground">(optional)</span></label>
+            <label htmlFor="col-instructions" className="text-sm font-medium">Instructions <span className="text-muted-foreground">(optional)</span></label>
             <Textarea
-              id="col-description"
+              id="col-instructions"
               placeholder="What does this column represent?"
               rows={2}
-              {...register('description')}
+              {...register('instructions')}
             />
           </div>
           <DialogFooter>

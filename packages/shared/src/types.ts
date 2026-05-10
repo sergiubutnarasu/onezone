@@ -42,7 +42,7 @@ export interface KanbanColumn {
   id: string;
   projectId: string;
   name: string;
-  description?: string | null;
+  instructions?: string | null;
   index: number;
   createdAt: string;
 }

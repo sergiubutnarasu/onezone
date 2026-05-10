@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
-import { DEFAULT_KANBAN_COLUMNS } from '../src/projects/kanban-columns.service';
+import { DEFAULT_KANBAN_COLUMNS } from '../src/projects/constants';
 
 const prisma = new PrismaClient();
 

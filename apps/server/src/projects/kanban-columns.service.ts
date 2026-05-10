@@ -1,14 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { ColumnOrderItemDto } from './kanban-columns.dto';
-import { randomUUID } from 'node:crypto';
-
-export const DEFAULT_KANBAN_COLUMNS = [
-  { name: 'In Progress', description: 'Tasks currently being worked on', index: 0 },
-  { name: 'Testing', description: 'Tasks being tested or verified', index: 1 },
-  { name: 'In Review', description: 'Tasks awaiting code review', index: 2 },
-  { name: 'Done', description: 'Completed tasks', index: 3 },
-];
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { ColumnOrderItemDto } from "./kanban-columns.dto";
+import { randomUUID } from "node:crypto";
+import { DEFAULT_KANBAN_COLUMNS } from "./constants";
 
 @Injectable()
 export class KanbanColumnsService {
@@ -17,7 +11,7 @@ export class KanbanColumnsService {
   async findAllByProject(projectId: string) {
     return this.prisma.kanbanColumn.findMany({
       where: { projectId },
-      orderBy: { index: 'asc' },
+      orderBy: { index: "asc" },
     });
   }
 
@@ -27,14 +21,22 @@ export class KanbanColumnsService {
     return column;
   }
 
-  async create(projectId: string, data: { name: string; description?: string }) {
+  async create(
+    projectId: string,
+    data: { name: string; instructions?: string },
+  ) {
     const maxIndex = await this.prisma.kanbanColumn.aggregate({
       where: { projectId },
       _max: { index: true },
     });
     const nextIndex = (maxIndex._max.index ?? -1) + 1;
     return this.prisma.kanbanColumn.create({
-      data: { projectId, name: data.name, description: data.description, index: nextIndex },
+      data: {
+        projectId,
+        name: data.name,
+        instructions: data.instructions,
+        index: nextIndex,
+      },
     });
   }
 
@@ -49,14 +51,18 @@ export class KanbanColumnsService {
     return this.findAllByProject(projectId);
   }
 
-  async update(id: string, data: { name?: string; description?: string }) {
-    const existing = await this.prisma.kanbanColumn.findUnique({ where: { id } });
+  async update(id: string, data: { name?: string; instructions?: string }) {
+    const existing = await this.prisma.kanbanColumn.findUnique({
+      where: { id },
+    });
     if (!existing) throw new NotFoundException(`KanbanColumn ${id} not found`);
     return this.prisma.kanbanColumn.update({ where: { id }, data });
   }
 
   async remove(id: string) {
-    const existing = await this.prisma.kanbanColumn.findUnique({ where: { id } });
+    const existing = await this.prisma.kanbanColumn.findUnique({
+      where: { id },
+    });
     if (!existing) throw new NotFoundException(`KanbanColumn ${id} not found`);
     // When a column is deleted, task_columns cascade-delete, moving tasks to backlog.
     await this.prisma.kanbanColumn.delete({ where: { id } });

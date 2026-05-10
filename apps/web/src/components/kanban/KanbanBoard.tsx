@@ -62,7 +62,7 @@ export function KanbanBoard({ tasks: initialTasks, projectId, columns }: KanbanB
             <KanbanColumnComponent
               columnId={BACKLOG_COLUMN_ID}
               columnName="Backlog"
-              columnDescription={null}
+              columnInstructions={null}
               columnIndex={-1}
               tasks={groupedTasks.get(BACKLOG_COLUMN_ID) ?? []}
               projectId={projectId}
@@ -78,7 +78,7 @@ export function KanbanBoard({ tasks: initialTasks, projectId, columns }: KanbanB
                   key={col.id}
                   columnId={col.id}
                   columnName={col.name}
-                  columnDescription={col.description ?? null}
+                  columnInstructions={col.instructions ?? null}
                   columnIndex={col.index}
                   tasks={groupedTasks.get(col.id) ?? []}
                   projectId={projectId}

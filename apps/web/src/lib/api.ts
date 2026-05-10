@@ -85,10 +85,10 @@ export const removeProjectSkill = (projectId: string, skillId: string) =>
 export const fetchKanbanColumns = (projectId: string) =>
   httpClient.get<KanbanColumn[]>(`/projects/${projectId}/kanban-columns`);
 
-export const createKanbanColumn = (projectId: string, data: { name: string; description?: string }) =>
+export const createKanbanColumn = (projectId: string, data: { name: string; instructions?: string }) =>
   httpClient.post<KanbanColumn>(`/projects/${projectId}/kanban-columns`, data);
 
-export const updateKanbanColumn = (projectId: string, columnId: string, data: { name?: string; description?: string }) =>
+export const updateKanbanColumn = (projectId: string, columnId: string, data: { name?: string; instructions?: string }) =>
   httpClient.patch<KanbanColumn>(`/projects/${projectId}/kanban-columns/${columnId}`, data);
 
 export const deleteKanbanColumn = (projectId: string, columnId: string) =>

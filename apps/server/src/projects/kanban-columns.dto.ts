@@ -7,7 +7,7 @@ export class CreateKanbanColumnDto {
 
   @IsOptional()
   @IsString()
-  description?: string;
+  instructions?: string;
 }
 
 export class UpdateKanbanColumnDto {
@@ -17,7 +17,7 @@ export class UpdateKanbanColumnDto {
 
   @IsOptional()
   @IsString()
-  description?: string;
+  instructions?: string;
 }
 
 export class ColumnOrderItemDto {

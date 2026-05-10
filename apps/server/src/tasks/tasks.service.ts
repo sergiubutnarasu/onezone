@@ -107,7 +107,7 @@ export class TasksService {
   private flattenTask<
     T extends {
       terminalAssignment: { terminal: unknown; assignedAt: unknown } | null;
-      columnAssignment: { column: { id: string; name: string; index: number; description: string | null }; assignedAt: Date } | null;
+      columnAssignment: { column: { id: string; name: string; index: number; instructions: string | null }; assignedAt: Date } | null;
     },
   >(task: T) {
     const { terminalAssignment, columnAssignment, ...rest } = task;
