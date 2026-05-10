@@ -1,5 +1,5 @@
 import { Command, Flags } from "@oclif/core";
-import { Terminal } from "@onezone/shared";
+import type { Terminal } from "@onezone/shared";
 
 export default class TerminalsList extends Command {
   static description = "List all terminals registered on the server";

@@ -1,4 +1,5 @@
-import { AgentTag, TaskDetails } from "@onezone/shared";
+import { AgentTag } from "@onezone/shared";
+import type { TaskDetails } from "@onezone/shared";
 import { setup as setupClaude } from "../agents/claude.js";
 import { setup as setupCopilot } from "../agents/copilot.js";
 

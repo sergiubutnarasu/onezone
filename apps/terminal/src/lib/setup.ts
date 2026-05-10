@@ -1,4 +1,4 @@
-import { ProjectInfo } from "@onezone/shared";
+import type { ProjectInfo } from "@onezone/shared";
 import {
   cloneProjectRepo,
   createClaudeSettings,

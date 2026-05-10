@@ -1,5 +1,5 @@
 import { Args, Command, Flags } from "@oclif/core";
-import { Task } from "@onezone/shared";
+import type { Task } from "@onezone/shared";
 
 export default class TaskViewCommand extends Command {
   static description = "View details of a task";

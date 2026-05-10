@@ -1,6 +1,7 @@
 // apps/terminal/src/commands/lobby-connection.ts
 
-import { AssignTaskPayload, EventCommands, TaskDetails } from "@onezone/shared";
+import { EventCommands } from "@onezone/shared";
+import type { AssignTaskPayload, TaskDetails } from "@onezone/shared";
 import { createLobbySocket } from "../lib/task-socket.js";
 
 export interface LobbyConnectionDeps {

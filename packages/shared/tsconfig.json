@@ -2,10 +2,12 @@
   "extends": "@onezone/tsconfig/tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2022",
-    "module": "commonjs",
-    "outDir": "./dist",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "outDir": "./dist/esm",
     "rootDir": "./src",
     "declaration": true,
+    "declarationDir": "./dist/esm",
     "declarationMap": true,
     "sourceMap": true
   },

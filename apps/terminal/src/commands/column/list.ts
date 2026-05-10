@@ -1,5 +1,5 @@
 import { Command, Flags } from "@oclif/core";
-import { KanbanColumn } from "@onezone/shared";
+import type { KanbanColumn } from "@onezone/shared";
 
 export default class ColumnList extends Command {
   static description = "List all columns for a project";

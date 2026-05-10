@@ -1,5 +1,5 @@
 import { Args, Command, Flags } from "@oclif/core";
-import { KanbanColumn } from "@onezone/shared";
+import type { KanbanColumn } from "@onezone/shared";
 
 export default class ColumnView extends Command {
   static description = "View details of a column";
