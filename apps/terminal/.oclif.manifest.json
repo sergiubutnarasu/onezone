@@ -1,0 +1,415 @@
+{
+  "commands": {
+    "listen": {
+      "aliases": [],
+      "args": {},
+      "description": "Starts a terminal instance that listens for task assignments and executes commands accordingly. The terminal will automatically execute commands for tasks assigned to it, based on the task's status. Use this command to keep a terminal instance running in the background, ready to handle incoming tasks.",
+      "examples": [
+        "<%= config.bin %> listen",
+        "<%= config.bin %> listen --name my-terminal"
+      ],
+      "flags": {
+        "server": {
+          "description": "Server URL",
+          "name": "server",
+          "default": "http://localhost:5026",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "name": {
+          "description": "Terminal name — must be unique across all running terminals",
+          "name": "name",
+          "default": "MacBookPro",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "listen",
+      "pluginAlias": "@onezone/terminal",
+      "pluginName": "@onezone/terminal",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "listen.js"
+      ]
+    },
+    "column:list": {
+      "aliases": [],
+      "args": {},
+      "description": "List all columns for a project",
+      "examples": [
+        "<%= config.bin %> column list --project <uuid>",
+        "<%= config.bin %> column list --project <uuid> --server http://localhost:5026"
+      ],
+      "flags": {
+        "project": {
+          "description": "Project ID (UUID)",
+          "name": "project",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "server": {
+          "description": "Server URL",
+          "name": "server",
+          "default": "http://localhost:5026",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "column:list",
+      "pluginAlias": "@onezone/terminal",
+      "pluginName": "@onezone/terminal",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "column",
+        "list.js"
+      ]
+    },
+    "column:view": {
+      "aliases": [],
+      "args": {
+        "id": {
+          "description": "Column ID (UUID)",
+          "name": "id",
+          "required": true
+        }
+      },
+      "description": "View details of a column",
+      "examples": [
+        "<%= config.bin %> column view <column-id> --project <uuid>",
+        "<%= config.bin %> column view <column-id> --project <uuid> --server http://localhost:5026"
+      ],
+      "flags": {
+        "project": {
+          "description": "Project ID (UUID)",
+          "name": "project",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "server": {
+          "description": "Server URL",
+          "name": "server",
+          "default": "http://localhost:5026",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "column:view",
+      "pluginAlias": "@onezone/terminal",
+      "pluginName": "@onezone/terminal",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "column",
+        "view.js"
+      ]
+    },
+    "task:create": {
+      "aliases": [],
+      "args": {},
+      "description": "Create a new task in a project",
+      "examples": [
+        "<%= config.bin %> task create --project <uuid> --name \"My task\" --terminal <terminalUuid>",
+        "<%= config.bin %> task create --project <uuid> --name \"My task\" --description \"Details\" --terminal <terminalUuid>"
+      ],
+      "flags": {
+        "project": {
+          "description": "Project ID (UUID)",
+          "name": "project",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "name": {
+          "description": "Task name",
+          "name": "name",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "description": {
+          "description": "Task description",
+          "name": "description",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "terminal": {
+          "description": "Terminal ID (UUID) to assign to this task",
+          "name": "terminal",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "server": {
+          "description": "Server URL",
+          "name": "server",
+          "default": "http://localhost:5026",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "task:create",
+      "pluginAlias": "@onezone/terminal",
+      "pluginName": "@onezone/terminal",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "task",
+        "create.js"
+      ]
+    },
+    "task:delete": {
+      "aliases": [],
+      "args": {
+        "id": {
+          "description": "Task ID (UUID)",
+          "name": "id",
+          "required": true
+        }
+      },
+      "description": "Delete a task",
+      "examples": [
+        "<%= config.bin %> task delete <task-id>",
+        "<%= config.bin %> task delete <task-id> --server http://localhost:5026"
+      ],
+      "flags": {
+        "server": {
+          "description": "Server URL",
+          "name": "server",
+          "default": "http://localhost:5026",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "yes": {
+          "char": "y",
+          "description": "Skip confirmation prompt",
+          "name": "yes",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "task:delete",
+      "pluginAlias": "@onezone/terminal",
+      "pluginName": "@onezone/terminal",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "task",
+        "delete.js"
+      ]
+    },
+    "task:list": {
+      "aliases": [],
+      "args": {},
+      "description": "List all tasks for a project",
+      "examples": [
+        "<%= config.bin %> task list --project <uuid>",
+        "<%= config.bin %> task list --project <uuid> --server http://localhost:5026"
+      ],
+      "flags": {
+        "project": {
+          "description": "Project ID (UUID)",
+          "name": "project",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "server": {
+          "description": "Server URL",
+          "name": "server",
+          "default": "http://localhost:5026",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "task:list",
+      "pluginAlias": "@onezone/terminal",
+      "pluginName": "@onezone/terminal",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "task",
+        "list.js"
+      ]
+    },
+    "task:move": {
+      "aliases": [],
+      "args": {},
+      "description": "Move a task to a kanban column",
+      "examples": [
+        "<%= config.bin %> task move --task <uuid> --column <column-uuid>",
+        "<%= config.bin %> task move --task <uuid> --column backlog"
+      ],
+      "flags": {
+        "task": {
+          "description": "Task ID (UUID)",
+          "name": "task",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "column": {
+          "description": "Column ID (UUID) or \"backlog\" to move to the backlog",
+          "name": "column",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "server": {
+          "description": "Server URL",
+          "name": "server",
+          "default": "http://localhost:5026",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "task:move",
+      "pluginAlias": "@onezone/terminal",
+      "pluginName": "@onezone/terminal",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "task",
+        "move.js"
+      ]
+    },
+    "task:view": {
+      "aliases": [],
+      "args": {
+        "id": {
+          "description": "Task ID (UUID)",
+          "name": "id",
+          "required": true
+        }
+      },
+      "description": "View details of a task",
+      "examples": [
+        "<%= config.bin %> task view <task-id>",
+        "<%= config.bin %> task view <task-id> --server http://localhost:5026"
+      ],
+      "flags": {
+        "server": {
+          "description": "Server URL",
+          "name": "server",
+          "default": "http://localhost:5026",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "task:view",
+      "pluginAlias": "@onezone/terminal",
+      "pluginName": "@onezone/terminal",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "task",
+        "view.js"
+      ]
+    },
+    "terminals:list": {
+      "aliases": [],
+      "args": {},
+      "description": "List all terminals registered on the server",
+      "examples": [
+        "<%= config.bin %> terminals list",
+        "<%= config.bin %> terminals list --server http://localhost:5026"
+      ],
+      "flags": {
+        "server": {
+          "description": "Server URL",
+          "name": "server",
+          "default": "http://localhost:5026",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "terminals:list",
+      "pluginAlias": "@onezone/terminal",
+      "pluginName": "@onezone/terminal",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "terminals",
+        "list.js"
+      ]
+    }
+  },
+  "version": "0.0.1"
+}

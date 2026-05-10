@@ -7,14 +7,19 @@
   "bin": {
     "onezone-terminal": "./bin/run.js"
   },
+  "files": ["dist", "bin", ".oclif.manifest.json"],
   "oclif": {
     "bin": "onezone-terminal",
     "dirname": "onezone-terminal",
-    "commands": "./dist/commands",
+    "commands": {
+      "strategy": "pattern",
+      "target": "./dist/commands",
+      "globPatterns": ["**/*.js"]
+    },
     "topicSeparator": " "
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && oclif manifest",
     "dev": "node --loader ts-node/esm ./bin/dev.js",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit"
@@ -28,6 +33,7 @@
   "devDependencies": {
     "@onezone/tsconfig": "workspace:*",
     "@types/node": "^22.5.0",
+    "oclif": "^4.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4"
   }
