@@ -5,12 +5,11 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { CreateTaskDialog } from './CreateTaskDialog';
-import type { Terminal, Agent } from '@onezone/shared';
-import type { Project } from '@/lib/api';
+import type { Terminal, Agent, ProjectInfo } from '@onezone/shared';
 
 interface CreateTaskButtonProps {
   projectId: string;
-  project: Project | null;
+  project: ProjectInfo | null;
   terminals: Terminal[];
   agents: Agent[];
 }

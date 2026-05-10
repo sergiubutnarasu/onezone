@@ -59,9 +59,9 @@ export interface ProjectInfo {
   description?: string | null;
   repository?: string | null;
   defaultAgentId: string;
-  defaultAgent: Agent;
   defaultModel: string;
   skills: ProjectSkill[];
+  createdAt: string;
   kanbanColumns: KanbanColumn[];
 }
 

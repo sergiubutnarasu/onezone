@@ -43,11 +43,11 @@ export default class ColumnView extends Command {
       this.error(message, { exit: 1 });
     }
 
-    this.log(`ID:          ${column.id}`);
-    this.log(`Name:        ${column.name}`);
-    this.log(`Description: ${column.description ?? "-"}`);
-    this.log(`Index:       ${column.index}`);
-    this.log(`Project ID:  ${column.projectId}`);
-    this.log(`Created At:  ${column.createdAt}`);
+    this.log(`ID:           ${column.id}`);
+    this.log(`Name:         ${column.name}`);
+    this.log(`Instructions: ${column.instructions ?? "-"}`);
+    this.log(`Index:        ${column.index}`);
+    this.log(`Project ID:   ${column.projectId}`);
+    this.log(`Created At:   ${column.createdAt}`);
   }
 }

@@ -21,8 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Controller } from "react-hook-form";
-import type { Terminal, Agent } from "@onezone/shared";
-import type { Project } from "@/lib/api";
+import type { Terminal, Agent, ProjectInfo } from "@onezone/shared";
 
 interface CreateTaskForm {
   name: string;
@@ -34,7 +33,7 @@ interface CreateTaskForm {
 
 interface CreateTaskDialogProps {
   projectId: string;
-  project: Project | null;
+  project: ProjectInfo | null;
   terminals: Terminal[];
   agents: Agent[];
   open: boolean;

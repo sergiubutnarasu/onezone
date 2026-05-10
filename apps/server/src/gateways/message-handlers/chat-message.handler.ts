@@ -1,12 +1,11 @@
 // apps/server/src/gateways/message-handlers/chat-message.handler.ts
 
-import { Injectable, Logger } from '@nestjs/common';
-import { MessageRole } from '@onezone/shared';
-import { Server, Socket } from 'socket.io';
-import { MessagesService } from '../../messages/messages.service';
-import { extractTaskId } from '@onezone/shared';
-import { IMessageHandler } from './message-handler.interface';
-import { TasksService } from '../../tasks/tasks.service';
+import { Injectable, Logger } from "@nestjs/common";
+import { extractTaskId, MessageRole } from "@onezone/shared";
+import { Server, Socket } from "socket.io";
+import { MessagesService } from "../../messages/messages.service";
+import { TasksService } from "../../tasks/tasks.service";
+import { IMessageHandler } from "./message-handler.interface";
 
 export interface ChatMessageData {
   roomId: string;
@@ -26,7 +25,7 @@ export class ChatMessageHandler implements IMessageHandler<ChatMessageData> {
     data: ChatMessageData,
     client: Socket,
     server?: Server,
-  ): Promise<{ status: 'ok' | 'error' }> {
+  ): Promise<{ status: "ok" | "error" }> {
     try {
       const taskId = extractTaskId(data.roomId);
       const ts = Date.now();
@@ -38,8 +37,9 @@ export class ChatMessageHandler implements IMessageHandler<ChatMessageData> {
         taskId,
         role: MessageRole.User,
         terminalId: (task?.terminal as { id?: string } | null)?.id ?? undefined,
-        terminalName: (task?.terminal as { name?: string } | null)?.name ?? undefined,
-        messageType: 'CHAT',
+        terminalName:
+          (task?.terminal as { name?: string } | null)?.name ?? undefined,
+        messageType: "CHAT",
         content: data.content,
         ts,
       });
@@ -59,7 +59,6 @@ export class ChatMessageHandler implements IMessageHandler<ChatMessageData> {
               name: task.project.name,
               description: task.project.description,
               defaultAgentId: task.project.defaultAgentId,
-              defaultAgent: task.project.defaultAgent,
               defaultModel: task.project.defaultModel,
               kanbanColumns: [],
             },
@@ -68,13 +67,17 @@ export class ChatMessageHandler implements IMessageHandler<ChatMessageData> {
 
       server
         ?.to(data.roomId)
-        .emit('chat:message', { ...message, ts: Number(message.ts), task: taskDetails });
+        .emit("chat:message", {
+          ...message,
+          ts: Number(message.ts),
+          task: taskDetails,
+        });
 
-      return { status: 'ok' };
+      return { status: "ok" };
     } catch (error) {
-      this.logger.error('Failed to handle chat:message', error);
-      client.emit('error', { message: 'Failed to save message' });
-      return { status: 'error' };
+      this.logger.error("Failed to handle chat:message", error);
+      client.emit("error", { message: "Failed to save message" });
+      return { status: "error" };
     }
   }
 }

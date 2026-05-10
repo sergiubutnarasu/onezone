@@ -1,7 +1,12 @@
-import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { TerminalRegistryService } from '../gateways/terminal-registry.service';
-import { KanbanColumnsService } from './kanban-columns.service';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { TerminalRegistryService } from "../gateways/terminal-registry.service";
+import { KanbanColumnsService } from "./kanban-columns.service";
 
 @Injectable()
 export class ProjectsService {
@@ -13,27 +18,47 @@ export class ProjectsService {
     private readonly kanbanColumnsService: KanbanColumnsService,
   ) {}
 
-  async create(data: { name: string; description?: string; repository?: string; defaultAgentId: string; defaultModel: string }) {
+  async create(data: {
+    name: string;
+    description?: string;
+    repository?: string;
+    defaultAgentId: string;
+    defaultModel: string;
+  }) {
     const project = await this.prisma.project.create({ data });
     await this.kanbanColumnsService.createDefaults(project.id);
-    this.logger.log(`Created project ${project.id} with default kanban columns`);
+    this.logger.log(
+      `Created project ${project.id} with default kanban columns`,
+    );
     return project;
   }
 
   async findAll() {
     return this.prisma.project.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: { defaultAgent: true, skills: true },
+      orderBy: { createdAt: "desc" },
+      include: { skills: true },
     });
   }
 
   async findOne(id: string) {
-    const project = await this.prisma.project.findUnique({ where: { id }, include: { defaultAgent: true, skills: true } });
+    const project = await this.prisma.project.findUnique({
+      where: { id },
+      include: { skills: true },
+    });
     if (!project) throw new NotFoundException(`Project ${id} not found`);
     return project;
   }
 
-  async update(id: string, data: { name?: string; description?: string; repository?: string; defaultAgentId?: string; defaultModel?: string }) {
+  async update(
+    id: string,
+    data: {
+      name?: string;
+      description?: string;
+      repository?: string;
+      defaultAgentId?: string;
+      defaultModel?: string;
+    },
+  ) {
     await this.findOne(id);
     const project = await this.prisma.project.update({ where: { id }, data });
     this.logger.log(`Updated project ${id}`);
@@ -53,7 +78,9 @@ export class ProjectsService {
     }
 
     const project = await this.prisma.project.delete({ where: { id } });
-    this.logger.log(`Deleted project ${id} and cleaned up ${tasks.length} task room(s)`);
+    this.logger.log(
+      `Deleted project ${id} and cleaned up ${tasks.length} task room(s)`,
+    );
     return project;
   }
 
@@ -61,18 +88,23 @@ export class ProjectsService {
     await this.findOne(projectId);
     return this.prisma.projectSkill.findMany({
       where: { projectId },
-      orderBy: { installedAt: 'asc' },
+      orderBy: { installedAt: "asc" },
     });
   }
 
-  async installSkill(projectId: string, data: { source: string; skillName: string }) {
+  async installSkill(
+    projectId: string,
+    data: { source: string; skillName: string },
+  ) {
     await this.findOne(projectId);
 
     const existing = await this.prisma.projectSkill.findUnique({
       where: { projectId_skillName: { projectId, skillName: data.skillName } },
     });
     if (existing) {
-      throw new ConflictException(`Skill "${data.skillName}" is already installed on this project`);
+      throw new ConflictException(
+        `Skill "${data.skillName}" is already installed on this project`,
+      );
     }
 
     const skill = await this.prisma.projectSkill.create({
@@ -84,19 +116,25 @@ export class ProjectsService {
   }
 
   async removeSkill(projectId: string, skillId: string) {
-    const skill = await this.prisma.projectSkill.findUnique({ where: { id: skillId } });
+    const skill = await this.prisma.projectSkill.findUnique({
+      where: { id: skillId },
+    });
     if (!skill || skill.projectId !== projectId) {
-      throw new NotFoundException(`Skill ${skillId} not found on project ${projectId}`);
+      throw new NotFoundException(
+        `Skill ${skillId} not found on project ${projectId}`,
+      );
     }
 
     await this.prisma.projectSkill.delete({ where: { id: skillId } });
-    this.logger.log(`Removed skill "${skill.skillName}" from project ${projectId}`);
+    this.logger.log(
+      `Removed skill "${skill.skillName}" from project ${projectId}`,
+    );
   }
 
   async listGlobalSkills() {
     return this.prisma.projectSkill.findMany({
       where: { projectId: null },
-      orderBy: { installedAt: 'asc' },
+      orderBy: { installedAt: "asc" },
     });
   }
 
@@ -105,7 +143,9 @@ export class ProjectsService {
       where: { projectId: null, skillName: data.skillName },
     });
     if (existing) {
-      throw new ConflictException(`Global skill "${data.skillName}" is already installed`);
+      throw new ConflictException(
+        `Global skill "${data.skillName}" is already installed`,
+      );
     }
 
     const skill = await this.prisma.projectSkill.create({
@@ -117,7 +157,9 @@ export class ProjectsService {
   }
 
   async removeGlobalSkill(skillId: string) {
-    const skill = await this.prisma.projectSkill.findUnique({ where: { id: skillId } });
+    const skill = await this.prisma.projectSkill.findUnique({
+      where: { id: skillId },
+    });
     if (!skill || skill.projectId !== null) {
       throw new NotFoundException(`Global skill ${skillId} not found`);
     }
@@ -126,4 +168,3 @@ export class ProjectsService {
     this.logger.log(`Removed global skill "${skill.skillName}"`);
   }
 }
-
