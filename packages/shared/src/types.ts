@@ -42,7 +42,7 @@ export interface KanbanColumn {
   id: string;
   projectId: string;
   name: string;
-  instructions?: string | null;
+  instructions: string;
   index: number;
   createdAt: string;
 }
@@ -119,13 +119,13 @@ export interface TaskDetails {
   description?: string | null;
   /** null means the task is in the virtual Backlog column */
   columnId: string | null;
-  /** Human-readable column name; null means "Backlog" */
-  columnName: string | null;
   agentId: string;
   agent?: Pick<Agent, "id" | "name" | "tag"> | null;
   model: string;
   completedAt?: string | null;
+  projectId: string;
   project: ProjectInfo;
+  column: KanbanColumn | null;
 }
 
 export interface ChatMessage {

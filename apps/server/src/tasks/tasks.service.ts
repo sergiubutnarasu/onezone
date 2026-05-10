@@ -28,7 +28,16 @@ export class TasksService {
       model: string;
       completedAt?: Date | null;
       agent: { id: string; name: string; tag: string } | null;
-      columnAssignment?: { column: { id: string; name: string } } | null;
+      columnAssignment?: {
+        column: {
+          id: string;
+          name: string;
+          projectId?: string;
+          instructions?: string;
+          index?: number;
+          createdAt?: string | Date;
+        };
+      } | null;
     },
     project: {
       id: string;
@@ -42,13 +51,26 @@ export class TasksService {
       kanbanColumns?: KanbanColumn[];
     },
   ): TaskDetails {
-    const column = task.columnAssignment?.column ?? null;
+    const raw = task.columnAssignment?.column ?? null;
+    const column: KanbanColumn | null = raw
+      ? {
+          id: raw.id,
+          name: raw.name,
+          projectId: raw.projectId ?? '',
+          instructions: raw.instructions ?? '',
+          index: raw.index ?? 0,
+          createdAt:
+            raw.createdAt instanceof Date
+              ? raw.createdAt.toISOString()
+              : (raw.createdAt ?? new Date().toISOString()),
+        }
+      : null;
     return {
       id: task.id,
       name: task.name,
       description: task.description,
       columnId: column?.id ?? null,
-      columnName: column?.name ?? null,
+      column: column,
       completedAt: task.completedAt?.toISOString() ?? null,
       agentId: task.agentId,
       agent: task.agent
@@ -59,6 +81,7 @@ export class TasksService {
           }
         : null,
       model: task.model,
+      projectId: project.id,
       project: {
         id: project.id,
         name: project.name,
@@ -80,7 +103,7 @@ export class TasksService {
 
   private async toChatMessage(
     task: Awaited<ReturnType<typeof this.findOne>>,
-    columnOverride?: { id: string; name: string } | null,
+    columnOverride?: KanbanColumn | null,
   ): Promise<ChatMessage> {
     const project = task.project!;
     const globalSkills = await this.prisma.projectSkill.findMany({
@@ -123,7 +146,7 @@ export class TasksService {
           id: string;
           name: string;
           index: number;
-          instructions: string | null;
+          instructions: string;
         };
         assignedAt: Date;
       } | null;
@@ -238,12 +261,24 @@ export class TasksService {
         createdAt: c.createdAt.toISOString(),
       })),
     };
-    return this.mapToTaskDetails(task, projectWithAllSkills);
+    const taskForMap = {
+      ...task,
+      columnAssignment: task.columnAssignment
+        ? {
+            ...task.columnAssignment,
+            column: {
+              ...task.columnAssignment.column,
+              createdAt: task.columnAssignment.column.createdAt.toISOString(),
+            },
+          }
+        : null,
+    };
+    return this.mapToTaskDetails(taskForMap, projectWithAllSkills);
   }
 
   async updateColumn(id: string, columnId: string | null) {
     const existing = await this.findOne(id);
-    let column: { id: string; name: string } | null = null;
+    let column: KanbanColumn | null = null;
 
     await this.prisma.$transaction(async (tx) => {
       if (columnId === null) {
@@ -252,9 +287,9 @@ export class TasksService {
       } else {
         const col = await tx.kanbanColumn.findUniqueOrThrow({
           where: { id: columnId },
-          select: { id: true, name: true, index: true },
+          select: { id: true, name: true, index: true, projectId: true, instructions: true, createdAt: true },
         });
-        column = { id: col.id, name: col.name };
+        column = { ...col, createdAt: col.createdAt.toISOString() };
         const maxIndex = await tx.kanbanColumn.aggregate({
           where: { projectId: existing.projectId },
           _max: { index: true },
@@ -333,12 +368,13 @@ export class TasksService {
       const prevColumnId = prev.columnAssignment?.columnId ?? null;
       if (item.columnId !== prevColumnId) {
         const updated = await this.findOne(item.id);
-        let column: { id: string; name: string } | null = null;
+        let column: KanbanColumn | null = null;
         if (item.columnId) {
-          column = await this.prisma.kanbanColumn.findUnique({
+          const col = await this.prisma.kanbanColumn.findUnique({
             where: { id: item.columnId },
-            select: { id: true, name: true },
+            select: { id: true, name: true, index: true, projectId: true, instructions: true, createdAt: true },
           });
+          column = col ? { ...col, createdAt: col.createdAt.toISOString() } : null;
         }
         this.terminalRegistry.notifyTaskColumnUpdated(
           item.id,
@@ -393,7 +429,19 @@ export class TasksService {
           createdAt: c.createdAt.toISOString(),
         })),
       };
-      return this.mapToTaskDetails(t, projectWithAllSkills);
+      const tForMap = {
+        ...t,
+        columnAssignment: t.columnAssignment
+          ? {
+              ...t.columnAssignment,
+              column: {
+                ...t.columnAssignment.column,
+                createdAt: t.columnAssignment.column.createdAt.toISOString(),
+              },
+            }
+          : null,
+      };
+      return this.mapToTaskDetails(tForMap, projectWithAllSkills);
     });
   }
 

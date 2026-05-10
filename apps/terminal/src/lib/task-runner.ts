@@ -32,9 +32,7 @@ export const taskRunner = ({
     return;
   }
 
-  const columnName = task.columnName;
-
-  if (!columnName) {
+  if (!task.column?.id) {
     log(
       `[${terminalName}] [${roomId}] Task is in Backlog, skipping command execution.`,
     );
@@ -48,78 +46,94 @@ export const taskRunner = ({
     return;
   }
 
-  const nextColumn = getNextColumn(task);
-  const onComplete = nextColumn
-    ? async (_exitCode: number) => {
-        await fetch(`${deps.serverUrl}/tasks/${task.id}/column`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ columnId: nextColumn.id }),
-        });
-      }
-    : undefined;
+  const input = {
+    taskId: task.id,
+    taskName: task.name,
+    taskDescription: task.description,
+    projectId: task.project.id,
+    kanbanColumnId: task.columnId,
+    kanbanColumnInstructions: task.column?.instructions,
+  };
 
-  const lowerName = columnName.toLowerCase();
+  spawnCommand({
+    content: `/onezone-runner ${JSON.stringify(input)}`,
+    payload,
+    deps,
+    activeProcesses,
+  });
 
-  if (lowerName === "planning") {
-    log(
-      `[${terminalName}] [${roomId}] Task is in PLANNING status, starting command execution...`,
-    );
+  // const nextColumn = getNextColumn(task);
+  // const onComplete = nextColumn
+  //   ? async (_exitCode: number) => {
+  //       await fetch(`${deps.serverUrl}/tasks/${task.id}/column`, {
+  //         method: "PATCH",
+  //         headers: { "Content-Type": "application/json" },
+  //         body: JSON.stringify({ columnId: nextColumn.id }),
+  //       });
+  //     }
+  //   : undefined;
 
-    spawnCommand({
-      content: `/onezone-planner ${task.description || ""}`,
-      payload,
-      deps,
-      activeProcesses,
-      onComplete,
-    });
+  // const lowerName = columnName.toLowerCase();
 
-    return;
-  }
+  // if (lowerName === "planning") {
+  //   log(
+  //     `[${terminalName}] [${roomId}] Task is in PLANNING status, starting command execution...`,
+  //   );
 
-  if (lowerName === "in progress") {
-    log(
-      `[${terminalName}] [${roomId}] Task is In Progress, executing command...`,
-    );
-    spawnCommand({
-      content: `/onezone-developer`,
-      payload,
-      deps,
-      activeProcesses,
-      onComplete,
-    });
-    return;
-  }
+  //   spawnCommand({
+  //     content: `/onezone-planner ${task.description || ""}`,
+  //     payload,
+  //     deps,
+  //     activeProcesses,
+  //     onComplete,
+  //   });
 
-  if (lowerName === "in review") {
-    log(
-      `[${terminalName}] [${roomId}] Task is In Review, executing command...`,
-    );
-    spawnCommand({
-      content: `/onezone-reviewer`,
-      payload,
-      deps,
-      activeProcesses,
-      onComplete,
-    });
-    return;
-  }
+  //   return;
+  // }
 
-  if (lowerName === "testing") {
-    log(
-      `[${terminalName}] [${roomId}] Task is in Testing, executing command...`,
-    );
-    spawnCommand({
-      content: `/onezone-tester`,
-      payload,
-      deps,
-      activeProcesses,
-      onComplete,
-    });
-    return;
-  }
+  // if (lowerName === "in progress") {
+  //   log(
+  //     `[${terminalName}] [${roomId}] Task is In Progress, executing command...`,
+  //   );
+  //   spawnCommand({
+  //     content: `/onezone-developer`,
+  //     payload,
+  //     deps,
+  //     activeProcesses,
+  //     onComplete,
+  //   });
+  //   return;
+  // }
 
-  log(
-    `[${terminalName}] [${roomId}] Task is in column "${columnName}", no specific handler — skipping.`,
-  );
+  // if (lowerName === "in review") {
+  //   log(
+  //     `[${terminalName}] [${roomId}] Task is In Review, executing command...`,
+  //   );
+  //   spawnCommand({
+  //     content: `/onezone-reviewer`,
+  //     payload,
+  //     deps,
+  //     activeProcesses,
+  //     onComplete,
+  //   });
+  //   return;
+  // }
+
+  // if (lowerName === "testing") {
+  //   log(
+  //     `[${terminalName}] [${roomId}] Task is in Testing, executing command...`,
+  //   );
+  //   spawnCommand({
+  //     content: `/onezone-tester`,
+  //     payload,
+  //     deps,
+  //     activeProcesses,
+  //     onComplete,
+  //   });
+  //   return;
+  // }
+
+  // log(
+  //   `[${terminalName}] [${roomId}] Task is in column "${columnName}", no specific handler — skipping.`,
+  // );
 };

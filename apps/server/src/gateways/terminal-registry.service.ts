@@ -109,7 +109,7 @@ export class TerminalRegistryService {
       this.server.to(projectRoomId).emit(EventCommands.TaskColumnUpdated, message);
     }
     this.logger.log(
-      `Notified task room ${roomId} of column update: ${message?.task?.columnName ?? 'Backlog'}`,
+      `Notified task room ${roomId} of column update: ${message?.task?.column?.name ?? 'Backlog'}`,
     );
   }
 }
