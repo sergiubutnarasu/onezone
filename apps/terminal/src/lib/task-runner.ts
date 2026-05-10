@@ -1,12 +1,18 @@
-import { TASK_STATUS_COLUMNS, TaskDetails, TaskStatus } from "@onezone/shared";
+import { TaskDetails, KanbanColumn } from "@onezone/shared";
 import { spawnCommand, SpawnCommandProps } from "./command-runner.js";
 
-const getNextStatus = (current: TaskStatus): TaskStatus | undefined => {
-  const idx = TASK_STATUS_COLUMNS.indexOf(current);
-  return idx >= 0 && idx < TASK_STATUS_COLUMNS.length - 1
-    ? TASK_STATUS_COLUMNS[idx + 1]
+function getNextColumn(task: TaskDetails): KanbanColumn | undefined {
+  const columns = task.project?.kanbanColumns ?? [];
+  if (!task.columnId) {
+    // Task is in backlog — no automatic advancement
+    return undefined;
+  }
+  const sortedColumns = [...columns].sort((a, b) => a.index - b.index);
+  const currentIdx = sortedColumns.findIndex((c) => c.id === task.columnId);
+  return currentIdx >= 0 && currentIdx < sortedColumns.length - 1
+    ? sortedColumns[currentIdx + 1]
     : undefined;
-};
+}
 
 export interface TaskRunnerProps extends Omit<SpawnCommandProps, "content"> {}
 
@@ -26,86 +32,94 @@ export const taskRunner = ({
     return;
   }
 
-  const nextStatus = getNextStatus(task.status);
-  const onComplete = nextStatus
+  const columnName = task.columnName;
+
+  if (!columnName) {
+    log(
+      `[${terminalName}] [${roomId}] Task is in Backlog, skipping command execution.`,
+    );
+    return;
+  }
+
+  if (task.completedAt) {
+    log(
+      `[${terminalName}] [${roomId}] Task is completed, skipping command execution.`,
+    );
+    return;
+  }
+
+  const nextColumn = getNextColumn(task);
+  const onComplete = nextColumn
     ? async (_exitCode: number) => {
-        await fetch(`${deps.serverUrl}/tasks/${task.id}/status`, {
+        await fetch(`${deps.serverUrl}/tasks/${task.id}/column`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: nextStatus }),
+          body: JSON.stringify({ columnId: nextColumn.id }),
         });
       }
     : undefined;
 
-  switch (task.status) {
-    case TaskStatus.BACKLOG: {
-      log(
-        `[${terminalName}] [${roomId}] Task is in BACKLOG status, skipping command execution.`,
-      );
-      return;
-    }
-    case TaskStatus.PLANNING: {
-      log(
-        `[${terminalName}] [${roomId}] Task is in PLANNING status, starting command execution...`,
-      );
+  const lowerName = columnName.toLowerCase();
 
-      spawnCommand({
-        content: `/onezone-planner ${task.description || ""}`,
-        payload,
-        deps,
-        activeProcesses,
-        onComplete,
-      });
+  if (lowerName === "planning") {
+    log(
+      `[${terminalName}] [${roomId}] Task is in PLANNING status, starting command execution...`,
+    );
 
-      break;
-    }
-    case TaskStatus.IN_PROGRESS: {
-      log(
-        `[${terminalName}] [${roomId}] Task is IN_PROGRESS, executing command...`,
-      );
+    spawnCommand({
+      content: `/onezone-planner ${task.description || ""}`,
+      payload,
+      deps,
+      activeProcesses,
+      onComplete,
+    });
 
-      spawnCommand({
-        content: `/onezone-developer`,
-        payload,
-        deps,
-        activeProcesses,
-        onComplete,
-      });
-
-      break;
-    }
-    case TaskStatus.IN_REVIEW: {
-      log(
-        `[${terminalName}] [${roomId}] Task is IN_REVIEW status, executing command...`,
-      );
-      spawnCommand({
-        content: `/onezone-reviewer`,
-        payload,
-        deps,
-        activeProcesses,
-        onComplete,
-      });
-
-      break;
-    }
-    case TaskStatus.TESTING: {
-      log(
-        `[${terminalName}] [${roomId}] Task is in TESTING status, executing command...`,
-      );
-      spawnCommand({
-        content: `/onezone-tester`,
-        payload,
-        deps,
-        activeProcesses,
-        onComplete,
-      });
-      break;
-    }
-    case TaskStatus.DONE: {
-      log(
-        `[${terminalName}] [${roomId}] Task is in DONE status, skipping command execution.`,
-      );
-      return;
-    }
+    return;
   }
+
+  if (lowerName === "in progress") {
+    log(
+      `[${terminalName}] [${roomId}] Task is In Progress, executing command...`,
+    );
+    spawnCommand({
+      content: `/onezone-developer`,
+      payload,
+      deps,
+      activeProcesses,
+      onComplete,
+    });
+    return;
+  }
+
+  if (lowerName === "in review") {
+    log(
+      `[${terminalName}] [${roomId}] Task is In Review, executing command...`,
+    );
+    spawnCommand({
+      content: `/onezone-reviewer`,
+      payload,
+      deps,
+      activeProcesses,
+      onComplete,
+    });
+    return;
+  }
+
+  if (lowerName === "testing") {
+    log(
+      `[${terminalName}] [${roomId}] Task is in Testing, executing command...`,
+    );
+    spawnCommand({
+      content: `/onezone-tester`,
+      payload,
+      deps,
+      activeProcesses,
+      onComplete,
+    });
+    return;
+  }
+
+  log(
+    `[${terminalName}] [${roomId}] Task is in column "${columnName}", no specific handler — skipping.`,
+  );
 };

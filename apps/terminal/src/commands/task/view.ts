@@ -41,7 +41,7 @@ export default class TaskViewCommand extends Command {
     this.log(`ID:          ${task.id}`);
     this.log(`Name:        ${task.name}`);
     this.log(`Description: ${task.description ?? "-"}`);
-    this.log(`Status:      ${task.status}`);
+    this.log(`Column:      ${(task as unknown as { columnName?: string | null }).columnName ?? 'Backlog'}`);
     this.log(`Terminal:    ${task.terminal?.name ?? "-"}`);
   }
 }

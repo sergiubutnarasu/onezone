@@ -99,17 +99,17 @@ export class TerminalRegistryService {
     return true;
   }
 
-  notifyTaskStatusUpdated(taskId: string, message: ChatMessage): void {
+  notifyTaskColumnUpdated(taskId: string, message: ChatMessage): void {
     if (!this.server) return;
     const roomId = createTaskRoomId(taskId);
-    this.server.to(roomId).emit(EventCommands.TaskStatusUpdated, message);
+    this.server.to(roomId).emit(EventCommands.TaskColumnUpdated, message);
     const projectId = message.task?.project?.id;
     if (projectId) {
       const projectRoomId = createProjectRoomId(projectId);
-      this.server.to(projectRoomId).emit(EventCommands.TaskStatusUpdated, message);
+      this.server.to(projectRoomId).emit(EventCommands.TaskColumnUpdated, message);
     }
     this.logger.log(
-      `Notified task room ${roomId} of status update: ${message?.task?.status}`,
+      `Notified task room ${roomId} of column update: ${message?.task?.columnName ?? 'Backlog'}`,
     );
   }
 }

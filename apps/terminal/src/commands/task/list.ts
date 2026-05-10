@@ -1,13 +1,11 @@
 import { Command, Flags } from "@oclif/core";
-import { Task, TaskStatus } from "@onezone/shared";
+import { Task } from "@onezone/shared";
 
 export default class TaskList extends Command {
   static description = "List all tasks for a project";
 
   static examples = [
     "<%= config.bin %> task list --project <uuid>",
-    "<%= config.bin %> task list --project <uuid> --status PLANNING",
-    "<%= config.bin %> task list --project <uuid> --status IN_PROGRESS --status PLANNING",
     "<%= config.bin %> task list --project <uuid> --server http://localhost:5026",
   ];
 
@@ -20,11 +18,6 @@ export default class TaskList extends Command {
       description: "Server URL",
       default: "http://localhost:5026",
     }),
-    status: Flags.string({
-      description: "Filter by status (can be repeated)",
-      options: Object.values(TaskStatus),
-      multiple: true,
-    }),
   };
 
   async run(): Promise<void> {
@@ -33,9 +26,6 @@ export default class TaskList extends Command {
     let tasks: Task[];
     try {
       const url = new URL(`${flags.server}/projects/${flags.project}/tasks`);
-      if (flags.status && flags.status.length > 0) {
-        for (const s of flags.status) url.searchParams.append('status', s);
-      }
       const response = await fetch(url.toString());
       if (!response.ok) {
         this.error(
@@ -54,9 +44,10 @@ export default class TaskList extends Command {
       return;
     }
 
+    const columnLabel = (t: Task) => t.columnId ? (t as unknown as { columnName?: string | null }).columnName ?? t.columnId : 'Backlog';
     const idWidth = Math.max(36, ...tasks.map((t) => t.id.length));
     const nameWidth = Math.max(4, ...tasks.map((t) => t.name.length));
-    const statusWidth = Math.max(6, ...tasks.map((t) => t.status.length));
+    const columnWidth = Math.max(6, ...tasks.map((t) => columnLabel(t).length));
     const terminalWidth = Math.max(
       8,
       ...tasks.map((t) => (t.terminal?.name ?? "-").length),
@@ -67,7 +58,7 @@ export default class TaskList extends Command {
       "  " +
       "Name".padEnd(nameWidth) +
       "  " +
-      "Status".padEnd(statusWidth) +
+      "Column".padEnd(columnWidth) +
       "  " +
       "Terminal".padEnd(terminalWidth);
     const divider =
@@ -75,7 +66,7 @@ export default class TaskList extends Command {
       "  " +
       "-".repeat(nameWidth) +
       "  " +
-      "-".repeat(statusWidth) +
+      "-".repeat(columnWidth) +
       "  " +
       "-".repeat(terminalWidth);
 
@@ -88,7 +79,7 @@ export default class TaskList extends Command {
           "  " +
           task.name.padEnd(nameWidth) +
           "  " +
-          task.status.padEnd(statusWidth) +
+          columnLabel(task).padEnd(columnWidth) +
           "  " +
           (task.terminal?.name ?? "-"),
       );

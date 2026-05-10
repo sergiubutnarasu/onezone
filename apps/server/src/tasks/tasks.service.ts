@@ -1,11 +1,10 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { TaskStatus } from "@prisma/client";
 import {
   AgentTag,
   TaskDetails,
-  TaskStatus as SharedTaskStatus,
   ChatMessage,
   MessageRole,
+  KanbanColumn,
 } from "@onezone/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { TaskOrderItemDto } from "./tasks.dto";
@@ -27,9 +26,10 @@ export class TasksService {
       description?: string | null;
       agentId: string;
       model: string;
+      completedAt?: Date | null;
       agent: { id: string; name: string; tag: string } | null;
+      columnAssignment?: { column: { id: string; name: string } } | null;
     },
-    status: SharedTaskStatus,
     project: {
       id: string;
       name: string;
@@ -39,13 +39,17 @@ export class TasksService {
       defaultModel: string;
       defaultAgent: { id: string; name: string; tag: string; model: string; createdAt: Date };
       skills?: { id: string; source: string; skillName: string }[];
+      kanbanColumns?: KanbanColumn[];
     },
   ): TaskDetails {
+    const column = task.columnAssignment?.column ?? null;
     return {
       id: task.id,
       name: task.name,
       description: task.description,
-      status,
+      columnId: column?.id ?? null,
+      columnName: column?.name ?? null,
+      completedAt: task.completedAt?.toISOString() ?? null,
       agentId: task.agentId,
       agent: task.agent
         ? {
@@ -70,33 +74,49 @@ export class TasksService {
           createdAt: project.defaultAgent.createdAt.toISOString(),
         },
         skills: project.skills?.map((s) => ({ id: s.id, source: s.source, skillName: s.skillName })) ?? [],
+        kanbanColumns: project.kanbanColumns ?? [],
       },
     };
   }
 
   private async toChatMessage(
     task: Awaited<ReturnType<typeof this.findOne>>,
-    statusOverride?: TaskStatus,
+    columnOverride?: { id: string; name: string } | null,
   ): Promise<ChatMessage> {
-    const status = (statusOverride ??
-      task.status) as unknown as SharedTaskStatus;
     const project = task.project!;
     const globalSkills = await this.prisma.projectSkill.findMany({ where: { projectId: null } });
-    const projectWithAllSkills = { ...project, skills: [...(project.skills ?? []), ...globalSkills] };
+    const kanbanColumns = await this.prisma.kanbanColumn.findMany({
+      where: { projectId: project.id },
+      orderBy: { index: "asc" },
+    });
+    const projectWithAllSkills = {
+      ...project,
+      skills: [...(project.skills ?? []), ...globalSkills],
+      kanbanColumns: kanbanColumns.map((c) => ({ ...c, createdAt: c.createdAt.toISOString() })),
+    };
+    const taskWithColumnOverride = columnOverride !== undefined
+      ? { ...task, columnAssignment: columnOverride ? { column: columnOverride } : null }
+      : task;
     return {
       content: "",
       role: MessageRole.System,
-      task: this.mapToTaskDetails(task, status, projectWithAllSkills),
+      task: this.mapToTaskDetails(taskWithColumnOverride, projectWithAllSkills),
     };
   }
 
   private flattenTask<
     T extends {
       terminalAssignment: { terminal: unknown; assignedAt: unknown } | null;
+      columnAssignment: { column: { id: string; name: string; index: number; description: string | null }; assignedAt: Date } | null;
     },
   >(task: T) {
-    const { terminalAssignment, ...rest } = task;
-    return { ...rest, terminal: terminalAssignment?.terminal ?? null };
+    const { terminalAssignment, columnAssignment, ...rest } = task;
+    return {
+      ...rest,
+      terminal: terminalAssignment?.terminal ?? null,
+      columnId: columnAssignment?.column.id ?? null,
+      columnName: columnAssignment?.column.name ?? null,
+    };
   }
 
   async create(
@@ -110,7 +130,7 @@ export class TasksService {
     },
   ) {
     const count = await this.prisma.task.count({
-      where: { projectId, status: "BACKLOG" },
+      where: { projectId, columnAssignment: null },
     });
     const task = await this.prisma.$transaction(async (tx) => {
       const created = await tx.task.create({
@@ -130,6 +150,7 @@ export class TasksService {
         where: { id: created.id },
         include: {
           terminalAssignment: { include: { terminal: true } },
+          columnAssignment: { include: { column: true } },
           agent: true,
         },
       });
@@ -140,15 +161,13 @@ export class TasksService {
     return this.flattenTask(task);
   }
 
-  async findAllByProject(projectId: string, status?: TaskStatus[]) {
+  async findAllByProject(projectId: string) {
     const tasks = await this.prisma.task.findMany({
-      where: {
-        projectId,
-        ...(status && status.length > 0 ? { status: { in: status } } : {}),
-      },
+      where: { projectId },
       orderBy: [{ order: "asc" }, { createdAt: "asc" }],
       include: {
         terminalAssignment: { include: { terminal: true } },
+        columnAssignment: { include: { column: true } },
         agent: true,
       },
     });
@@ -160,6 +179,7 @@ export class TasksService {
       where: { id },
       include: {
         terminalAssignment: { include: { terminal: true } },
+        columnAssignment: { include: { column: true } },
         project: { include: { defaultAgent: true, skills: true } },
         agent: true,
       },
@@ -169,63 +189,122 @@ export class TasksService {
   }
 
   async findOneDetails(id: string): Promise<TaskDetails> {
-    const task = await this.findOne(id);
-    const globalSkills = await this.prisma.projectSkill.findMany({
-      where: { projectId: null },
+    const task = await this.prisma.task.findUnique({
+      where: { id },
+      include: {
+        columnAssignment: { include: { column: true } },
+        project: { include: { defaultAgent: true, skills: true, kanbanColumns: { orderBy: { index: 'asc' } } } },
+        agent: true,
+      },
     });
-    const project = task.project!;
+    if (!task) throw new NotFoundException(`Task ${id} not found`);
+    const globalSkills = await this.prisma.projectSkill.findMany({ where: { projectId: null } });
+    const project = task.project;
     const projectWithAllSkills = {
       ...project,
       skills: [...(project.skills ?? []), ...globalSkills],
+      kanbanColumns: project.kanbanColumns.map((c) => ({ ...c, createdAt: c.createdAt.toISOString() })),
     };
-    return this.mapToTaskDetails(task, task.status as unknown as SharedTaskStatus, projectWithAllSkills);
+    return this.mapToTaskDetails(task, projectWithAllSkills);
   }
 
-  async updateStatus(id: string, status: TaskStatus) {
+  async updateColumn(id: string, columnId: string | null) {
     const existing = await this.findOne(id);
-    const task = await this.prisma.task.update({
-      where: { id },
-      data: { status },
+    let column: { id: string; name: string } | null = null;
+
+    await this.prisma.$transaction(async (tx) => {
+      if (columnId === null) {
+        await tx.taskColumn.deleteMany({ where: { taskId: id } });
+        await tx.task.update({ where: { id }, data: { completedAt: null } });
+      } else {
+        const col = await tx.kanbanColumn.findUniqueOrThrow({ where: { id: columnId }, select: { id: true, name: true, index: true } });
+        column = { id: col.id, name: col.name };
+        const maxIndex = await tx.kanbanColumn.aggregate({
+          where: { projectId: existing.projectId },
+          _max: { index: true },
+        });
+        const completedAt = col.index === maxIndex._max.index ? new Date() : null;
+        await tx.taskColumn.upsert({
+          where: { taskId: id },
+          create: { taskId: id, columnId },
+          update: { columnId, assignedAt: new Date() },
+        });
+        await tx.task.update({ where: { id }, data: { completedAt } });
+      }
     });
-    this.logger.log(`Updated task ${id} status to ${status}`);
-    this.terminalRegistry.notifyTaskStatusUpdated(
+
+    this.logger.log(`Updated task ${id} column to ${columnId ?? 'backlog'}`);
+    this.terminalRegistry.notifyTaskColumnUpdated(
       id,
-      await this.toChatMessage(existing, status),
+      await this.toChatMessage(existing, column),
     );
-    return task;
+
+    return this.findOne(id);
   }
 
   async reorder(projectId: string, items: TaskOrderItemDto[]) {
-    const existing = await this.prisma.task.findMany({
-      where: { id: { in: items.map((i) => i.id) }, projectId },
-      select: { id: true, name: true, status: true },
-    });
+    const [existing, projectColumns] = await Promise.all([
+      this.prisma.task.findMany({
+        where: { id: { in: items.map((i) => i.id) }, projectId },
+        include: { columnAssignment: true },
+      }),
+      this.prisma.kanbanColumn.findMany({
+        where: { projectId },
+        orderBy: { index: 'asc' },
+        select: { id: true, index: true },
+      }),
+    ]);
+    const lastColumnId = projectColumns.length > 0 ? projectColumns[projectColumns.length - 1].id : null;
     const existingMap = new Map(existing.map((t) => [t.id, t]));
     const validItems = items.filter((i) => existingMap.has(i.id));
 
-    await this.prisma.$transaction(
-      validItems.map((item) =>
-        this.prisma.task.update({
-          where: { id: item.id },
-          data: { status: item.status, order: item.order },
-        }),
-      ),
-    );
+    await this.prisma.$transaction(async (tx) => {
+      for (const item of validItems) {
+        const prev = existingMap.get(item.id)!;
+        const prevColumnId = prev.columnAssignment?.columnId ?? null;
+        const columnChanged = item.columnId !== prevColumnId;
 
+        const updateData: { order: number; completedAt?: Date | null } = { order: item.order };
+        if (columnChanged) {
+          updateData.completedAt = item.columnId === lastColumnId ? new Date() : null;
+        }
+        await tx.task.update({ where: { id: item.id }, data: updateData });
+
+        if (columnChanged) {
+          if (item.columnId === null) {
+            await tx.taskColumn.deleteMany({ where: { taskId: item.id } });
+          } else {
+            await tx.taskColumn.upsert({
+              where: { taskId: item.id },
+              create: { taskId: item.id, columnId: item.columnId },
+              update: { columnId: item.columnId, assignedAt: new Date() },
+            });
+          }
+        }
+      }
+    });
+
+    // Notify column changes for affected tasks
     for (const item of validItems) {
       const prev = existingMap.get(item.id)!;
-      if (prev.status !== item.status) {
+      const prevColumnId = prev.columnAssignment?.columnId ?? null;
+      if (item.columnId !== prevColumnId) {
         const updated = await this.findOne(item.id);
-        this.terminalRegistry.notifyTaskStatusUpdated(
+        let column: { id: string; name: string } | null = null;
+        if (item.columnId) {
+          column = await this.prisma.kanbanColumn.findUnique({
+            where: { id: item.columnId },
+            select: { id: true, name: true },
+          });
+        }
+        this.terminalRegistry.notifyTaskColumnUpdated(
           item.id,
-          await this.toChatMessage(updated, item.status),
+          await this.toChatMessage(updated, column),
         );
       }
     }
 
-    this.logger.log(
-      `Reordered ${validItems.length} tasks for project ${projectId}`,
-    );
+    this.logger.log(`Reordered ${validItems.length} tasks for project ${projectId}`);
     return this.findAllByProject(projectId);
   }
 
@@ -244,7 +323,8 @@ export class TasksService {
         include: {
           task: {
             include: {
-              project: { include: { defaultAgent: true, skills: true } },
+              columnAssignment: { include: { column: true } },
+              project: { include: { defaultAgent: true, skills: true, kanbanColumns: { orderBy: { index: 'asc' } } } },
               agent: true,
             },
           },
@@ -254,12 +334,12 @@ export class TasksService {
     ]);
     return assignments.map((a): TaskDetails => {
       const t = a.task;
-      const projectWithAllSkills = { ...t.project, skills: [...(t.project.skills ?? []), ...globalSkills] };
-      return this.mapToTaskDetails(
-        t,
-        t.status as unknown as SharedTaskStatus,
-        projectWithAllSkills,
-      );
+      const projectWithAllSkills = {
+        ...t.project,
+        skills: [...(t.project.skills ?? []), ...globalSkills],
+        kanbanColumns: t.project.kanbanColumns.map((c) => ({ ...c, createdAt: c.createdAt.toISOString() })),
+      };
+      return this.mapToTaskDetails(t, projectWithAllSkills);
     });
   }
 
@@ -282,17 +362,23 @@ export class TasksService {
     data: {
       name?: string;
       description?: string;
-      status?: TaskStatus;
+      columnId?: string | null;
       agentId?: string;
       model?: string;
     },
   ) {
+    const { columnId, ...taskData } = data;
     await this.findOne(id);
-    const task = await this.prisma.task.update({
-      where: { id },
-      data,
-    });
+
+    if (Object.keys(taskData).length > 0) {
+      await this.prisma.task.update({ where: { id }, data: taskData });
+    }
+
+    if (columnId !== undefined) {
+      await this.updateColumn(id, columnId);
+    }
+
     this.logger.log(`Updated task ${id}`);
-    return task;
+    return this.findOne(id);
   }
 }

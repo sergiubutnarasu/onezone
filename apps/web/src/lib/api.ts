@@ -1,7 +1,7 @@
 // apps/web/src/lib/api.ts
 
-import { TaskStatus, type Terminal, type Task, type RoomMessage, type Agent, type ProjectSkill } from '@onezone/shared';
-export type { Agent } from '@onezone/shared';
+import { type Terminal, type Task, type TaskDetails, type RoomMessage, type Agent, type ProjectSkill, type KanbanColumn } from '@onezone/shared';
+export type { Agent, KanbanColumn } from '@onezone/shared';
 import { httpClient } from './http-client';
 
 export interface Project {
@@ -14,11 +14,13 @@ export interface Project {
   defaultModel: string;
   createdAt: string;
   skills: ProjectSkill[];
+  kanbanColumns: KanbanColumn[];
 }
 
 export interface TaskOrderItem {
   id: string;
-  status: TaskStatus;
+  /** null means the task moves to the virtual Backlog column */
+  columnId: string | null;
   order: number;
 }
 
@@ -55,10 +57,10 @@ export const fetchTask = (taskId: string) => httpClient.get<Task>(`/tasks/${task
 export const fetchMessages = (taskId: string) =>
   httpClient.get<RoomMessage[]>(`/tasks/${taskId}/messages`);
 
-export const updateTaskStatus = (taskId: string, status: TaskStatus) =>
-  httpClient.patch<Task>(`/tasks/${taskId}/status`, { status });
+export const updateTaskColumn = (taskId: string, columnId: string | null) =>
+  httpClient.patch<Task>(`/tasks/${taskId}/column`, { columnId });
 
-export const updateTask = (taskId: string, data: { name?: string; description?: string; status?: TaskStatus; agentId?: string; model?: string }) =>
+export const updateTask = (taskId: string, data: { name?: string; description?: string; columnId?: string | null; agentId?: string; model?: string }) =>
   httpClient.patch<Task>(`/tasks/${taskId}`, data);
 
 export const fetchTerminals = () => httpClient.get<Terminal[]>('/terminals');
@@ -78,6 +80,23 @@ export const installProjectSkill = (projectId: string, data: { source: string; s
 
 export const removeProjectSkill = (projectId: string, skillId: string) =>
   httpClient.delete<void>(`/projects/${projectId}/skills/${skillId}`);
+
+// Kanban column CRUD
+export const fetchKanbanColumns = (projectId: string) =>
+  httpClient.get<KanbanColumn[]>(`/projects/${projectId}/kanban-columns`);
+
+export const createKanbanColumn = (projectId: string, data: { name: string; description?: string }) =>
+  httpClient.post<KanbanColumn>(`/projects/${projectId}/kanban-columns`, data);
+
+export const updateKanbanColumn = (projectId: string, columnId: string, data: { name?: string; description?: string }) =>
+  httpClient.patch<KanbanColumn>(`/projects/${projectId}/kanban-columns/${columnId}`, data);
+
+export const deleteKanbanColumn = (projectId: string, columnId: string) =>
+  httpClient.delete<void>(`/projects/${projectId}/kanban-columns/${columnId}`);
+
+export const reorderKanbanColumns = (projectId: string, columns: { id: string; index: number }[]) =>
+  httpClient.put<KanbanColumn[]>(`/projects/${projectId}/kanban-columns/reorder`, { columns });
+
 
 export const fetchGlobalSkills = () => httpClient.get<ProjectSkill[]>('/skills');
 

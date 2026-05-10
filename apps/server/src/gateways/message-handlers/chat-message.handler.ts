@@ -49,7 +49,8 @@ export class ChatMessageHandler implements IMessageHandler<ChatMessageData> {
             id: task.id,
             name: task.name,
             description: task.description,
-            status: task.status,
+            columnId: task.columnId ?? null,
+            columnName: task.columnName ?? null,
             agentId: task.agentId,
             agent: task.agent ?? null,
             model: task.model,
@@ -60,6 +61,7 @@ export class ChatMessageHandler implements IMessageHandler<ChatMessageData> {
               defaultAgentId: task.project.defaultAgentId,
               defaultAgent: task.project.defaultAgent,
               defaultModel: task.project.defaultModel,
+              kanbanColumns: [],
             },
           }
         : null;

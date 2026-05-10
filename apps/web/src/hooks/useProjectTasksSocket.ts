@@ -15,7 +15,7 @@ export function useProjectTasksSocket(projectId: string) {
       auth: { projectId, role: 'user' },
     });
 
-    socket.on(EventCommands.TaskStatusUpdated, () => {
+    socket.on(EventCommands.TaskColumnUpdated, () => {
       qc.invalidateQueries({ queryKey: ['tasks', projectId] });
     });
 

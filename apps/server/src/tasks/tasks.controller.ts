@@ -9,7 +9,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
-import { AssignTerminalDto, UpdateTaskDto, UpdateTaskStatusDto } from './tasks.dto';
+import { AssignTerminalDto, UpdateTaskDto, UpdateTaskColumnDto } from './tasks.dto';
 
 @Controller('tasks')
 export class TasksController {
@@ -20,12 +20,12 @@ export class TasksController {
     return this.tasksService.findOne(taskId);
   }
 
-  @Patch(':taskId/status')
-  updateStatus(
+  @Patch(':taskId/column')
+  updateColumn(
     @Param('taskId') taskId: string,
-    @Body() body: UpdateTaskStatusDto,
+    @Body() body: UpdateTaskColumnDto,
   ) {
-    return this.tasksService.updateStatus(taskId, body.status);
+    return this.tasksService.updateColumn(taskId, body.columnId ?? null);
   }
 
   @Patch(':taskId/terminal')
@@ -50,3 +50,4 @@ export class TasksController {
     return this.tasksService.remove(taskId);
   }
 }
+

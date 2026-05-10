@@ -1,6 +1,5 @@
-import { IsArray, IsEnum, IsInt, IsOptional, IsString, IsUUID, Min, ValidateNested } from 'class-validator';
-import { TaskStatus } from '@prisma/client';
-import { Transform, Type } from 'class-transformer';
+import { IsArray, IsInt, IsOptional, IsString, IsUUID, Min, ValidateIf, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateTaskDto {
   @IsString()
@@ -24,8 +23,11 @@ export class TaskOrderItemDto {
   @IsUUID()
   id!: string;
 
-  @IsEnum(TaskStatus)
-  status!: TaskStatus;
+  /** null means the task is moved to the virtual Backlog column */
+  @IsOptional()
+  @ValidateIf((o) => o.columnId != null)
+  @IsUUID()
+  columnId!: string | null;
 
   @IsInt()
   @Min(0)
@@ -40,16 +42,15 @@ export class ReorderTasksDto {
 }
 
 export class ListTasksQueryDto {
-  @IsOptional()
-  @IsArray()
-  @IsEnum(TaskStatus, { each: true })
-  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
-  status?: TaskStatus[];
+  // Filtering by column is handled client-side; all tasks returned together.
 }
 
-export class UpdateTaskStatusDto {
-  @IsEnum(TaskStatus)
-  status!: TaskStatus;
+export class UpdateTaskColumnDto {
+  /** null means move the task to the virtual Backlog */
+  @IsOptional()
+  @ValidateIf((o) => o.columnId != null)
+  @IsUUID()
+  columnId?: string | null;
 }
 
 export class AssignTerminalDto {
@@ -67,8 +68,9 @@ export class UpdateTaskDto {
   description?: string;
 
   @IsOptional()
-  @IsEnum(TaskStatus)
-  status?: TaskStatus;
+  @ValidateIf((o) => o.columnId != null)
+  @IsUUID()
+  columnId?: string | null;
 
   @IsOptional()
   @IsUUID()
@@ -78,3 +80,4 @@ export class UpdateTaskDto {
   @IsString()
   model?: string;
 }
+

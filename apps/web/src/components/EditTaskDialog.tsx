@@ -20,13 +20,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { TaskStatus, type Task, type Agent } from "@onezone/shared";
-import { TaskStatusSelect } from "./TaskStatusSelect";
+import { BACKLOG_COLUMN_ID, type Task, type Agent, type KanbanColumn } from "@onezone/shared";
 
 interface EditTaskForm {
   name: string;
   description: string;
-  status: TaskStatus;
+  columnId: string; // BACKLOG_COLUMN_ID sentinel or a real column UUID
   agentId: string;
   model: string;
 }
@@ -35,6 +34,7 @@ interface EditTaskDialogProps {
   task: Task;
   projectId: string;
   agents: Agent[];
+  columns: KanbanColumn[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -43,6 +43,7 @@ export function EditTaskDialog({
   task,
   projectId,
   agents,
+  columns,
   open,
   onOpenChange,
 }: EditTaskDialogProps) {
@@ -53,7 +54,7 @@ export function EditTaskDialog({
     defaultValues: {
       name: task.name,
       description: task.description ?? "",
-      status: task.status,
+      columnId: task.columnId ?? BACKLOG_COLUMN_ID,
       agentId: task.agentId,
       model: task.model,
     },
@@ -69,13 +70,14 @@ export function EditTaskDialog({
   } = methods;
 
   const agentId = watch("agentId");
+  const columnId = watch("columnId");
 
   useEffect(() => {
     if (open) {
       methods.reset({
         name: task.name,
         description: task.description ?? "",
-        status: task.status,
+        columnId: task.columnId ?? BACKLOG_COLUMN_ID,
         agentId: task.agentId,
         model: task.model,
       });
@@ -89,7 +91,7 @@ export function EditTaskDialog({
       updateTask(task.id, {
         name: data.name,
         description: data.description,
-        status: data.status,
+        columnId: data.columnId === BACKLOG_COLUMN_ID ? null : data.columnId,
         agentId: data.agentId,
         model: data.model,
       }),
@@ -126,9 +128,23 @@ export function EditTaskDialog({
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
-              <TaskStatusSelect />
+              <label className="text-sm font-medium">Column</label>
+              <Select
+                value={columnId}
+                onValueChange={(v) => v != null && setValue("columnId", v, { shouldValidate: true })}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={BACKLOG_COLUMN_ID}>Backlog</SelectItem>
+                  {columns.map((col) => (
+                    <SelectItem key={col.id} value={col.id}>{col.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+
             <div className="space-y-2">
               <label className="text-sm font-medium">Agent</label>
               <Select

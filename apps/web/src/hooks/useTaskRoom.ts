@@ -45,7 +45,7 @@ export function useTaskRoom(
       onTaskDeletedRef.current?.();
     });
 
-    socket.on(EventCommands.TaskStatusUpdated, () => {
+    socket.on(EventCommands.TaskColumnUpdated, () => {
       qc.invalidateQueries({ queryKey: ["task", taskId] });
     });
 

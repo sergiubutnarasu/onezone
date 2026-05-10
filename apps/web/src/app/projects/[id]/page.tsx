@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronRight, Home } from 'lucide-react';
 import Link from 'next/link';
-import { fetchProject, fetchTasks, fetchTerminals, fetchAgents } from '@/lib/api';
+import { fetchProject, fetchTasks, fetchTerminals, fetchAgents, fetchKanbanColumns } from '@/lib/api';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { EditProjectButton } from '@/components/EditProjectButton';
 import { CreateTaskButton } from '@/components/CreateTaskButton';
@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { CollapsibleDescription } from '@/components/CollapsibleDescription';
 import { useProjectTasksSocket } from '@/hooks/useProjectTasksSocket';
-import type { Terminal, Task, Agent } from '@onezone/shared';
+import type { Terminal, Task, Agent, KanbanColumn } from '@onezone/shared';
 import type { Project } from '@/lib/api';
 
 export default function ProjectPage() {
@@ -39,6 +39,11 @@ export default function ProjectPage() {
   const { data: agents = [] } = useQuery<Agent[]>({
     queryKey: ['agents'],
     queryFn: fetchAgents,
+  });
+
+  const { data: columns = [] } = useQuery<KanbanColumn[]>({
+    queryKey: ['kanban-columns', id],
+    queryFn: () => fetchKanbanColumns(id),
   });
 
   return (
@@ -100,7 +105,7 @@ export default function ProjectPage() {
               ))}
             </div>
           ) : (
-            <KanbanBoard tasks={tasks} projectId={id} />
+            <KanbanBoard tasks={tasks} projectId={id} columns={columns} />
           )}
         </div>
       </div>

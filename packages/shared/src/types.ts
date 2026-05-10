@@ -10,7 +10,7 @@ export enum EventCommands {
   TerminalHeartbeat = "terminal:heartbeat",
   AssignTask = "terminal:assign-task",
   TaskDeleted = "task:deleted",
-  TaskStatusUpdated = "task:status-updated",
+  TaskColumnUpdated = "task:column-updated",
 }
 
 export enum MessageRole {
@@ -30,37 +30,22 @@ export enum MessageType {
   CommandExit = "COMMAND_EXIT",
 }
 
-export enum TaskStatus {
-  BACKLOG = "BACKLOG",
-  PLANNING = "PLANNING",
-  IN_PROGRESS = "IN_PROGRESS",
-  IN_REVIEW = "IN_REVIEW",
-  TESTING = "TESTING",
-  DONE = "DONE",
-}
-
 export enum AgentTag {
   ClaudeCode = "claude-code",
   CopilotCLI = "copilot-cli",
 }
 
-export const TASK_STATUS_COLUMNS: readonly TaskStatus[] = [
-  TaskStatus.BACKLOG,
-  TaskStatus.PLANNING,
-  TaskStatus.IN_PROGRESS,
-  TaskStatus.IN_REVIEW,
-  TaskStatus.TESTING,
-  TaskStatus.DONE,
-] as const;
+/** Sentinel ID used in the UI to represent the virtual "Backlog" column (no DB entry). */
+export const BACKLOG_COLUMN_ID = "__backlog__";
 
-export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
-  [TaskStatus.BACKLOG]: "Backlog",
-  [TaskStatus.PLANNING]: "Planning",
-  [TaskStatus.IN_PROGRESS]: "In Progress",
-  [TaskStatus.IN_REVIEW]: "In Review",
-  [TaskStatus.TESTING]: "Testing",
-  [TaskStatus.DONE]: "Done",
-};
+export interface KanbanColumn {
+  id: string;
+  projectId: string;
+  name: string;
+  description?: string | null;
+  index: number;
+  createdAt: string;
+}
 
 export interface ProjectSkill {
   id: string;
@@ -77,6 +62,7 @@ export interface ProjectInfo {
   defaultAgent: Agent;
   defaultModel: string;
   skills: ProjectSkill[];
+  kanbanColumns: KanbanColumn[];
 }
 
 export interface Agent {
@@ -92,13 +78,15 @@ export interface Task {
   projectId: string;
   name: string;
   description?: string | null;
-  status: TaskStatus;
+  /** null means the task is in the virtual Backlog column */
+  columnId: string | null;
   order: number;
   terminal?: Pick<Terminal, "id" | "name" | "isConnected"> | null;
   agentId: string;
   agent?: Pick<Agent, "id" | "name" | "tag"> | null;
   model: string;
   project?: ProjectInfo | null;
+  completedAt?: string | null;
   createdAt: string;
 }
 
@@ -129,10 +117,14 @@ export interface TaskDetails {
   id: string;
   name: string;
   description?: string | null;
-  status: TaskStatus;
+  /** null means the task is in the virtual Backlog column */
+  columnId: string | null;
+  /** Human-readable column name; null means "Backlog" */
+  columnName: string | null;
   agentId: string;
   agent?: Pick<Agent, "id" | "name" | "tag"> | null;
   model: string;
+  completedAt?: string | null;
   project: ProjectInfo;
 }
 
@@ -183,7 +175,7 @@ export interface ServerToClientEvents {
   }) => void;
   [EventCommands.AssignTask]: (payload: AssignTaskPayload) => void;
   [EventCommands.TaskDeleted]: (payload: { taskId: string }) => void;
-  [EventCommands.TaskStatusUpdated]: (task: TaskDetails) => void;
+  [EventCommands.TaskColumnUpdated]: (task: TaskDetails) => void;
 }
 
 export interface ClientToServerEvents {

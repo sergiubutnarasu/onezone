@@ -3,12 +3,12 @@
 import { useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { fetchTask, fetchMessages, fetchTerminals, fetchAgents } from "@/lib/api";
+import { fetchTask, fetchMessages, fetchTerminals, fetchAgents, fetchKanbanColumns } from "@/lib/api";
 import { useTaskRoom } from "@/hooks/useTaskRoom";
 import { TerminalStatusBar } from "@/components/TerminalStatusBar";
 import { MessageInput } from "@/components/MessageInput";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { TaskStatus, type Terminal, type Agent } from "@onezone/shared";
+import { type Terminal, type Agent, type KanbanColumn } from "@onezone/shared";
 import { buildChatItems } from "./_lib/chat-items";
 import { TaskHeader } from "./_components/TaskHeader";
 import { TaskDetails } from "./_components/TaskDetails";
@@ -33,6 +33,11 @@ export default function TaskChatPage() {
     queryFn: fetchAgents,
   });
 
+  const { data: columns = [] } = useQuery<KanbanColumn[]>({
+    queryKey: ["kanban-columns", projectId],
+    queryFn: () => fetchKanbanColumns(projectId),
+  });
+
   const { data: history = [] } = useQuery({
     queryKey: ["messages", taskId],
     queryFn: () => fetchMessages(taskId),
@@ -46,8 +51,8 @@ export default function TaskChatPage() {
   const isTerminalActive =
     connectedTerminals.length > 0 &&
     !!task &&
-    task.status !== TaskStatus.BACKLOG &&
-    task.status !== TaskStatus.DONE;
+    task.columnId !== null &&
+    !task.completedAt;
 
   // Load history into the room on mount
   useEffect(() => {
@@ -89,6 +94,7 @@ export default function TaskChatPage() {
           isTerminalActive={isTerminalActive}
           agents={agents}
           terminals={terminals}
+          columns={columns}
           onDeleted={() => router.push(`/projects/${projectId}`)}
         />
 

@@ -40,8 +40,6 @@ export const setupSkills = ({
   // remove extra skills
   const installedSkills = getAllInstalledSkills(project.id);
   for (const skill of installedSkills) {
-    console.log("skill", skill);
-
     if (
       !skill.startsWith("onezone") &&
       !skills.find((s) => s.skillName === skill)

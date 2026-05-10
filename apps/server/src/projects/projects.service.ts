@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TerminalRegistryService } from '../gateways/terminal-registry.service';
+import { KanbanColumnsService } from './kanban-columns.service';
 
 @Injectable()
 export class ProjectsService {
@@ -9,11 +10,13 @@ export class ProjectsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly terminalRegistry: TerminalRegistryService,
+    private readonly kanbanColumnsService: KanbanColumnsService,
   ) {}
 
   async create(data: { name: string; description?: string; repository?: string; defaultAgentId: string; defaultModel: string }) {
     const project = await this.prisma.project.create({ data });
-    this.logger.log(`Created project ${project.id}`);
+    await this.kanbanColumnsService.createDefaults(project.id);
+    this.logger.log(`Created project ${project.id} with default kanban columns`);
     return project;
   }
 

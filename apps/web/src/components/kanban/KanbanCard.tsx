@@ -6,7 +6,7 @@ import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
 import { GripVertical, Bot, Clock, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TaskStatus, type Task } from "@onezone/shared";
+import { type Task } from "@onezone/shared";
 
 interface KanbanCardProps {
   task: Task;
@@ -40,8 +40,8 @@ export const KanbanCard = memo(function KanbanCard({
 
   const isActive =
     !!task.terminal?.isConnected &&
-    task.status !== TaskStatus.BACKLOG &&
-    task.status !== TaskStatus.DONE;
+    task.columnId !== null &&
+    !task.completedAt;
 
   const style = {
     transform: CSS.Transform.toString(transform),

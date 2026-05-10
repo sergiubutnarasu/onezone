@@ -11,22 +11,28 @@ import {
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { reorderTasks, type TaskOrderItem } from '@/lib/api';
-import { TASK_STATUS_COLUMNS, type Task, type TaskStatus } from '@onezone/shared';
+import { reorderTasks, reorderKanbanColumns, type TaskOrderItem } from '@/lib/api';
+import { BACKLOG_COLUMN_ID, type KanbanColumn, type Task } from '@onezone/shared';
 
 // ---------------------------------------------------------------------------
 // Pure helpers (no side-effects, easy to unit-test)
 // ---------------------------------------------------------------------------
 
-function resolveTargetStatus(tasks: Task[], overId: string): TaskStatus | undefined {
-  if (TASK_STATUS_COLUMNS.includes(overId as TaskStatus)) return overId as TaskStatus;
-  return tasks.find((t) => t.id === overId)?.status;
+/** All valid droppable IDs: BACKLOG_COLUMN_ID or a real column UUID */
+function resolveTargetColumnId(tasks: Task[], columns: KanbanColumn[], overId: string): string | undefined {
+  if (overId === BACKLOG_COLUMN_ID) return BACKLOG_COLUMN_ID;
+  if (columns.some((c) => c.id === overId)) return overId;
+  return tasks.find((t) => t.id === overId)?.columnId ?? (
+    tasks.find((t) => t.id === overId) !== undefined ? BACKLOG_COLUMN_ID : undefined
+  );
 }
 
-function applyStatusChange(tasks: Task[], activeId: string, targetStatus: TaskStatus): Task[] {
+function applyColumnChange(tasks: Task[], activeId: string, targetColumnId: string): Task[] {
   const task = tasks.find((t) => t.id === activeId);
-  if (!task || task.status === targetStatus) return tasks;
-  return tasks.map((t) => (t.id === activeId ? { ...t, status: targetStatus } : t));
+  if (!task) return tasks;
+  const newColumnId = targetColumnId === BACKLOG_COLUMN_ID ? null : targetColumnId;
+  if (task.columnId === newColumnId) return tasks;
+  return tasks.map((t) => (t.id === activeId ? { ...t, columnId: newColumnId } : t));
 }
 
 function applyReorder(tasks: Task[], activeId: string, overId: string): Task[] {
@@ -36,19 +42,27 @@ function applyReorder(tasks: Task[], activeId: string, overId: string): Task[] {
   return arrayMove(tasks, oldIndex, newIndex);
 }
 
-function toReorderPayload(tasks: Task[]): TaskOrderItem[] {
-  const counters = new Map<TaskStatus, number>();
+function toReorderPayload(tasks: Task[], columnOrder: string[]): TaskOrderItem[] {
+  const counters = new Map<string | null, number>();
+  // Sort tasks by the column order so ordering is consistent
   return tasks.map((t) => {
-    const order = counters.get(t.status) ?? 0;
-    counters.set(t.status, order + 1);
-    return { id: t.id, status: t.status, order };
+    const key = t.columnId ?? null;
+    const order = counters.get(key) ?? 0;
+    counters.set(key, order + 1);
+    return { id: t.id, columnId: t.columnId ?? null, order };
   });
 }
 
-export function groupByStatus(tasks: Task[]): Record<TaskStatus, Task[]> {
-  const groups = {} as Record<TaskStatus, Task[]>;
-  for (const status of TASK_STATUS_COLUMNS) groups[status] = [];
-  for (const task of tasks) groups[task.status]?.push(task);
+export function groupByColumn(tasks: Task[], columns: KanbanColumn[]): Map<string, Task[]> {
+  const groups = new Map<string, Task[]>();
+  groups.set(BACKLOG_COLUMN_ID, []);
+  for (const col of columns) groups.set(col.id, []);
+  for (const task of tasks) {
+    const key = task.columnId ?? BACKLOG_COLUMN_ID;
+    const group = groups.get(key);
+    if (group) group.push(task);
+    else groups.get(BACKLOG_COLUMN_ID)!.push(task);
+  }
   return groups;
 }
 
@@ -59,51 +73,72 @@ export function groupByStatus(tasks: Task[]): Record<TaskStatus, Task[]> {
 export interface KanbanDnd {
   tasks: Task[];
   activeTask: Task | null;
-  columns: Record<TaskStatus, Task[]>;
+  activeColumn: KanbanColumn | null;
+  orderedColumns: KanbanColumn[];
+  columns: Map<string, Task[]>;
   sensors: ReturnType<typeof useSensors>;
   onDragStart: (event: DragStartEvent) => void;
   onDragOver: (event: DragOverEvent) => void;
   onDragEnd: (event: DragEndEvent) => void;
 }
 
-export function useKanbanDnd(projectId: string, initialTasks: Task[]): KanbanDnd {
+export function useKanbanDnd(projectId: string, initialTasks: Task[], kanbanColumns: KanbanColumn[]): KanbanDnd {
   const qc = useQueryClient();
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [activeColumn, setActiveColumn] = useState<KanbanColumn | null>(null);
+  const [localColumns, setLocalColumns] = useState<KanbanColumn[]>(kanbanColumns);
 
-  // Refs let drag handlers always read the latest tasks without stale closures
-  // and without adding `tasks` to useCallback dependency arrays.
   const tasksRef = useRef<Task[]>(initialTasks);
-  const originStatusRef = useRef<TaskStatus | null>(null);
+  const originColumnIdRef = useRef<string | null | undefined>(undefined);
   const preDropSnapshotRef = useRef<Task[]>(initialTasks);
+  const columnsRef = useRef<KanbanColumn[]>(kanbanColumns);
+  const preDropColumnsRef = useRef<KanbanColumn[]>(kanbanColumns);
 
   const syncTasks = useCallback((next: Task[]) => {
     tasksRef.current = next;
     setTasks(next);
   }, []);
 
-  // Sync local state when the server data changes (e.g. another user, refetch).
   useEffect(() => {
     syncTasks(initialTasks);
     preDropSnapshotRef.current = initialTasks;
   }, [initialTasks, syncTasks]);
+
+  useEffect(() => {
+    columnsRef.current = kanbanColumns;
+    setLocalColumns(kanbanColumns);
+    preDropColumnsRef.current = kanbanColumns;
+  }, [kanbanColumns]);
 
   const { mutate: persistOrder } = useMutation({
     mutationFn: (items: TaskOrderItem[]) => reorderTasks(projectId, items),
     onSuccess: (updated: Task[]) => {
       syncTasks(updated);
       qc.setQueryData(['tasks', projectId], updated);
-      // Invalidate individual task caches for tasks whose status changed.
-      const prevMap = new Map(preDropSnapshotRef.current.map((t) => [t.id, t.status]));
+      const prevMap = new Map(preDropSnapshotRef.current.map((t) => [t.id, t.columnId]));
       for (const t of updated) {
-        if (prevMap.get(t.id) !== t.status) {
+        if (prevMap.get(t.id) !== t.columnId) {
           qc.invalidateQueries({ queryKey: ['task', t.id] });
         }
       }
     },
     onError: () => {
-      // Roll back to the state before the drag started.
       syncTasks(preDropSnapshotRef.current);
+    },
+  });
+
+  const { mutate: persistColumnOrder } = useMutation({
+    mutationFn: (cols: KanbanColumn[]) =>
+      reorderKanbanColumns(projectId, cols.map((c, i) => ({ id: c.id, index: i }))),
+    onSuccess: (updated: KanbanColumn[]) => {
+      setLocalColumns(updated);
+      columnsRef.current = updated;
+      qc.setQueryData(['kanban-columns', projectId], updated);
+    },
+    onError: () => {
+      setLocalColumns(preDropColumnsRef.current);
+      columnsRef.current = preDropColumnsRef.current;
     },
   });
 
@@ -112,23 +147,55 @@ export function useKanbanDnd(projectId: string, initialTasks: Task[]): KanbanDnd
   );
 
   const onDragStart = useCallback(({ active }: DragStartEvent) => {
+    const col = columnsRef.current.find((c) => c.id === active.id);
+    if (col) {
+      setActiveColumn(col);
+      preDropColumnsRef.current = columnsRef.current;
+      return;
+    }
     const task = (active.data.current?.task as Task) ?? null;
     setActiveTask(task);
-    originStatusRef.current = task?.status ?? null;
+    originColumnIdRef.current = task?.columnId;
     preDropSnapshotRef.current = tasksRef.current;
   }, []);
 
   const onDragOver = useCallback(({ active, over }: DragOverEvent) => {
     if (!over) return;
-    const targetStatus = resolveTargetStatus(tasksRef.current, over.id as string);
-    if (!targetStatus) return;
-    const next = applyStatusChange(tasksRef.current, active.id as string, targetStatus);
+
+    // Column reorder: optimistic move
+    if (columnsRef.current.some((c) => c.id === active.id)) {
+      const oldIdx = columnsRef.current.findIndex((c) => c.id === active.id);
+      const newIdx = columnsRef.current.findIndex((c) => c.id === over.id);
+      if (oldIdx !== -1 && newIdx !== -1 && oldIdx !== newIdx) {
+        const next = arrayMove(columnsRef.current, oldIdx, newIdx);
+        columnsRef.current = next;
+        setLocalColumns(next);
+      }
+      return;
+    }
+
+    const targetColumnId = resolveTargetColumnId(tasksRef.current, columnsRef.current, over.id as string);
+    if (!targetColumnId) return;
+    const next = applyColumnChange(tasksRef.current, active.id as string, targetColumnId);
     if (next !== tasksRef.current) syncTasks(next);
   }, [syncTasks]);
 
   const onDragEnd = useCallback(({ active, over }: DragEndEvent) => {
-    const originStatus = originStatusRef.current;
-    originStatusRef.current = null;
+    // Column drop
+    if (columnsRef.current.some((c) => c.id === active.id) || activeColumn) {
+      setActiveColumn(null);
+      if (over && columnsRef.current.some((c) => c.id === active.id)) {
+        persistColumnOrder(columnsRef.current);
+      } else {
+        // Dropped outside — revert
+        setLocalColumns(preDropColumnsRef.current);
+        columnsRef.current = preDropColumnsRef.current;
+      }
+      return;
+    }
+
+    const originColumnId = originColumnIdRef.current;
+    originColumnIdRef.current = undefined;
     setActiveTask(null);
 
     if (!over) {
@@ -140,34 +207,26 @@ export function useKanbanDnd(projectId: string, initialTasks: Task[]): KanbanDnd
     const overId = over.id as string;
     const current = tasksRef.current;
 
-    const targetStatus = resolveTargetStatus(current, overId);
-    if (!targetStatus) return;
+    const targetColumnId = resolveTargetColumnId(current, columnsRef.current, overId);
+    if (!targetColumnId) return;
 
     const task = current.find((t) => t.id === activeId);
     if (!task) return;
 
-    // `task.status` is already the optimistic value set by onDragOver.
-    // Use `originStatus` (captured at drag-start) for the "did status change?" check.
-    const statusChanged = originStatus !== null && originStatus !== task.status;
-
-    const isDroppedOnCard = overId !== activeId && !TASK_STATUS_COLUMNS.includes(overId as TaskStatus);
+    const columnChanged = originColumnId !== task.columnId;
+    const isDroppedOnCard = overId !== activeId && !columnsRef.current.some((c) => c.id === overId) && overId !== BACKLOG_COLUMN_ID;
     const next = isDroppedOnCard ? applyReorder(current, activeId, overId) : current;
 
-    if (statusChanged || next !== current) {
+    if (columnChanged || next !== current) {
       syncTasks(next);
-      persistOrder(toReorderPayload(next));
+      persistOrder(toReorderPayload(next, columnsRef.current.map((c) => c.id)));
     }
-  }, [syncTasks, persistOrder]);
+  }, [syncTasks, persistOrder, persistColumnOrder, activeColumn]);
 
-  const columns = useMemo(() => groupByStatus(tasks), [tasks]);
+  const columns = useMemo(
+    () => groupByColumn(tasks, localColumns),
+    [tasks, localColumns],
+  );
 
-  return {
-    tasks,
-    activeTask,
-    columns,
-    sensors,
-    onDragStart,
-    onDragOver,
-    onDragEnd,
-  };
+  return { tasks, activeTask, activeColumn, orderedColumns: localColumns, columns, sensors, onDragStart, onDragOver, onDragEnd };
 }

@@ -66,10 +66,10 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
               break;
             }
 
-            case EventCommands.TaskStatusUpdated: {
+            case EventCommands.TaskColumnUpdated: {
               const message = payload as ChatMessage;
               log(
-                `[${terminalName}] [${roomId}] Task status updated: ${message?.task?.name} → ${message?.task?.status}`,
+                `[${terminalName}] [${roomId}] Task column updated: ${message?.task?.name} → ${message?.task?.columnName ?? 'Backlog'}`,
               );
 
               // Terminate any running processes before handling the new status

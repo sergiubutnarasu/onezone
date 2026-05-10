@@ -1,12 +1,11 @@
 import { Command, Flags } from "@oclif/core";
-import { TaskStatus } from "@onezone/shared";
 
 export default class TaskMoveCommand extends Command {
-  static description = "Update the status of a task";
+  static description = "Move a task to a kanban column";
 
   static examples = [
-    "<%= config.bin %> task move --task <uuid> --status IN_PROGRESS",
-    "<%= config.bin %> task move --task <uuid> --status DONE",
+    "<%= config.bin %> task move --task <uuid> --column <column-uuid>",
+    "<%= config.bin %> task move --task <uuid> --column backlog",
   ];
 
   static flags = {
@@ -14,10 +13,9 @@ export default class TaskMoveCommand extends Command {
       description: "Task ID (UUID)",
       required: true,
     }),
-    status: Flags.string({
-      description: `New status. One of: ${Object.values(TaskStatus).join(", ")}`,
+    column: Flags.string({
+      description: 'Column ID (UUID) or "backlog" to move to the backlog',
       required: true,
-      options: Object.values(TaskStatus),
     }),
     server: Flags.string({
       description: "Server URL",
@@ -27,14 +25,15 @@ export default class TaskMoveCommand extends Command {
 
   async run(): Promise<void> {
     const { flags } = await this.parse(TaskMoveCommand);
+    const columnId = flags.column === "backlog" ? null : flags.column;
 
     try {
       const response = await fetch(
-        `${flags.server}/tasks/${flags.task}/status`,
+        `${flags.server}/tasks/${flags.task}/column`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: flags.status }),
+          body: JSON.stringify({ columnId }),
         },
       );
       if (!response.ok) {
@@ -48,6 +47,7 @@ export default class TaskMoveCommand extends Command {
       this.error(message, { exit: 1 });
     }
 
-    this.log(`Task ${flags.task} status updated to ${flags.status}.`);
+    const target = columnId ?? "backlog";
+    this.log(`Task ${flags.task} moved to ${target}.`);
   }
 }

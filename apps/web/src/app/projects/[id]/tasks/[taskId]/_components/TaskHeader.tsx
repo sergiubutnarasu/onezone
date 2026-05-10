@@ -14,52 +14,26 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/CopyButton";
 import { TaskMoreMenu } from "@/components/TaskMoreMenu";
-import { TASK_STATUS_LABELS, TaskStatus, type Terminal, type Agent, type Task } from "@onezone/shared";
+import { type Terminal, type Agent, type Task, type KanbanColumn } from "@onezone/shared";
 
 interface TaskMetaChipsProps {
   task: Task;
+  columns: KanbanColumn[];
   isTerminalActive: boolean;
 }
 
-function TaskMetaChips({ task, isTerminalActive }: TaskMetaChipsProps) {
+function TaskMetaChips({ task, columns, isTerminalActive }: TaskMetaChipsProps) {
+  const columnName = task.columnId ? (columns.find((c) => c.id === task.columnId)?.name ?? null) : null;
   return (
     <div className="flex flex-wrap items-center gap-2 mt-2">
-      {/* Status chip */}
-      <span
-        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border ${
-          task.status === "DONE"
-            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-            : task.status === "IN_PROGRESS"
-              ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-              : task.status === "IN_REVIEW"
-                ? "bg-sky-500/10 text-sky-400 border-sky-500/20"
-                : task.status === "TESTING"
-                  ? "bg-violet-500/10 text-violet-400 border-violet-500/20"
-                  : task.status === "PLANNING"
-                    ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                    : "bg-muted text-muted-foreground border-border"
-        }`}
-      >
+      {/* Column chip */}
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border bg-muted text-muted-foreground border-border">
         {isTerminalActive ? (
           <Loader2 className="size-3 animate-spin" />
         ) : (
-          <span
-            className={`size-1.5 rounded-full ${
-              task.status === "DONE"
-                ? "bg-emerald-400"
-                : task.status === "IN_PROGRESS"
-                  ? "bg-amber-400"
-                  : task.status === "IN_REVIEW"
-                    ? "bg-sky-400"
-                    : task.status === "TESTING"
-                      ? "bg-violet-400"
-                      : task.status === "PLANNING"
-                        ? "bg-blue-400"
-                        : "bg-muted-foreground"
-            }`}
-          />
+          <span className="size-1.5 rounded-full bg-muted-foreground" />
         )}
-        {TASK_STATUS_LABELS[task.status]}
+        {columnName ?? 'Backlog'}
       </span>
 
       {/* Terminal chip */}
@@ -121,6 +95,7 @@ interface TaskHeaderProps {
   isTerminalActive: boolean;
   agents: Agent[];
   terminals: Terminal[];
+  columns: KanbanColumn[];
   onDeleted: () => void;
 }
 
@@ -132,6 +107,7 @@ export function TaskHeader({
   isTerminalActive,
   agents,
   terminals,
+  columns,
   onDeleted,
 }: TaskHeaderProps) {
   return (
@@ -200,6 +176,7 @@ export function TaskHeader({
               projectId={projectId}
               agents={agents}
               terminals={terminals}
+              columns={columns}
               onDeleted={onDeleted}
             />
           )}
@@ -215,7 +192,7 @@ export function TaskHeader({
       </div>
 
       {/* Meta chips */}
-      {task && <TaskMetaChips task={task} isTerminalActive={isTerminalActive} />}
+      {task && <TaskMetaChips task={task} columns={columns} isTerminalActive={isTerminalActive} />}
     </div>
   );
 }
