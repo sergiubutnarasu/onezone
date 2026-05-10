@@ -1,18 +1,5 @@
-import { TaskDetails, KanbanColumn } from "@onezone/shared";
+import { TaskDetails } from "@onezone/shared";
 import { spawnCommand, SpawnCommandProps } from "./command-runner.js";
-
-function getNextColumn(task: TaskDetails): KanbanColumn | undefined {
-  const columns = task.project?.kanbanColumns ?? [];
-  if (!task.columnId) {
-    // Task is in backlog — no automatic advancement
-    return undefined;
-  }
-  const sortedColumns = [...columns].sort((a, b) => a.index - b.index);
-  const currentIdx = sortedColumns.findIndex((c) => c.id === task.columnId);
-  return currentIdx >= 0 && currentIdx < sortedColumns.length - 1
-    ? sortedColumns[currentIdx + 1]
-    : undefined;
-}
 
 export interface TaskRunnerProps extends Omit<SpawnCommandProps, "content"> {}
 
@@ -60,80 +47,19 @@ export const taskRunner = ({
     payload,
     deps,
     activeProcesses,
+    onComplete: async (_exitCode, nextColumnId) => {
+      if (nextColumnId !== undefined) {
+        const response = await fetch(`${deps.serverUrl}/tasks/${task.id}/column`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ columnId: nextColumnId }),
+        });
+        if (!response.ok) {
+          log(
+            `[${terminalName}] [${roomId}] Failed to move task: ${response.status} ${response.statusText}`,
+          );
+        }
+      }
+    },
   });
-
-  // const nextColumn = getNextColumn(task);
-  // const onComplete = nextColumn
-  //   ? async (_exitCode: number) => {
-  //       await fetch(`${deps.serverUrl}/tasks/${task.id}/column`, {
-  //         method: "PATCH",
-  //         headers: { "Content-Type": "application/json" },
-  //         body: JSON.stringify({ columnId: nextColumn.id }),
-  //       });
-  //     }
-  //   : undefined;
-
-  // const lowerName = columnName.toLowerCase();
-
-  // if (lowerName === "planning") {
-  //   log(
-  //     `[${terminalName}] [${roomId}] Task is in PLANNING status, starting command execution...`,
-  //   );
-
-  //   spawnCommand({
-  //     content: `/onezone-planner ${task.description || ""}`,
-  //     payload,
-  //     deps,
-  //     activeProcesses,
-  //     onComplete,
-  //   });
-
-  //   return;
-  // }
-
-  // if (lowerName === "in progress") {
-  //   log(
-  //     `[${terminalName}] [${roomId}] Task is In Progress, executing command...`,
-  //   );
-  //   spawnCommand({
-  //     content: `/onezone-developer`,
-  //     payload,
-  //     deps,
-  //     activeProcesses,
-  //     onComplete,
-  //   });
-  //   return;
-  // }
-
-  // if (lowerName === "in review") {
-  //   log(
-  //     `[${terminalName}] [${roomId}] Task is In Review, executing command...`,
-  //   );
-  //   spawnCommand({
-  //     content: `/onezone-reviewer`,
-  //     payload,
-  //     deps,
-  //     activeProcesses,
-  //     onComplete,
-  //   });
-  //   return;
-  // }
-
-  // if (lowerName === "testing") {
-  //   log(
-  //     `[${terminalName}] [${roomId}] Task is in Testing, executing command...`,
-  //   );
-  //   spawnCommand({
-  //     content: `/onezone-tester`,
-  //     payload,
-  //     deps,
-  //     activeProcesses,
-  //     onComplete,
-  //   });
-  //   return;
-  // }
-
-  // log(
-  //   `[${terminalName}] [${roomId}] Task is in column "${columnName}", no specific handler — skipping.`,
-  // );
 };

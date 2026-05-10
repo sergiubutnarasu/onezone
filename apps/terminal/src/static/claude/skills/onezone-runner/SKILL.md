@@ -33,14 +33,15 @@ You **MUST** follow the steps below to complete the task:
 ```
 onezone-terminal column list --project <project-uuid>
 ```
-5. Move the task to the next kanban column using `/onezone-terminal`.
+5. Determine the next kanban column using `/onezone-terminal`.
 ```
-# Move a task to a kanban column
-onezone-terminal task move --task <task-uuid> --column <column-uuid>
-
-# Move task back to backlog
-onezone-terminal task move --task <task-uuid> --column backlog
+onezone-terminal column list --project <project-uuid>
 ```
+6. At the very end of your response, on its own line, output:
+```
+[[ONEZONE_NEXT_COLUMN:<column-uuid>]]
+```
+To move back to the backlog use `[[ONEZONE_NEXT_COLUMN:backlog]]`.
 
 
 **Important**: Do not wait for the user input. If need the user input, please make a reasonable assumption and continue with the task.

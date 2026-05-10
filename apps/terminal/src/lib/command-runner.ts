@@ -26,7 +26,7 @@ export interface SpawnCommandProps {
   payload: unknown;
   deps: CommandRunnerDeps;
   activeProcesses: Map<string, ActiveProcessEntry>;
-  onComplete?: (exitCode: number) => Promise<void>;
+  onComplete?: (exitCode: number, nextColumnId: string | null | undefined) => Promise<void>;
 }
 
 /**
@@ -95,6 +95,7 @@ export function spawnCommand({
     inputTokens?: number;
     outputTokens?: number;
   } | null = null;
+  let nextColumnId: string | null | undefined = undefined;
 
   const proc = runProcess({
     cmd: command,
@@ -124,6 +125,12 @@ export function spawnCommand({
             inputTokens: parsed.usage?.input_tokens ?? undefined,
             outputTokens: parsed.usage?.output_tokens ?? undefined,
           };
+          const match = (parsed.result as string | undefined)?.match(
+            /\[\[ONEZONE_NEXT_COLUMN:(\S+)\]\]/,
+          );
+          if (match) {
+            nextColumnId = match[1] === "backlog" ? null : match[1];
+          }
           resultSeen = true;
           if (proc.pid) killTree(proc.pid);
         }
@@ -171,7 +178,7 @@ export function spawnCommand({
         effectiveCode === 0 ? "✔ done" : `✖ error (${effectiveCode})`;
       log(`[${terminalName}] [${roomId}] ${badge}: "${content}"`);
       if (!cancelled) {
-        void onComplete?.(effectiveCode);
+        void onComplete?.(effectiveCode, nextColumnId);
       }
     },
   });
