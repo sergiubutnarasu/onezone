@@ -19,7 +19,7 @@
     "topicSeparator": " "
   },
   "scripts": {
-    "build": "tsc && oclif manifest",
+    "build": "tsc && cp -r src/static dist/static && oclif manifest",
     "dev": "node --loader ts-node/esm ./bin/dev.js",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit"

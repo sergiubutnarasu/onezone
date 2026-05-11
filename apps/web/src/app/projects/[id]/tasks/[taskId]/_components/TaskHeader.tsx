@@ -14,7 +14,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/CopyButton";
 import { TaskMoreMenu } from "@/components/TaskMoreMenu";
-import { type Terminal, type Agent, type Task, type KanbanColumn } from "@onezone/shared";
+import {
+  type Terminal,
+  type Agent,
+  type Task,
+  type KanbanColumn,
+} from "@onezone/shared";
 
 interface TaskMetaChipsProps {
   task: Task;
@@ -22,18 +27,20 @@ interface TaskMetaChipsProps {
   isTerminalActive: boolean;
 }
 
-function TaskMetaChips({ task, columns, isTerminalActive }: TaskMetaChipsProps) {
-  const columnName = task.columnId ? (columns.find((c) => c.id === task.columnId)?.name ?? null) : null;
+function TaskMetaChips({
+  task,
+  columns,
+  isTerminalActive,
+}: TaskMetaChipsProps) {
+  const columnName = task.columnId
+    ? (columns.find((c) => c.id === task.columnId)?.name ?? null)
+    : null;
   return (
     <div className="flex flex-wrap items-center gap-2 mt-2">
       {/* Column chip */}
       <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border bg-muted text-muted-foreground border-border">
-        {isTerminalActive ? (
-          <Loader2 className="size-3 animate-spin" />
-        ) : (
-          <span className="size-1.5 rounded-full bg-muted-foreground" />
-        )}
-        {columnName ?? 'Backlog'}
+        {isTerminalActive && <Loader2 className="size-3 animate-spin" />}
+        {columnName ?? "Backlog"}
       </span>
 
       {/* Terminal chip */}
@@ -192,7 +199,13 @@ export function TaskHeader({
       </div>
 
       {/* Meta chips */}
-      {task && <TaskMetaChips task={task} columns={columns} isTerminalActive={isTerminalActive} />}
+      {task && (
+        <TaskMetaChips
+          task={task}
+          columns={columns}
+          isTerminalActive={isTerminalActive}
+        />
+      )}
     </div>
   );
 }

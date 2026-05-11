@@ -1,11 +1,22 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useQueryClient, useMutation } from '@tanstack/react-query';
-import { Trash2, Bot, MoreHorizontal, Pencil, Monitor } from 'lucide-react';
-import { updateTask, assignTaskTerminal, deleteTask, updateTaskColumn } from '@/lib/api';
-import { BACKLOG_COLUMN_ID, type KanbanColumn, type Terminal, type Agent, type Task } from '@onezone/shared';
-import { Button } from '@/components/ui/button';
+import { useState } from "react";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { Trash2, Bot, MoreHorizontal, Pencil, Monitor } from "lucide-react";
+import {
+  updateTask,
+  assignTaskTerminal,
+  deleteTask,
+  updateTaskColumn,
+} from "@/lib/api";
+import {
+  BACKLOG_COLUMN_ID,
+  type KanbanColumn,
+  type Terminal,
+  type Agent,
+  type Task,
+} from "@onezone/shared";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,9 +26,9 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { EditTaskDialog } from '@/components/EditTaskDialog';
-import { ConfirmDialog } from '@/components/ConfirmDialog';
+} from "@/components/ui/dropdown-menu";
+import { EditTaskDialog } from "@/components/EditTaskDialog";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface TaskMoreMenuProps {
   task: Task;
@@ -28,7 +39,14 @@ interface TaskMoreMenuProps {
   onDeleted: () => void;
 }
 
-export function TaskMoreMenu({ task, projectId, agents, terminals, columns, onDeleted }: TaskMoreMenuProps) {
+export function TaskMoreMenu({
+  task,
+  projectId,
+  agents,
+  terminals,
+  columns,
+  onDeleted,
+}: TaskMoreMenuProps) {
   const [editOpen, setEditOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const qc = useQueryClient();
@@ -36,23 +54,24 @@ export function TaskMoreMenu({ task, projectId, agents, terminals, columns, onDe
   const assignMutation = useMutation({
     mutationFn: (terminalId: string) => assignTaskTerminal(task.id, terminalId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['task', task.id] });
-      qc.invalidateQueries({ queryKey: ['tasks', projectId] });
+      qc.invalidateQueries({ queryKey: ["task", task.id] });
+      qc.invalidateQueries({ queryKey: ["tasks", projectId] });
     },
   });
 
   const columnMutation = useMutation({
-    mutationFn: (columnId: string | null) => updateTaskColumn(task.id, columnId),
+    mutationFn: (columnId: string | null) =>
+      updateTaskColumn(task.id, columnId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['task', task.id] });
-      qc.invalidateQueries({ queryKey: ['tasks', projectId] });
+      qc.invalidateQueries({ queryKey: ["task", task.id] });
+      qc.invalidateQueries({ queryKey: ["tasks", projectId] });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteTask(task.id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tasks', projectId] });
+      qc.invalidateQueries({ queryKey: ["tasks", projectId] });
       onDeleted();
     },
   });
@@ -84,10 +103,11 @@ export function TaskMoreMenu({ task, projectId, agents, terminals, columns, onDe
                 onClick={() => columnMutation.mutate(null)}
                 className="text-xs"
               >
-                <span className="mr-2 size-2 rounded-full bg-slate-400" />
                 Backlog
                 {task.columnId === null && (
-                  <span className="ml-auto text-[10px] text-muted-foreground">Current</span>
+                  <span className="ml-auto text-[10px] text-muted-foreground">
+                    Current
+                  </span>
                 )}
               </DropdownMenuItem>
               {columns.map((col) => (
@@ -96,10 +116,11 @@ export function TaskMoreMenu({ task, projectId, agents, terminals, columns, onDe
                   onClick={() => columnMutation.mutate(col.id)}
                   className="text-xs"
                 >
-                  <span className="mr-2 size-2 rounded-full bg-primary/60" />
                   {col.name}
                   {task.columnId === col.id && (
-                    <span className="ml-auto text-[10px] text-muted-foreground">Current</span>
+                    <span className="ml-auto text-[10px] text-muted-foreground">
+                      Current
+                    </span>
                   )}
                 </DropdownMenuItem>
               ))}
@@ -120,15 +141,17 @@ export function TaskMoreMenu({ task, projectId, agents, terminals, columns, onDe
                   key={a.id}
                   onClick={() => {
                     updateTask(task.id, { agentId: a.id }).then(() => {
-                      qc.invalidateQueries({ queryKey: ['task', task.id] });
-                      qc.invalidateQueries({ queryKey: ['tasks', projectId] });
+                      qc.invalidateQueries({ queryKey: ["task", task.id] });
+                      qc.invalidateQueries({ queryKey: ["tasks", projectId] });
                     });
                   }}
                   className="text-xs"
                 >
                   {a.name}
                   {task.agentId === a.id && (
-                    <span className="ml-auto text-[10px] text-muted-foreground">Current</span>
+                    <span className="ml-auto text-[10px] text-muted-foreground">
+                      Current
+                    </span>
                   )}
                 </DropdownMenuItem>
               ))}
@@ -145,7 +168,9 @@ export function TaskMoreMenu({ task, projectId, agents, terminals, columns, onDe
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
               {terminals.length === 0 ? (
-                <div className="px-2 py-2 text-xs text-muted-foreground">No terminals</div>
+                <div className="px-2 py-2 text-xs text-muted-foreground">
+                  No terminals
+                </div>
               ) : (
                 terminals.map((t) => (
                   <DropdownMenuItem
@@ -153,10 +178,14 @@ export function TaskMoreMenu({ task, projectId, agents, terminals, columns, onDe
                     onClick={() => assignMutation.mutate(t.id)}
                     className="text-xs"
                   >
-                    <span className={`mr-2 size-2 rounded-full ${t.isConnected ? 'bg-emerald-400' : 'bg-muted-foreground'}`} />
+                    <span
+                      className={`mr-2 size-2 rounded-full ${t.isConnected ? "bg-emerald-400" : "bg-muted-foreground"}`}
+                    />
                     {t.name}
                     {task.terminal?.id === t.id && (
-                      <span className="ml-auto text-[10px] text-muted-foreground">Current</span>
+                      <span className="ml-auto text-[10px] text-muted-foreground">
+                        Current
+                      </span>
                     )}
                   </DropdownMenuItem>
                 ))
@@ -201,4 +230,3 @@ export function TaskMoreMenu({ task, projectId, agents, terminals, columns, onDe
     </>
   );
 }
-
