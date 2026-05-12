@@ -29,7 +29,6 @@ function handleCommandGroup(
     groupMap.set(msg.jobId, group);
     items.push({ type: "command", group });
   }
-  items.push({ type: "message", msg });
 }
 
 function handleOutputLine(

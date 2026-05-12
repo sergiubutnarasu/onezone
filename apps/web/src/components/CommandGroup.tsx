@@ -16,6 +16,19 @@ export interface CommandGroupData {
   lines: RoomMessage[];
 }
 
+function getDisplayCommand(command: string): string {
+  if (command.startsWith('/onezone-runner ')) {
+    try {
+      const parsed = JSON.parse(command.slice('/onezone-runner '.length));
+      return parsed?.kanbanColumnName ?? '/onezone-runner';
+    } catch {
+      // fall through
+    }
+    return '/onezone-runner';
+  }
+  return command;
+}
+
 export function CommandGroup({ group }: { group: CommandGroupData }) {
   const [open, setOpen] = useState(false);
 
@@ -36,7 +49,7 @@ export function CommandGroup({ group }: { group: CommandGroupData }) {
           <ChevronRight className="size-3 text-muted-foreground/80 shrink-0" />
         )}
         <span className="text-amber-500 dark:text-amber-400/80 font-mono text-xs truncate flex-1">
-          $ {group.command}
+          $ {getDisplayCommand(group.command)}
         </span>
         <span className="text-muted-foreground/60 text-xs shrink-0">
           {startTime}
