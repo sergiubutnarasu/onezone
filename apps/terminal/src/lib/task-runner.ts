@@ -47,19 +47,5 @@ export const taskRunner = ({
     payload,
     deps,
     activeProcesses,
-    onComplete: async (_exitCode, nextColumnId) => {
-      if (nextColumnId !== undefined) {
-        const response = await fetch(`${deps.serverUrl}/tasks/${task.id}/column`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ columnId: nextColumnId }),
-        });
-        if (!response.ok) {
-          log(
-            `[${terminalName}] [${roomId}] Failed to move task: ${response.status} ${response.statusText}`,
-          );
-        }
-      }
-    },
   });
 };

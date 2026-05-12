@@ -11,7 +11,7 @@ The `onezone-terminal` binary is the CLI for interacting with the onezone server
 ## Prerequisites
 
 - The onezone server must be running (default: `http://localhost:5026`)
-- The CLI must be installed: `pnpm --filter @onezone/terminal build` then `node apps/terminal/bin/run.js` — or use the installed `onezone-terminal` binary
+- The CLI must be installed: use the installed `onezone-terminal` binary
 - All commands require a project UUID (get it from the user or a previous step)
 
 ## Command Reference

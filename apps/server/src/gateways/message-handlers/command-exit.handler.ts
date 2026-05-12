@@ -3,6 +3,7 @@ import { EventCommands, MessageRole } from '@onezone/shared';
 import { MessageType } from '@prisma/client';
 import { Server, Socket } from 'socket.io';
 import { MessagesService } from '../../messages/messages.service';
+import { TasksService } from '../../tasks/tasks.service';
 import { extractTaskId } from '@onezone/shared';
 import { IMessageHandler } from './message-handler.interface';
 
@@ -17,6 +18,8 @@ export interface CommandExitData {
   totalCostUsd?: number;
   inputTokens?: number;
   outputTokens?: number;
+  taskRunnerFinished?: boolean;
+  nextColumnId?: string | null;
 }
 
 @Injectable()
@@ -25,6 +28,7 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
 
   constructor(
     private readonly messagesService: MessagesService,
+    private readonly tasksService: TasksService,
   ) {}
 
   async handle(
@@ -63,6 +67,14 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
         totalCostUsd: data.totalCostUsd,
         ts,
       });
+
+      if (taskId && data.taskRunnerFinished) {
+        if (data.nextColumnId !== undefined) {
+          await this.tasksService.updateColumn(taskId, data.nextColumnId);
+        } else {
+          await this.tasksService.setCompleted(taskId, true);
+        }
+      }
 
       return { status: 'ok' };
     } catch (error) {

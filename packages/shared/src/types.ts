@@ -163,6 +163,10 @@ export interface CommandExitPayload {
   jobId: string;
   command: string;
   exitCode: number;
+  /** Present when the process produced a result (i.e. was a task runner invocation). */
+  taskRunnerFinished?: boolean;
+  /** The next column UUID, null for backlog, undefined if no ONEZONE_NEXT_COLUMN signal was emitted. */
+  nextColumnId?: string | null;
 }
 
 // --- Typed socket event maps ---

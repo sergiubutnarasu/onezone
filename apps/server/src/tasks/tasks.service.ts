@@ -290,12 +290,11 @@ export class TasksService {
           select: { id: true, name: true, index: true, projectId: true, instructions: true, createdAt: true },
         });
         column = { ...col, createdAt: col.createdAt.toISOString() };
-        const maxIndex = await tx.kanbanColumn.aggregate({
-          where: { projectId: existing.projectId },
-          _max: { index: true },
+        const nextColumn = await tx.kanbanColumn.findFirst({
+          where: { projectId: existing.projectId, index: { gt: col.index } },
+          select: { id: true },
         });
-        const completedAt =
-          col.index === maxIndex._max.index ? new Date() : null;
+        const completedAt = nextColumn === null ? new Date() : null;
         await tx.taskColumn.upsert({
           where: { taskId: id },
           create: { taskId: id, columnId },
@@ -336,10 +335,7 @@ export class TasksService {
         select: { id: true, index: true },
       }),
     ]);
-    const lastColumnId =
-      projectColumns.length > 0
-        ? projectColumns[projectColumns.length - 1].id
-        : null;
+    const columnIndexMap = new Map(projectColumns.map((c) => [c.id, c.index]));
     const existingMap = new Map(existing.map((t) => [t.id, t]));
     const validItems = items.filter((i) => existingMap.has(i.id));
 
@@ -353,8 +349,13 @@ export class TasksService {
           order: item.order,
         };
         if (columnChanged) {
-          updateData.completedAt =
-            item.columnId === lastColumnId ? new Date() : null;
+          if (item.columnId === null) {
+            updateData.completedAt = null;
+          } else {
+            const colIndex = columnIndexMap.get(item.columnId) ?? -1;
+            const hasNextColumn = projectColumns.some((c) => c.index > colIndex);
+            updateData.completedAt = hasNextColumn ? null : new Date();
+          }
         }
         await tx.task.update({ where: { id: item.id }, data: updateData });
 

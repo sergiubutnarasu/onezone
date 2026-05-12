@@ -26,7 +26,6 @@ export interface SpawnCommandProps {
   payload: unknown;
   deps: CommandRunnerDeps;
   activeProcesses: Map<string, ActiveProcessEntry>;
-  onComplete?: (exitCode: number, nextColumnId: string | null | undefined) => Promise<void>;
 }
 
 /**
@@ -39,7 +38,6 @@ export function spawnCommand({
   payload,
   deps,
   activeProcesses,
-  onComplete,
 }: SpawnCommandProps): void {
   const { socket, roomId, terminalId, terminalName, log } = deps;
 
@@ -89,7 +87,7 @@ export function spawnCommand({
   const command = `${terminalAgent.cmd} ${shellQuote(content)}`;
 
   let cancelled = false;
-  let resultSeen = false;
+  let taskRunnerFinished = false;
   let resultUsage: {
     totalCostUsd?: number;
     inputTokens?: number;
@@ -131,7 +129,7 @@ export function spawnCommand({
           if (match) {
             nextColumnId = match[1] === "backlog" ? null : match[1];
           }
-          resultSeen = true;
+          taskRunnerFinished = true;
           if (proc.pid) killTree(proc.pid);
         }
       } catch {
@@ -153,7 +151,7 @@ export function spawnCommand({
 
       // If we already received the result line and killed the process ourselves,
       // treat it as a clean exit regardless of the signal exit code.
-      const effectiveCode = resultSeen ? 0 : exitCode;
+      const effectiveCode = taskRunnerFinished ? 0 : exitCode;
 
       if (effectiveCode !== 0) {
         let stderrTs = Date.now();
@@ -171,15 +169,14 @@ export function spawnCommand({
         ...basePayload,
         exitCode: effectiveCode,
         ts: Date.now(),
+        taskRunnerFinished: taskRunnerFinished && !cancelled,
+        ...(taskRunnerFinished && !cancelled ? { nextColumnId } : {}),
         ...(resultUsage ?? {}),
       });
 
       const badge =
         effectiveCode === 0 ? "✔ done" : `✖ error (${effectiveCode})`;
       log(`[${terminalName}] [${roomId}] ${badge}: "${content}"`);
-      if (!cancelled) {
-        void onComplete?.(effectiveCode, nextColumnId);
-      }
     },
   });
 
