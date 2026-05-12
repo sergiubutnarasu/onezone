@@ -2,6 +2,19 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { RoomMessage } from '@/hooks/useTaskRoom';
 
+function getDisplayContent(content: string): string {
+  if (content.startsWith('/onezone-runner ')) {
+    try {
+      const parsed = JSON.parse(content.slice('/onezone-runner '.length));
+      return parsed?.kanbanColumnName ?? '/onezone-runner';
+    } catch {
+      // fall through
+    }
+    return '/onezone-runner';
+  }
+  return content;
+}
+
 export function MessageLine({ message }: { message: RoomMessage }) {
   const isAgent = message.role === 'terminal';
   const isSystem = message.role === 'system';
@@ -34,7 +47,7 @@ export function MessageLine({ message }: { message: RoomMessage }) {
             {message.terminalName || message.terminalId}
           </span>
         )}
-        <span className="font-mono">{message.content}</span>
+        <span className="font-mono">{getDisplayContent(message.content)}</span>
       </div>
     );
   }

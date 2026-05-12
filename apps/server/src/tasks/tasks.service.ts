@@ -315,7 +315,12 @@ export class TasksService {
       data: { completedAt: completed ? new Date() : null },
     });
     this.logger.log(`Set task ${id} completedAt to ${completed ? 'now' : 'null'}`);
-    return this.findOne(id);
+    const updated = await this.findOne(id);
+    this.terminalRegistry.notifyTaskColumnUpdated(
+      id,
+      await this.toChatMessage(updated),
+    );
+    return updated;
   }
 
   async reorder(projectId: string, items: TaskOrderItemDto[]) {

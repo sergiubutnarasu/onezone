@@ -1,4 +1,4 @@
-import { IsArray, IsInt, IsOptional, IsString, IsUUID, Min, ValidateIf, ValidateNested } from 'class-validator';
+import { IsArray, IsBoolean, IsInt, IsOptional, IsString, IsUUID, Min, ValidateIf, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateTaskDto {
@@ -54,6 +54,7 @@ export class UpdateTaskColumnDto {
 }
 
 export class ToggleCompletedDto {
+  @IsBoolean()
   completed!: boolean;
 }
 

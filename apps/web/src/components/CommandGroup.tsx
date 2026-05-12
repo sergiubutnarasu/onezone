@@ -49,7 +49,7 @@ export function CommandGroup({ group }: { group: CommandGroupData }) {
           <ChevronRight className="size-3 text-muted-foreground/80 shrink-0" />
         )}
         <span className="text-amber-500 dark:text-amber-400/80 font-mono text-xs truncate flex-1">
-          $ {getDisplayCommand(group.command)}
+          {getDisplayCommand(group.command)}
         </span>
         <span className="text-muted-foreground/60 text-xs shrink-0">
           {startTime}

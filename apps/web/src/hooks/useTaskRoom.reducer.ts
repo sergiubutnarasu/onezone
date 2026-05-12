@@ -71,10 +71,12 @@ export function reducer(state: State, action: Action): State {
 
     case 'COMMAND_EXIT': {
       const { payload, taskId } = action;
+      const terminalName = state.connectedTerminals.get(payload.terminalId)?.terminalName ?? null;
       const msg: RoomMessage = {
         roomId: `task:${taskId}`,
         role: 'system',
         terminalId: payload.terminalId,
+        terminalName,
         jobId: payload.jobId,
         command: payload.command,
         exitCode: payload.exitCode,
