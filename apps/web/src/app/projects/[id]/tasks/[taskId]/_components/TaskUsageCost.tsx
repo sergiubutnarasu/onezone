@@ -47,9 +47,7 @@ export function TaskUsageCost({
           <div className="text-sm font-mono font-medium text-foreground">
             $
             {costUsd !== null
-              ? costUsd < 0.01
-                ? costUsd.toFixed(6)
-                : costUsd.toFixed(4)
+              ? costUsd.toFixed(6)
               : "—"}
           </div>
         </div>
