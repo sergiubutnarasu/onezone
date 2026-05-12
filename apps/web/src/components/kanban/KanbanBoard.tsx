@@ -4,12 +4,11 @@ import { useRef, useEffect, useState } from 'react';
 import { DndContext, DragOverlay } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { useKanbanDnd } from '@/hooks/useKanbanDnd';
-import { BACKLOG_COLUMN_ID, type KanbanColumn, type Task } from '@onezone/shared';
+import { BACKLOG_COLUMN_ID, COMPLETED_COLUMN_ID, type KanbanColumn, type Task } from '@onezone/shared';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { KanbanCard } from './KanbanCard';
 import { KanbanColumn as KanbanColumnComponent } from './KanbanColumn';
 import { KanbanColumnDialog } from '@/components/KanbanColumnDialog';
-import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
 interface KanbanBoardProps {
@@ -87,20 +86,30 @@ export function KanbanBoard({ tasks: initialTasks, projectId, columns }: KanbanB
               ))}
             </SortableContext>
 
+            {/* Static completed column — always last */}
+            <KanbanColumnComponent
+              columnId={COMPLETED_COLUMN_ID}
+              columnName="Completed"
+              columnInstructions={null}
+              columnIndex={-1}
+              tasks={groupedTasks.get(COMPLETED_COLUMN_ID) ?? []}
+              projectId={projectId}
+              isBacklog={false}
+              isCompleted
+            />
+
             {/* Add column button */}
-            <div className="flex flex-col gap-2 min-w-40 w-40">
-              <div className="flex-1 rounded-lg border border-dashed border-border/50 flex items-start justify-center pt-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground gap-1.5"
-                  onClick={() => setAddColumnOpen(true)}
-                >
+            <button
+              onClick={() => setAddColumnOpen(true)}
+              className="group flex flex-col gap-2 min-w-65 w-65 rounded-lg border border-dashed border-border/40 bg-transparent hover:border-border/70 hover:bg-muted/30 transition-all duration-200 items-center justify-center min-h-32 cursor-pointer"
+            >
+              <div className="flex flex-col items-center gap-2 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors duration-200">
+                <div className="rounded-full border border-dashed border-current p-2">
                   <Plus className="size-4" />
-                  Add column
-                </Button>
+                </div>
+                <span className="text-xs font-medium">Add column</span>
               </div>
-            </div>
+            </button>
           </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>

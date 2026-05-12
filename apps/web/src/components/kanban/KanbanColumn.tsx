@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { KanbanCard } from './KanbanCard';
 import { type Task } from '@onezone/shared';
-import { GripVertical, Pencil, Trash2 } from 'lucide-react';
+import { GripVertical, Pencil, Trash2, CheckCircle2 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { deleteKanbanColumn } from '@/lib/api';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -35,6 +35,7 @@ interface KanbanColumnProps {
   tasks: Task[];
   projectId: string;
   isBacklog: boolean;
+  isCompleted?: boolean;
 }
 
 const CARD_ESTIMATE_PX = 110;
@@ -47,11 +48,10 @@ export const KanbanColumn = memo(function KanbanColumn({
   tasks,
   projectId,
   isBacklog,
+  isCompleted = false,
 }: KanbanColumnProps) {
-  // Backlog uses disabled useSortable so it stays droppable but not draggable.
-  // Using a single useSortable (instead of mixing useDroppable + useSortable with the same id)
-  // avoids the id-conflict that made the backlog invisible to dnd-kit's collision detection.
-  const sortable = useSortable({ id: columnId, disabled: isBacklog });
+  // Backlog and Completed use disabled useSortable so they stay droppable but not draggable.
+  const sortable = useSortable({ id: columnId, disabled: isBacklog || isCompleted });
 
   const setNodeRef = sortable.setNodeRef;
   const isOver = sortable.isOver;
@@ -73,7 +73,9 @@ export const KanbanColumn = memo(function KanbanColumn({
 
   const colorClass = isBacklog
     ? 'text-slate-400'
-    : COLUMN_COLORS[columnIndex % COLUMN_COLORS.length];
+    : isCompleted
+      ? 'text-emerald-500'
+      : COLUMN_COLORS[columnIndex % COLUMN_COLORS.length];
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteKanbanColumn(projectId, columnId),
@@ -83,7 +85,7 @@ export const KanbanColumn = memo(function KanbanColumn({
     },
   });
 
-  const style = isBacklog ? undefined : {
+  const style = (isBacklog || isCompleted) ? undefined : {
     transform: CSS.Transform.toString(sortable.transform),
     transition: sortable.transition,
     opacity: sortable.isDragging ? 0.4 : undefined,
@@ -94,11 +96,14 @@ export const KanbanColumn = memo(function KanbanColumn({
       <div
         className="group/col flex flex-col gap-2 min-w-65 w-65"
         style={style}
-        {...(isBacklog ? {} : sortable.attributes)}
+        {...(isBacklog || isCompleted ? {} : sortable.attributes)}
       >
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-1.5 min-w-0">
-            {!isBacklog && (
+            {isCompleted && (
+              <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
+            )}
+            {!isBacklog && !isCompleted && (
               <button
                 className="cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground transition-colors shrink-0 touch-none"
                 {...sortable.listeners}
@@ -115,7 +120,7 @@ export const KanbanColumn = memo(function KanbanColumn({
               {tasks.length}
             </Badge>
           </div>
-          {!isBacklog && (
+          {!isBacklog && !isCompleted && (
             <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover/col:opacity-100 transition-opacity">
               <Button
                 variant="ghost"
@@ -181,7 +186,7 @@ export const KanbanColumn = memo(function KanbanColumn({
         </div>
       </div>
 
-      {!isBacklog && (
+      {!isBacklog && !isCompleted && (
         <>
           <KanbanColumnDialog
             open={editOpen}

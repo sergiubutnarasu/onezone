@@ -314,6 +314,16 @@ export class TasksService {
     return this.findOne(id);
   }
 
+  async setCompleted(id: string, completed: boolean) {
+    await this.findOne(id);
+    await this.prisma.task.update({
+      where: { id },
+      data: { completedAt: completed ? new Date() : null },
+    });
+    this.logger.log(`Set task ${id} completedAt to ${completed ? 'now' : 'null'}`);
+    return this.findOne(id);
+  }
+
   async reorder(projectId: string, items: TaskOrderItemDto[]) {
     const [existing, projectColumns] = await Promise.all([
       this.prisma.task.findMany({

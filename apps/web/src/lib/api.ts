@@ -81,6 +81,9 @@ export const fetchMessages = (taskId: string) =>
 export const updateTaskColumn = (taskId: string, columnId: string | null) =>
   httpClient.patch<Task>(`/tasks/${taskId}/column`, { columnId });
 
+export const setTaskCompleted = (taskId: string, completed: boolean) =>
+  httpClient.patch<Task>(`/tasks/${taskId}/complete`, { completed });
+
 export const updateTask = (
   taskId: string,
   data: {

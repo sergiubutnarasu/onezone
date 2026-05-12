@@ -9,7 +9,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
-import { AssignTerminalDto, UpdateTaskDto, UpdateTaskColumnDto } from './tasks.dto';
+import { AssignTerminalDto, UpdateTaskDto, UpdateTaskColumnDto, ToggleCompletedDto } from './tasks.dto';
 
 @Controller('tasks')
 export class TasksController {
@@ -26,6 +26,14 @@ export class TasksController {
     @Body() body: UpdateTaskColumnDto,
   ) {
     return this.tasksService.updateColumn(taskId, body.columnId ?? null);
+  }
+
+  @Patch(':taskId/complete')
+  setCompleted(
+    @Param('taskId') taskId: string,
+    @Body() body: ToggleCompletedDto,
+  ) {
+    return this.tasksService.setCompleted(taskId, body.completed);
   }
 
   @Patch(':taskId/terminal')

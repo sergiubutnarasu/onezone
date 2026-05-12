@@ -11,28 +11,38 @@ import {
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { reorderTasks, reorderKanbanColumns, type TaskOrderItem } from '@/lib/api';
-import { BACKLOG_COLUMN_ID, type KanbanColumn, type Task } from '@onezone/shared';
+import { reorderTasks, reorderKanbanColumns, setTaskCompleted, type TaskOrderItem } from '@/lib/api';
+import { BACKLOG_COLUMN_ID, COMPLETED_COLUMN_ID, type KanbanColumn, type Task } from '@onezone/shared';
 
 // ---------------------------------------------------------------------------
 // Pure helpers (no side-effects, easy to unit-test)
 // ---------------------------------------------------------------------------
 
-/** All valid droppable IDs: BACKLOG_COLUMN_ID or a real column UUID */
+/** All valid droppable IDs: BACKLOG_COLUMN_ID, COMPLETED_COLUMN_ID, or a real column UUID */
 function resolveTargetColumnId(tasks: Task[], columns: KanbanColumn[], overId: string): string | undefined {
   if (overId === BACKLOG_COLUMN_ID) return BACKLOG_COLUMN_ID;
+  if (overId === COMPLETED_COLUMN_ID) return COMPLETED_COLUMN_ID;
   if (columns.some((c) => c.id === overId)) return overId;
-  return tasks.find((t) => t.id === overId)?.columnId ?? (
-    tasks.find((t) => t.id === overId) !== undefined ? BACKLOG_COLUMN_ID : undefined
-  );
+  const overTask = tasks.find((t) => t.id === overId);
+  if (!overTask) return undefined;
+  if (overTask.completedAt) return COMPLETED_COLUMN_ID;
+  return overTask.columnId ?? BACKLOG_COLUMN_ID;
 }
 
 function applyColumnChange(tasks: Task[], activeId: string, targetColumnId: string): Task[] {
   const task = tasks.find((t) => t.id === activeId);
   if (!task) return tasks;
+
+  if (targetColumnId === COMPLETED_COLUMN_ID) {
+    // Moving to Completed: set completedAt, keep columnId
+    if (task.completedAt) return tasks;
+    return tasks.map((t) => (t.id === activeId ? { ...t, completedAt: new Date().toISOString() } : t));
+  }
+
   const newColumnId = targetColumnId === BACKLOG_COLUMN_ID ? null : targetColumnId;
-  if (task.columnId === newColumnId) return tasks;
-  return tasks.map((t) => (t.id === activeId ? { ...t, columnId: newColumnId } : t));
+  const completedAtNeedsClear = !!task.completedAt;
+  if (task.columnId === newColumnId && !completedAtNeedsClear) return tasks;
+  return tasks.map((t) => (t.id === activeId ? { ...t, columnId: newColumnId, completedAt: null } : t));
 }
 
 function applyReorder(tasks: Task[], activeId: string, overId: string): Task[] {
@@ -56,12 +66,17 @@ function toReorderPayload(tasks: Task[], columnOrder: string[]): TaskOrderItem[]
 export function groupByColumn(tasks: Task[], columns: KanbanColumn[]): Map<string, Task[]> {
   const groups = new Map<string, Task[]>();
   groups.set(BACKLOG_COLUMN_ID, []);
+  groups.set(COMPLETED_COLUMN_ID, []);
   for (const col of columns) groups.set(col.id, []);
   for (const task of tasks) {
-    const key = task.columnId ?? BACKLOG_COLUMN_ID;
-    const group = groups.get(key);
-    if (group) group.push(task);
-    else groups.get(BACKLOG_COLUMN_ID)!.push(task);
+    if (task.completedAt) {
+      groups.get(COMPLETED_COLUMN_ID)!.push(task);
+    } else {
+      const key = task.columnId ?? BACKLOG_COLUMN_ID;
+      const group = groups.get(key);
+      if (group) group.push(task);
+      else groups.get(BACKLOG_COLUMN_ID)!.push(task);
+    }
   }
   return groups;
 }
@@ -128,6 +143,18 @@ export function useKanbanDnd(projectId: string, initialTasks: Task[], kanbanColu
     },
   });
 
+  const { mutate: persistCompleted } = useMutation({
+    mutationFn: ({ taskId, completed }: { taskId: string; completed: boolean }) =>
+      setTaskCompleted(taskId, completed),
+    onSuccess: (updated: Task) => {
+      syncTasks(tasksRef.current.map((t) => (t.id === updated.id ? { ...t, completedAt: updated.completedAt ?? null } : t)));
+      qc.invalidateQueries({ queryKey: ['task', updated.id] });
+    },
+    onError: () => {
+      syncTasks(preDropSnapshotRef.current);
+    },
+  });
+
   const { mutate: persistColumnOrder } = useMutation({
     mutationFn: (cols: KanbanColumn[]) =>
       reorderKanbanColumns(projectId, cols.map((c, i) => ({ id: c.id, index: i }))),
@@ -155,7 +182,10 @@ export function useKanbanDnd(projectId: string, initialTasks: Task[], kanbanColu
     }
     const task = (active.data.current?.task as Task) ?? null;
     setActiveTask(task);
-    originColumnIdRef.current = task?.columnId;
+    // Track virtual origin: COMPLETED for tasks with completedAt set
+    originColumnIdRef.current = task?.completedAt
+      ? COMPLETED_COLUMN_ID
+      : (task?.columnId ?? BACKLOG_COLUMN_ID);
     preDropSnapshotRef.current = tasksRef.current;
   }, []);
 
@@ -194,7 +224,7 @@ export function useKanbanDnd(projectId: string, initialTasks: Task[], kanbanColu
       return;
     }
 
-    const originColumnId = originColumnIdRef.current;
+    const originVirtualColumnId = originColumnIdRef.current;
     originColumnIdRef.current = undefined;
     setActiveTask(null);
 
@@ -213,15 +243,36 @@ export function useKanbanDnd(projectId: string, initialTasks: Task[], kanbanColu
     const task = current.find((t) => t.id === activeId);
     if (!task) return;
 
-    const columnChanged = originColumnId !== task.columnId;
-    const isDroppedOnCard = overId !== activeId && !columnsRef.current.some((c) => c.id === overId) && overId !== BACKLOG_COLUMN_ID;
+    const virtualColumnChanged = originVirtualColumnId !== targetColumnId;
+
+    // Moving TO Completed virtual column
+    if (targetColumnId === COMPLETED_COLUMN_ID) {
+      if (virtualColumnChanged) {
+        persistCompleted({ taskId: activeId, completed: true });
+      }
+      return;
+    }
+
+    // Moving FROM Completed virtual column
+    if (originVirtualColumnId === COMPLETED_COLUMN_ID) {
+      const isDroppedOnCard = overId !== activeId && !columnsRef.current.some((c) => c.id === overId) && overId !== BACKLOG_COLUMN_ID && overId !== COMPLETED_COLUMN_ID;
+      const next = isDroppedOnCard ? applyReorder(current, activeId, overId) : current;
+      if (next !== current) syncTasks(next);
+      // Explicitly clear completedAt (handles backlog→backlog and other edge cases)
+      persistCompleted({ taskId: activeId, completed: false });
+      persistOrder(toReorderPayload(next, columnsRef.current.map((c) => c.id)));
+      return;
+    }
+
+    // Regular column change or reorder
+    const isDroppedOnCard = overId !== activeId && !columnsRef.current.some((c) => c.id === overId) && overId !== BACKLOG_COLUMN_ID && overId !== COMPLETED_COLUMN_ID;
     const next = isDroppedOnCard ? applyReorder(current, activeId, overId) : current;
 
-    if (columnChanged || next !== current) {
+    if (virtualColumnChanged || next !== current) {
       syncTasks(next);
       persistOrder(toReorderPayload(next, columnsRef.current.map((c) => c.id)));
     }
-  }, [syncTasks, persistOrder, persistColumnOrder, activeColumn]);
+  }, [syncTasks, persistOrder, persistCompleted, persistColumnOrder, activeColumn]);
 
   const columns = useMemo(
     () => groupByColumn(tasks, localColumns),

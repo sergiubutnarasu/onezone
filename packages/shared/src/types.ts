@@ -38,6 +38,9 @@ export enum AgentTag {
 /** Sentinel ID used in the UI to represent the virtual "Backlog" column (no DB entry). */
 export const BACKLOG_COLUMN_ID = "__backlog__";
 
+/** Sentinel ID used in the UI to represent the virtual "Completed" column (no DB entry). */
+export const COMPLETED_COLUMN_ID = "__completed__";
+
 export interface KanbanColumn {
   id: string;
   projectId: string;

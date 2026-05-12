@@ -53,6 +53,10 @@ export class UpdateTaskColumnDto {
   columnId?: string | null;
 }
 
+export class ToggleCompletedDto {
+  completed!: boolean;
+}
+
 export class AssignTerminalDto {
   @IsUUID()
   terminalId!: string;
