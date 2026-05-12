@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { createKanbanColumn, updateKanbanColumn } from "@/lib/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 interface KanbanColumnDialogProps {
@@ -36,6 +36,7 @@ export function KanbanColumnDialog({
 }: KanbanColumnDialogProps) {
   const qc = useQueryClient();
   const isEdit = !!column;
+  const [editorKey, setEditorKey] = useState(0);
 
   const {
     register,
@@ -56,6 +57,7 @@ export function KanbanColumnDialog({
         name: column?.name ?? "",
         instructions: column?.instructions ?? "",
       });
+      setEditorKey((k) => k + 1);
     }
   }, [open, column, reset]);
 
@@ -106,6 +108,7 @@ export function KanbanColumnDialog({
               control={control}
               render={({ field }) => (
                 <RichTextEditor
+                  key={editorKey}
                   value={field.value}
                   onChange={field.onChange}
                   placeholder="Define instruction for this column"

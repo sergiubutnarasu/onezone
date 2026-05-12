@@ -8,6 +8,7 @@ import {
   ListItemNode,
   ListNode,
 } from "@lexical/list";
+import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import {
   $convertFromMarkdownString,
   $convertToMarkdownString,
@@ -188,7 +189,7 @@ export function RichTextEditor({
     namespace: "RichTextEditor",
     theme: editorTheme,
     onError: (error: Error) => console.error(error),
-    nodes: [ListNode, ListItemNode],
+    nodes: [ListNode, ListItemNode, HeadingNode, QuoteNode],
     editorState: () =>
       $convertFromMarkdownString(value ?? "", TRANSFORMERS),
   };
