@@ -99,7 +99,9 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
                 payload,
                 deps,
                 activeProcesses,
-              });
+              }).catch((err) =>
+                deps.log(`[${terminalName}] [${roomId}] spawnCommand error: ${(err as Error).message}`),
+              );
               break;
             }
 

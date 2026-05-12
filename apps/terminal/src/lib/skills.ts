@@ -1,34 +1,38 @@
 import type { ProjectInfo, RunSkillCommandPayload } from "@onezone/shared";
-import { execSync } from "node:child_process";
+import { exec } from "node:child_process";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { promisify } from "node:util";
 import {
   getAllInstalledSkills,
   getProjectConfigFolder,
   removeSkill,
 } from "./project-paths.js";
 
-export function runSkillCommand(
+const execAsync = promisify(exec);
+
+export async function runSkillCommand(
   payload: RunSkillCommandPayload,
   log: (message: string) => void,
-): void {
+): Promise<void> {
   const { projectId, source, skillName } = payload;
   const configDir = getProjectConfigFolder(projectId);
 
-  const cmd = `npx --yes skills add ${source} --skill ${JSON.stringify(skillName)} -a claude-code -y --copy`;
+  const cmd = `npx --yes skills add ${JSON.stringify(source)} --skill ${JSON.stringify(skillName)} -a claude-code -y --copy`;
 
   log(`[skill] Installing "${skillName}" in ${configDir}`);
 
   try {
-    execSync(cmd, { cwd: configDir, stdio: "pipe" });
+    await execAsync(cmd, { cwd: configDir });
     log(`[skill] Installing "${skillName}" completed`);
   } catch (err) {
-    const e = err as { message?: string; stderr?: Buffer; stdout?: Buffer };
-    const detail =
-      e.stderr?.toString().trim() || e.stdout?.toString().trim() || e.message;
+    const e = err as { message?: string; stderr?: string; stdout?: string };
+    const detail = e.stderr?.trim() || e.stdout?.trim() || e.message;
     log(`[skill] Installing "${skillName}" failed: ${detail}`);
   }
 }
 
-export const setupSkills = ({
+export const setupSkills = async ({
   project,
   emit,
 }: {
@@ -36,6 +40,7 @@ export const setupSkills = ({
   emit?: (message: string) => void;
 }) => {
   const skills = project?.skills ?? [];
+  const configDir = getProjectConfigFolder(project.id);
 
   // remove extra skills
   const installedSkills = getAllInstalledSkills(project.id);
@@ -49,14 +54,15 @@ export const setupSkills = ({
     }
   }
 
-  const uninstalledSkills = skills.filter(
-    (s) => !installedSkills.includes(s.skillName),
-  );
+  const uninstalledSkills = skills.filter((s) => {
+    const skillDir = path.join(configDir, ".claude", "skills", s.skillName);
+    return !fs.existsSync(skillDir);
+  });
 
   if (uninstalledSkills.length > 0) {
     emit?.(`Installing ${uninstalledSkills.length} skill(s)...`);
     for (const skill of uninstalledSkills) {
-      runSkillCommand(
+      await runSkillCommand(
         {
           projectId: project.id,
           source: skill.source,

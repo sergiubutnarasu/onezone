@@ -48,5 +48,5 @@ export const taskRunner = ({
     payload,
     deps,
     activeProcesses,
-  });
+  }).catch((err) => deps.log(`[${deps.terminalName}] [${deps.roomId}] spawnCommand error: ${(err as Error).message}`));
 };

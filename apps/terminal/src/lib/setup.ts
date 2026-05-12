@@ -13,10 +13,10 @@ import {
 import { setupSkills } from "./skills.js";
 import type { TaskJobConfig } from "./types.js";
 
-export const setupProject = (
+export const setupProject = async (
   payload: unknown,
   emit?: (message: string) => void,
-): TaskJobConfig | null => {
+): Promise<TaskJobConfig | null> => {
   if (!payload || typeof payload !== "object" || !("task" in payload)) {
     return null;
   }
@@ -93,7 +93,7 @@ export const setupProject = (
   lines.push("✔ Claude configuration ready.");
   flush();
 
-  setupSkills({ project, emit });
+  await setupSkills({ project, emit });
 
   return {
     projectId,

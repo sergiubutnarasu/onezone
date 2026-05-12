@@ -33,12 +33,12 @@ export interface SpawnCommandProps {
  * terminal agent, streaming stdout lines back over the socket and emitting
  * start/exit lifecycle events.
  */
-export function spawnCommand({
+export async function spawnCommand({
   content,
   payload,
   deps,
   activeProcesses,
-}: SpawnCommandProps): void {
+}: SpawnCommandProps): Promise<void> {
   const { socket, roomId, terminalId, terminalName, log } = deps;
 
   const terminalAgent = setupTerminalAgent(payload);
@@ -75,7 +75,7 @@ export function spawnCommand({
       ts: setupTs++,
     });
 
-  const setupResult = setupProject(payload, emitSetupLine);
+  const setupResult = await setupProject(payload, emitSetupLine);
   if (!setupResult) {
     log(
       `[${terminalName}] [${roomId}] Failed to setup project environment, skipping command execution.`,
