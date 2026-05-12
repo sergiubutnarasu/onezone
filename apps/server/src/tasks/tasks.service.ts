@@ -290,17 +290,12 @@ export class TasksService {
           select: { id: true, name: true, index: true, projectId: true, instructions: true, createdAt: true },
         });
         column = { ...col, createdAt: col.createdAt.toISOString() };
-        const nextColumn = await tx.kanbanColumn.findFirst({
-          where: { projectId: existing.projectId, index: { gt: col.index } },
-          select: { id: true },
-        });
-        const completedAt = nextColumn === null ? new Date() : null;
         await tx.taskColumn.upsert({
           where: { taskId: id },
           create: { taskId: id, columnId },
           update: { columnId, assignedAt: new Date() },
         });
-        await tx.task.update({ where: { id }, data: { completedAt } });
+        await tx.task.update({ where: { id }, data: { completedAt: null } });
       }
     });
 
@@ -324,18 +319,10 @@ export class TasksService {
   }
 
   async reorder(projectId: string, items: TaskOrderItemDto[]) {
-    const [existing, projectColumns] = await Promise.all([
-      this.prisma.task.findMany({
-        where: { id: { in: items.map((i) => i.id) }, projectId },
-        include: { columnAssignment: true },
-      }),
-      this.prisma.kanbanColumn.findMany({
-        where: { projectId },
-        orderBy: { index: "asc" },
-        select: { id: true, index: true },
-      }),
-    ]);
-    const columnIndexMap = new Map(projectColumns.map((c) => [c.id, c.index]));
+    const existing = await this.prisma.task.findMany({
+      where: { id: { in: items.map((i) => i.id) }, projectId },
+      include: { columnAssignment: true },
+    });
     const existingMap = new Map(existing.map((t) => [t.id, t]));
     const validItems = items.filter((i) => existingMap.has(i.id));
 
@@ -349,13 +336,7 @@ export class TasksService {
           order: item.order,
         };
         if (columnChanged) {
-          if (item.columnId === null) {
-            updateData.completedAt = null;
-          } else {
-            const colIndex = columnIndexMap.get(item.columnId) ?? -1;
-            const hasNextColumn = projectColumns.some((c) => c.index > colIndex);
-            updateData.completedAt = hasNextColumn ? null : new Date();
-          }
+          updateData.completedAt = null;
         }
         await tx.task.update({ where: { id: item.id }, data: updateData });
 
