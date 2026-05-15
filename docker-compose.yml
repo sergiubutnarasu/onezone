@@ -28,6 +28,12 @@ services:
     depends_on:
       - postgres
       - redis
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5026/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   web:
     build:
@@ -40,5 +46,23 @@ services:
     depends_on:
       - server
 
+  terminal:
+    build:
+      context: apps/terminal/src/static/docker
+      dockerfile: Dockerfile
+    environment:
+      TERMINAL_NAME: ${TERMINAL_NAME:-Onezone Docker Terminal}
+      TERMINAL_SERVER_URL: ${TERMINAL_SERVER_URL:-http://server:5026}
+    volumes:
+      - terminal_ssh:/home/agent/.ssh
+      - terminal_workdir:/home/agent/.onezone
+      - ollama_data:/home/agent/.ollama
+    depends_on:
+      server:
+        condition: service_healthy
+
 volumes:
   postgres_data:
+  terminal_ssh:
+  terminal_workdir:
+  ollama_data:

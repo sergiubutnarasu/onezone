@@ -1,0 +1,32 @@
+#!/bin/sh
+set -e
+
+# Ensure .ssh dir exists with correct permissions
+mkdir -p /home/agent/.ssh
+chmod 700 /home/agent/.ssh
+
+# Re-add GitHub's host key if not present (volume may have replaced known_hosts)
+if ! grep -q "github.com" /home/agent/.ssh/known_hosts 2>/dev/null; then
+  ssh-keyscan github.com >> /home/agent/.ssh/known_hosts 2>/dev/null
+  chmod 644 /home/agent/.ssh/known_hosts
+fi
+
+# Write a default SSH config if one doesn't exist yet
+if [ ! -f /home/agent/.ssh/config ]; then
+  cat > /home/agent/.ssh/config <<'EOF'
+Host *
+  AddKeysToAgent yes
+  IdentityFile ~/.ssh/github
+EOF
+  chmod 600 /home/agent/.ssh/config
+fi
+
+# Start Ollama server in the background
+ollama serve &
+
+# Wait for Ollama to be ready
+until ollama list >/dev/null 2>&1; do
+  sleep 1
+done
+
+exec onezone-terminal listen --name "${TERMINAL_NAME}" --server "${TERMINAL_SERVER_URL}"
