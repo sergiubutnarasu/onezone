@@ -112,4 +112,11 @@ export class TerminalRegistryService {
       `Notified task room ${roomId} of column update: ${message?.task?.column?.name ?? 'Backlog'}`,
     );
   }
+
+  forwardStopCommandToTerminal(taskId: string, jobId: string): boolean {
+    const socketId = this.taskTerminalSockets.get(taskId);
+    if (!socketId || !this.server) return false;
+    this.server.to(socketId).emit(EventCommands.TerminalCommandStop, { jobId });
+    return true;
+  }
 }

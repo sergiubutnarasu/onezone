@@ -2,7 +2,7 @@
 
 import type { RoomMessage } from "@/hooks/useTaskRoom";
 import { parseClaudeLine, type ContentBlock } from "@/lib/claude-content";
-import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Square } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -29,7 +29,7 @@ function getDisplayCommand(command: string): string {
   return command;
 }
 
-export function CommandGroup({ group }: { group: CommandGroupData }) {
+export function CommandGroup({ group, onStop }: { group: CommandGroupData; onStop?: (jobId: string) => void }) {
   const [open, setOpen] = useState(false);
 
   const isDone = group.exitCode !== undefined;
@@ -55,9 +55,21 @@ export function CommandGroup({ group }: { group: CommandGroupData }) {
           {startTime}
         </span>
         {!isDone && (
-          <span className="flex items-center gap-1 text-primary/70 text-xs shrink-0">
-            <Loader2 className="size-3 animate-spin" />
-            running
+          <span className="flex items-center gap-2 shrink-0">
+            <span className="flex items-center gap-1 text-primary/60 text-xs">
+              <Loader2 className="size-3 animate-spin" />
+              running
+            </span>
+            {onStop && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onStop(group.jobId); }}
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20 transition-colors"
+                title="Stop command"
+              >
+                <Square className="size-2.5 fill-current" />
+                stop
+              </button>
+            )}
           </span>
         )}
         {isDone && (

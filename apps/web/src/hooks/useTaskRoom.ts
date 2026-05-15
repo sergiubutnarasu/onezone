@@ -115,6 +115,15 @@ export function useTaskRoom(
     [taskId, isConnected],
   );
 
+  const stopCommand = useCallback(
+    (jobId: string) => {
+      const socket = socketRef.current;
+      if (!socket || !isConnected) return;
+      socket.emit(EventCommands.TerminalCommandStop, { jobId, taskId });
+    },
+    [taskId, isConnected],
+  );
+
   const prependMessages = useCallback((msgs: RoomMessage[]) => {
     dispatch({ type: "SET_MESSAGES", messages: msgs });
   }, []);
@@ -125,6 +134,7 @@ export function useTaskRoom(
     connectedTerminals: Array.from(state.connectedTerminals.values()),
     isConnected,
     sendMessage,
+    stopCommand,
     prependMessages,
   };
 }

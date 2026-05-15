@@ -7,6 +7,7 @@ export enum EventCommands {
   TerminalDisconnected = "terminal:disconnected",
   TerminalCommandStart = "terminal:command:start",
   TerminalCommandExit = "terminal:command:exit",
+  TerminalCommandStop = "terminal:command:stop",
   TerminalHeartbeat = "terminal:heartbeat",
   AssignTask = "terminal:assign-task",
   TaskDeleted = "task:deleted",
@@ -183,6 +184,7 @@ export interface ServerToClientEvents {
   [EventCommands.AssignTask]: (payload: AssignTaskPayload) => void;
   [EventCommands.TaskDeleted]: (payload: { taskId: string }) => void;
   [EventCommands.TaskColumnUpdated]: (task: TaskDetails) => void;
+  [EventCommands.TerminalCommandStop]: (payload: { jobId: string }) => void;
 }
 
 export interface ClientToServerEvents {

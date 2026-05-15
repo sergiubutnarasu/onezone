@@ -8,9 +8,10 @@ import type { ChatItem } from "../_lib/chat-items";
 
 interface TaskChatAreaProps {
   chatItems: ChatItem[];
+  onStop?: (jobId: string) => void;
 }
 
-export function TaskChatArea({ chatItems }: TaskChatAreaProps) {
+export function TaskChatArea({ chatItems, onStop }: TaskChatAreaProps) {
   const scrollParentRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
 
@@ -65,7 +66,7 @@ export function TaskChatArea({ chatItems }: TaskChatAreaProps) {
               style={{ transform: `translateY(${virtualRow.start}px)` }}
             >
               {item.type === "command" ? (
-                <CommandGroup group={item.group} />
+                <CommandGroup group={item.group} onStop={onStop} />
               ) : (
                 <MessageLine message={item.msg} />
               )}

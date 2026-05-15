@@ -321,4 +321,14 @@ export class ChatGateway
     const terminalName = meta?.role === 'terminal' ? meta.terminalName : undefined;
     return this.commandExitHandler.handle({ ...data, terminalId, terminalName }, client, this.server);
   }
+
+  @SubscribeMessage(EventCommands.TerminalCommandStop)
+  handleCommandStop(
+    @MessageBody() data: { jobId: string; taskId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const meta = this.socketMeta.get(client.id);
+    if (meta?.role !== 'user') return;
+    this.terminalRegistry.forwardStopCommandToTerminal(data.taskId, data.jobId);
+  }
 }

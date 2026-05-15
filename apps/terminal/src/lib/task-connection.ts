@@ -66,6 +66,16 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
               break;
             }
 
+            case EventCommands.TerminalCommandStop: {
+              const { jobId } = payload as { jobId: string };
+              const entry = activeProcesses.get(jobId);
+              if (entry) {
+                log(`[${terminalName}] [${roomId}] Stopping job ${jobId}`);
+                entry.cleanup();
+              }
+              break;
+            }
+
             case EventCommands.TaskColumnUpdated: {
               const message = payload as ChatMessage;
               log(

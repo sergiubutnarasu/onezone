@@ -54,6 +54,7 @@ export default function TaskChatPage() {
     connectedTerminals,
     isConnected,
     sendMessage,
+    stopCommand,
     prependMessages,
   } = useTaskRoom(taskId, {
     onTaskDeleted: () => router.push(`/projects/${projectId}`),
@@ -126,7 +127,7 @@ export default function TaskChatPage() {
 
         <TerminalStatusBar terminals={connectedTerminals} />
 
-        <TaskChatArea chatItems={chatItems} />
+        <TaskChatArea chatItems={chatItems} onStop={stopCommand} />
 
         <MessageInput onSend={sendMessage} disabled={!isConnected} />
       </div>
