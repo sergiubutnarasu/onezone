@@ -39,9 +39,12 @@ export function CommandGroup({ group, onStop }: { group: CommandGroupData; onSto
   return (
     <div className="border border-border/70 rounded-md mx-4 my-1.5 overflow-hidden bg-muted/30">
       {/* Header */}
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-2 px-3 py-2 bg-muted/40 hover:bg-muted/60 text-left transition-colors"
+        onKeyDown={(e) => e.key === 'Enter' || e.key === ' ' ? setOpen((o) => !o) : undefined}
+        className="w-full flex items-center gap-2 px-3 py-2 bg-muted/40 hover:bg-muted/60 text-left transition-colors cursor-pointer"
       >
         {open ? (
           <ChevronDown className="size-3 text-muted-foreground/80 shrink-0" />
@@ -87,7 +90,7 @@ export function CommandGroup({ group, onStop }: { group: CommandGroupData; onSto
                 : "✔ Done"}
           </span>
         )}
-      </button>
+      </div>
 
       {/* Output lines */}
       {open && group.lines.length > 0 && (

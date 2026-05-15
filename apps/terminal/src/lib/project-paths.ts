@@ -102,7 +102,10 @@ export const cloneProjectRepo = (
     }
 
     const repoUrl = repository.startsWith("https://")
-      ? repository.replace(/^https:\/\/([^/]+)\/(.+?)(?:\.git)?$/, "git@$1:$2.git")
+      ? repository.replace(
+          /^https:\/\/([^/]+)\/(.+?)(?:\.git)?$/,
+          "git@$1:$2.git",
+        )
       : repository;
 
     execSync(
@@ -150,7 +153,7 @@ export const createClaudeSettings = (projectId: string): boolean => {
       __dirname,
       "..",
       "static",
-      "claude",
+      "agent",
       "rules.md",
     );
     const rulesDestPath = path.join(projectConfigFolder, "CLAUDE.local.md");
@@ -166,7 +169,7 @@ export const createClaudeSettings = (projectId: string): boolean => {
       __dirname,
       "..",
       "static",
-      "claude",
+      "agent",
       "skills",
     );
     const skillsDestPath = path.join(claudeDir, "skills");
