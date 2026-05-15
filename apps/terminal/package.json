@@ -1,7 +1,9 @@
 {
   "name": "@onezone/terminal",
   "version": "0.0.1",
-  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Onezone Terminal CLI",
   "type": "module",
   "bin": {

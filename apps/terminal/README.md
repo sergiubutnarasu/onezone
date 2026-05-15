@@ -10,11 +10,31 @@ pnpm install
 pnpm build
 ```
 
+Or install from npm:
+
+```bash
+npm install -g @onezone/terminal
+# or run without installing
+npx @onezone/terminal listen
+```
+
 Or link globally for local development:
 
 ```bash
 cd apps/terminal
 npm link
+```
+
+## Publishing
+
+Publish `@onezone/shared` first, then this package:
+
+```bash
+# From repo root
+pnpm build
+npm login
+pnpm publish --filter @onezone/shared
+pnpm publish --filter @onezone/terminal
 ```
 
 ## Usage

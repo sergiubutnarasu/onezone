@@ -41,6 +41,17 @@ pnpm build
 pnpm typecheck
 ```
 
+## Publishing
+
+This package must be published before `@onezone/terminal`.
+
+```bash
+# From repo root
+pnpm build
+npm login
+pnpm publish --filter @onezone/shared
+```
+
 ## Usage
 
 ```ts
