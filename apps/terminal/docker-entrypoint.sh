@@ -21,12 +21,4 @@ EOF
   chmod 600 /home/agent/.ssh/config
 fi
 
-# Start Ollama server in the background
-ollama serve &
-
-# Wait for Ollama to be ready
-until ollama list >/dev/null 2>&1; do
-  sleep 1
-done
-
 exec onezone-terminal listen --name "${TERMINAL_NAME}" --server "${TERMINAL_SERVER_URL}"

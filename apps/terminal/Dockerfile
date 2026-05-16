@@ -19,10 +19,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
   && rm -rf /var/lib/apt/lists/*
 
 # Install onezone-terminal globally (as root)
-RUN npm install -g @onezone/terminal
-
-# Install Ollama
-RUN curl -fsSL https://ollama.com/install.sh | sh
+RUN npm install -g @onezone/terminal@0.0.2
 
 ARG USER_UID=1000
 ARG USER_GID=1000
@@ -44,7 +41,7 @@ ENV PATH="/home/agent/.local/bin:$PATH"
 WORKDIR /home/agent
 
 # Pre-create writable directories as agent user
-RUN mkdir -p /home/agent/.onezone/projects /home/agent/.ollama
+RUN mkdir -p /home/agent/.onezone/projects
 
 # Trust GitHub's host key
 RUN mkdir -p /home/agent/.ssh \
