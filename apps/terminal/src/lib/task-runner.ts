@@ -41,6 +41,7 @@ export const taskRunner = ({
     kanbanColumnId: task.columnId,
     kanbanColumnName: task.column?.name,
     kanbanColumnInstructions: task.column?.instructions,
+    serverUrl: deps.serverUrl,
   };
 
   spawnCommand({
@@ -48,5 +49,9 @@ export const taskRunner = ({
     payload,
     deps,
     activeProcesses,
-  }).catch((err) => deps.log(`[${deps.terminalName}] [${deps.roomId}] spawnCommand error: ${(err as Error).message}`));
+  }).catch((err) =>
+    deps.log(
+      `[${deps.terminalName}] [${deps.roomId}] spawnCommand error: ${(err as Error).message}`,
+    ),
+  );
 };
