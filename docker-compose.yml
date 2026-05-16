@@ -48,11 +48,13 @@ services:
 
   terminal:
     build:
-      context: apps/terminal/src/static/docker
-      dockerfile: Dockerfile
+      context: apps/terminal
     environment:
       TERMINAL_NAME: ${TERMINAL_NAME:-Onezone Docker Terminal}
       TERMINAL_SERVER_URL: ${TERMINAL_SERVER_URL:-http://server:5026}
+      ANTHROPIC_AUTH_TOKEN: ${ANTHROPIC_AUTH_TOKEN}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     volumes:
       - terminal_ssh:/home/agent/.ssh
       - terminal_workdir:/home/agent/.onezone
