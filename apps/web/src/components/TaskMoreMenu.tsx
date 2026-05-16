@@ -8,9 +8,11 @@ import {
   assignTaskTerminal,
   deleteTask,
   updateTaskColumn,
+  setTaskCompleted,
 } from "@/lib/api";
 import {
   BACKLOG_COLUMN_ID,
+  COMPLETED_COLUMN_ID,
   type KanbanColumn,
   type Terminal,
   type Agent,
@@ -60,8 +62,15 @@ export function TaskMoreMenu({
   });
 
   const columnMutation = useMutation({
-    mutationFn: (columnId: string | null) =>
-      updateTaskColumn(task.id, columnId),
+    mutationFn: async (columnId: string | null) => {
+      if (columnId === COMPLETED_COLUMN_ID) {
+        return setTaskCompleted(task.id, true);
+      }
+      if (task.completedAt) {
+        await setTaskCompleted(task.id, false);
+      }
+      return updateTaskColumn(task.id, columnId);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["task", task.id] });
       qc.invalidateQueries({ queryKey: ["tasks", projectId] });
@@ -117,13 +126,24 @@ export function TaskMoreMenu({
                   className="text-xs"
                 >
                   {col.name}
-                  {task.columnId === col.id && (
+                  {!task.completedAt && task.columnId === col.id && (
                     <span className="ml-auto text-[10px] text-muted-foreground">
                       Current
                     </span>
                   )}
                 </DropdownMenuItem>
               ))}
+              <DropdownMenuItem
+                onClick={() => columnMutation.mutate(COMPLETED_COLUMN_ID)}
+                className="text-xs"
+              >
+                Completed
+                {!!task.completedAt && (
+                  <span className="ml-auto text-[10px] text-muted-foreground">
+                    Current
+                  </span>
+                )}
+              </DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
 
