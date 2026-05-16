@@ -1,6 +1,7 @@
 import { MessageType } from "@onezone/shared";
 import type { RoomMessage } from "@/hooks/useTaskRoom";
 import type { CommandGroupData } from "@/components/CommandGroup";
+import { parseClaudeLine } from "@/lib/claude-content";
 
 export type ChatItem =
   | { type: "message"; msg: RoomMessage }
@@ -31,6 +32,13 @@ function handleCommandGroup(
   }
 }
 
+function extractRenderedText(content: string): string | null {
+  const blocks = parseClaudeLine(content);
+  if (!blocks) return null;
+  const text = blocks.filter((b) => b.kind === 'text').map((b) => b.text).join('');
+  return text || null;
+}
+
 function handleOutputLine(
   msg: RoomMessage,
   groupMap: Map<string, CommandGroupData>,
@@ -48,6 +56,12 @@ function handleOutputLine(
     };
     groupMap.set(msg.jobId, group);
     items.push({ type: "command", group });
+  }
+  if (group.lines.length > 0) {
+    const lastLine = group.lines[group.lines.length - 1];
+    const lastText = extractRenderedText(lastLine.content);
+    const thisText = extractRenderedText(msg.content);
+    if (lastText !== null && thisText !== null && lastText === thisText) return;
   }
   group.lines.push(msg);
 }

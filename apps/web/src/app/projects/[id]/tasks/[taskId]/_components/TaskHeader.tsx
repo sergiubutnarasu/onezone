@@ -40,7 +40,7 @@ function TaskMetaChips({
       {/* Column chip */}
       <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border bg-muted text-muted-foreground border-border">
         {isTerminalActive && <Loader2 className="size-3 animate-spin" />}
-        {columnName ?? "Backlog"}
+        {task.completedAt ? "Completed" : (columnName ?? "Backlog")}
       </span>
 
       {/* Terminal chip */}
