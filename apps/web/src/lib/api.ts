@@ -66,6 +66,7 @@ export const createTask = (
     terminalId: string;
     agentId: string;
     model: string;
+    useTaskAgentAndModel?: boolean;
   },
 ) => httpClient.post<Task>(`/projects/${projectId}/tasks`, data);
 
@@ -92,6 +93,7 @@ export const updateTask = (
     columnId?: string | null;
     agentId?: string;
     model?: string;
+    useTaskAgentAndModel?: boolean;
   },
 ) => httpClient.patch<Task>(`/tasks/${taskId}`, data);
 
@@ -123,14 +125,14 @@ export const fetchKanbanColumns = (projectId: string) =>
 
 export const createKanbanColumn = (
   projectId: string,
-  data: { name: string; instructions?: string },
+  data: { name: string; instructions?: string; agentId?: string | null; model?: string | null },
 ) =>
   httpClient.post<KanbanColumn>(`/projects/${projectId}/kanban-columns`, data);
 
 export const updateKanbanColumn = (
   projectId: string,
   columnId: string,
-  data: { name?: string; instructions?: string },
+  data: { name?: string; instructions?: string; agentId?: string | null; model?: string | null },
 ) =>
   httpClient.patch<KanbanColumn>(
     `/projects/${projectId}/kanban-columns/${columnId}`,

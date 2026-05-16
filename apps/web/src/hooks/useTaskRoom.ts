@@ -64,6 +64,8 @@ export function useTaskRoom(
         terminalName: string;
         jobId: string;
         command: string;
+        agentName?: string;
+        model?: string;
         ts: number;
       }) => {
         dispatch({ type: "COMMAND_START", payload, taskId });

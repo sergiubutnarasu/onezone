@@ -32,6 +32,8 @@ interface KanbanColumnProps {
   columnName: string;
   columnInstructions: string | null;
   columnIndex: number;
+  columnAgentId?: string | null;
+  columnModel?: string | null;
   tasks: Task[];
   projectId: string;
   isBacklog: boolean;
@@ -45,6 +47,8 @@ export const KanbanColumn = memo(function KanbanColumn({
   columnName,
   columnInstructions,
   columnIndex,
+  columnAgentId,
+  columnModel,
   tasks,
   projectId,
   isBacklog,
@@ -192,7 +196,7 @@ export const KanbanColumn = memo(function KanbanColumn({
             open={editOpen}
             onOpenChange={setEditOpen}
             projectId={projectId}
-            column={{ id: columnId, name: columnName, instructions: columnInstructions }}
+            column={{ id: columnId, name: columnName, instructions: columnInstructions, agentId: columnAgentId, model: columnModel }}
           />
           <ConfirmDialog
             open={deleteOpen}

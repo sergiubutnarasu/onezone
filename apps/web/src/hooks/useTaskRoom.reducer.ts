@@ -64,6 +64,8 @@ export function reducer(state: State, action: Action): State {
         command: payload.command,
         content: `[${payload.terminalName}] started: ${payload.command}`,
         messageType: MessageType.CommandStart,
+        agentName: payload.agentName ?? null,
+        model: payload.model ?? null,
         ts: payload.ts,
       };
       return { ...state, messages: [...state.messages, msg], liveMessages: [...state.liveMessages, msg] };

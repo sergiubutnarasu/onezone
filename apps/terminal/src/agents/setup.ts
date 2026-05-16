@@ -33,18 +33,6 @@ export const setupTerminalAgent = (payload?: unknown) => {
     return null;
   }
 
-  const agent = (task as { agent?: unknown }).agent;
-
-  if (!agent || typeof agent !== "object") {
-    return null;
-  }
-
-  const model = (task as { model?: unknown }).model;
-
-  if (!model || typeof model !== "string") {
-    return null;
-  }
-
   const project = (task as { project?: unknown }).project;
 
   if (!project || typeof project !== "object") {
@@ -52,10 +40,45 @@ export const setupTerminalAgent = (payload?: unknown) => {
   }
 
   const projectId = (project as { id?: unknown }).id;
+  const useTaskAgentAndModel = (task as { useTaskAgentAndModel?: unknown }).useTaskAgentAndModel ?? false;
 
-  return agentFactory({
+  // Determine effective agent and model:
+  // If useTaskAgentAndModel is false and the column has an agent configured, use the column's agent/model.
+  // Otherwise fall back to the task's own agent/model.
+  const column = (task as { column?: unknown }).column as TaskDetails["column"];
+
+  let effectiveAgent: TaskDetails["agent"];
+  let effectiveModel: string | undefined;
+
+  if (!useTaskAgentAndModel && column?.agentId && column?.agent) {
+    effectiveAgent = column.agent;
+    effectiveModel = column.model ?? (task as { model?: unknown }).model as string | undefined;
+  } else {
+    effectiveAgent = (task as { agent?: unknown }).agent as TaskDetails["agent"];
+    effectiveModel = (task as { model?: unknown }).model as string | undefined;
+  }
+
+  if (!effectiveAgent || typeof effectiveAgent !== "object") {
+    return null;
+  }
+
+  if (!effectiveModel || typeof effectiveModel !== "string") {
+    return null;
+  }
+
+  const config = agentFactory({
     projectId: projectId as string,
-    agent: agent as TaskDetails["agent"],
-    model,
+    agent: effectiveAgent,
+    model: effectiveModel,
   });
+
+  if (!config) return null;
+
+  return {
+    config,
+    agentId: (effectiveAgent as { id?: unknown }).id as string | undefined,
+    agentName: (effectiveAgent as { name?: unknown }).name as string | undefined,
+    model: effectiveModel,
+  };
 };
+

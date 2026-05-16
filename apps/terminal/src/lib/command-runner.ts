@@ -58,6 +58,9 @@ export async function spawnCommand({
     terminalName,
     jobId,
     command: content,
+    agentId: terminalAgent.agentId,
+    agentName: terminalAgent.agentName,
+    model: terminalAgent.model,
   };
 
   socket.emit(EventCommands.TerminalCommandStart, basePayload);
@@ -84,7 +87,7 @@ export async function spawnCommand({
   }
 
   const projectWorkDir = setupResult.projectWorkDir;
-  const command = `${terminalAgent.cmd} ${shellQuote(content)}`;
+  const command = `${terminalAgent.config.cmd} ${shellQuote(content)}`;
 
   let cancelled = false;
   let taskRunnerFinished = false;

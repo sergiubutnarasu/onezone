@@ -18,12 +18,16 @@ function handleCommandGroup(
     // Output lines arrived before CommandStart — update metadata in place
     existing.command = msg.command ?? msg.content;
     existing.terminalName = msg.terminalName;
+    existing.agentName = msg.agentName;
+    existing.model = msg.model;
     existing.startTs = msg.ts;
   } else {
     const group: CommandGroupData = {
       jobId: msg.jobId,
       command: msg.command ?? msg.content,
       terminalName: msg.terminalName,
+      agentName: msg.agentName,
+      model: msg.model,
       startTs: msg.ts,
       lines: [],
     };

@@ -16,6 +16,8 @@ export interface OutputLineData {
   stream: MessageStream;
   content: string;
   ts?: number;
+  agentId?: string;
+  model?: string;
   inputTokens?: number;
   outputTokens?: number;
 }
@@ -48,6 +50,8 @@ export class OutputLineHandler implements IMessageHandler<OutputLineData> {
         command: data.command,
         stream: data.stream,
         content: data.content,
+        agentId: data.agentId,
+        model: data.model,
         inputTokens: data.inputTokens,
         outputTokens: data.outputTokens,
         ts,

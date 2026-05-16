@@ -15,6 +15,8 @@ export interface CommandExitData {
   command: string;
   exitCode: number;
   ts?: number;
+  agentId?: string;
+  model?: string;
   totalCostUsd?: number;
   inputTokens?: number;
   outputTokens?: number;
@@ -51,6 +53,8 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
         command: data.command,
         exitCode: data.exitCode,
         content: `[${data.terminalId ?? 'terminal'}] exited with code ${data.exitCode}: ${data.command}`,
+        agentId: data.agentId,
+        model: data.model,
         inputTokens: data.inputTokens,
         outputTokens: data.outputTokens,
         totalCostUsd: data.totalCostUsd,

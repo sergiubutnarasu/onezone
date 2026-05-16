@@ -48,6 +48,9 @@ export interface KanbanColumn {
   name: string;
   instructions: string;
   index: number;
+  agentId?: string | null;
+  agent?: Pick<Agent, "id" | "name" | "tag"> | null;
+  model?: string | null;
   createdAt: string;
 }
 
@@ -89,6 +92,7 @@ export interface Task {
   agentId: string;
   agent?: Pick<Agent, "id" | "name" | "tag"> | null;
   model: string;
+  useTaskAgentAndModel: boolean;
   project?: ProjectInfo | null;
   completedAt?: string | null;
   createdAt: string;
@@ -126,6 +130,7 @@ export interface TaskDetails {
   agentId: string;
   agent?: Pick<Agent, "id" | "name" | "tag"> | null;
   model: string;
+  useTaskAgentAndModel: boolean;
   completedAt?: string | null;
   projectId: string;
   project: ProjectInfo;

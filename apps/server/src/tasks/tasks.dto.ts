@@ -17,6 +17,10 @@ export class CreateTaskDto {
 
   @IsString()
   model!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  useTaskAgentAndModel?: boolean;
 }
 
 export class TaskOrderItemDto {
@@ -84,5 +88,9 @@ export class UpdateTaskDto {
   @IsOptional()
   @IsString()
   model?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  useTaskAgentAndModel?: boolean;
 }
 

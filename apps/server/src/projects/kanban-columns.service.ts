@@ -23,7 +23,7 @@ export class KanbanColumnsService {
 
   async create(
     projectId: string,
-    data: { name: string; instructions?: string },
+    data: { name: string; instructions?: string; agentId?: string | null; model?: string | null },
   ) {
     const maxIndex = await this.prisma.kanbanColumn.aggregate({
       where: { projectId },
@@ -36,6 +36,8 @@ export class KanbanColumnsService {
         name: data.name,
         instructions: data.instructions,
         index: nextIndex,
+        agentId: data.agentId ?? null,
+        model: data.model ?? null,
       },
     });
   }
@@ -51,12 +53,22 @@ export class KanbanColumnsService {
     return this.findAllByProject(projectId);
   }
 
-  async update(id: string, data: { name?: string; instructions?: string }) {
+  async update(id: string, data: { name?: string; instructions?: string; agentId?: string | null; model?: string | null }) {
     const existing = await this.prisma.kanbanColumn.findUnique({
       where: { id },
     });
     if (!existing) throw new NotFoundException(`KanbanColumn ${id} not found`);
-    return this.prisma.kanbanColumn.update({ where: { id }, data });
+    const updateData: {
+      name?: string;
+      instructions?: string;
+      agentId?: string | null;
+      model?: string | null;
+    } = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.instructions !== undefined) updateData.instructions = data.instructions;
+    if (data.agentId !== undefined) updateData.agentId = data.agentId;
+    if (data.model !== undefined) updateData.model = data.model;
+    return this.prisma.kanbanColumn.update({ where: { id }, data: updateData });
   }
 
   async remove(id: string) {

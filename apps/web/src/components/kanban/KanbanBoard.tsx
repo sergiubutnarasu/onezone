@@ -79,6 +79,8 @@ export function KanbanBoard({ tasks: initialTasks, projectId, columns }: KanbanB
                   columnName={col.name}
                   columnInstructions={col.instructions ?? null}
                   columnIndex={col.index}
+                  columnAgentId={col.agentId ?? null}
+                  columnModel={col.model ?? null}
                   tasks={groupedTasks.get(col.id) ?? []}
                   projectId={projectId}
                   isBacklog={false}

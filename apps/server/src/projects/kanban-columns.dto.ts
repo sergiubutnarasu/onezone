@@ -1,4 +1,4 @@
-import { IsArray, IsInt, IsOptional, IsString, IsUUID, Min, ValidateNested } from 'class-validator';
+import { IsArray, IsInt, IsOptional, IsString, IsUUID, Min, ValidateIf, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateKanbanColumnDto {
@@ -8,6 +8,16 @@ export class CreateKanbanColumnDto {
   @IsOptional()
   @IsString()
   instructions?: string;
+
+  @IsOptional()
+  @ValidateIf((o) => o.agentId !== null)
+  @IsUUID()
+  agentId?: string | null;
+
+  @IsOptional()
+  @ValidateIf((o) => o.model !== null)
+  @IsString()
+  model?: string | null;
 }
 
 export class UpdateKanbanColumnDto {
@@ -18,6 +28,16 @@ export class UpdateKanbanColumnDto {
   @IsOptional()
   @IsString()
   instructions?: string;
+
+  @IsOptional()
+  @ValidateIf((o) => o.agentId !== null)
+  @IsUUID()
+  agentId?: string | null;
+
+  @IsOptional()
+  @ValidateIf((o) => o.model !== null)
+  @IsString()
+  model?: string | null;
 }
 
 export class ColumnOrderItemDto {

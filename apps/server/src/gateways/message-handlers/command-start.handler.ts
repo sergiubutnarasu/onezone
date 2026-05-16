@@ -14,6 +14,9 @@ export interface CommandStartData {
   terminalName?: string;
   jobId: string;
   command: string;
+  agentId?: string;
+  agentName?: string;
+  model?: string;
 }
 
 @Injectable()
@@ -41,6 +44,8 @@ export class CommandStartHandler implements IMessageHandler<CommandStartData> {
         jobId: data.jobId,
         command: data.command,
         content: `[${data.terminalName}] started: ${data.command}`,
+        agentId: data.agentId,
+        model: data.model,
         ts,
       });
 
@@ -49,6 +54,8 @@ export class CommandStartHandler implements IMessageHandler<CommandStartData> {
         terminalName: data.terminalName,
         jobId: data.jobId,
         command: data.command,
+        agentName: data.agentName,
+        model: data.model,
         ts,
       });
 

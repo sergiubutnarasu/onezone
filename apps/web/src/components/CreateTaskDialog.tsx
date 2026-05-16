@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createTask } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -20,7 +21,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Controller } from "react-hook-form";
 import type { Terminal, Agent, ProjectInfo } from "@onezone/shared";
 
 interface CreateTaskForm {
@@ -29,6 +29,7 @@ interface CreateTaskForm {
   terminalId: string;
   agentId: string;
   model: string;
+  useTaskAgentAndModel: boolean;
 }
 
 interface CreateTaskDialogProps {
@@ -65,6 +66,7 @@ export function CreateTaskDialog({
       terminalId: terminals[0]?.id ?? "",
       agentId: project?.defaultAgentId ?? "",
       model: project?.defaultModel ?? "",
+      useTaskAgentAndModel: false,
     },
   });
 
@@ -76,6 +78,7 @@ export function CreateTaskDialog({
         terminalId: terminals[0]?.id ?? "",
         agentId: project?.defaultAgentId ?? "",
         model: project?.defaultModel ?? "",
+        useTaskAgentAndModel: false,
       });
     }
   }, [open, project, terminals, reset]);
@@ -92,6 +95,7 @@ export function CreateTaskDialog({
         terminalId: data.terminalId,
         agentId: data.agentId,
         model: data.model,
+        useTaskAgentAndModel: data.useTaskAgentAndModel,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tasks", projectId] });
@@ -199,6 +203,28 @@ export function CreateTaskDialog({
           {errors.model && (
             <p className="text-xs text-destructive">{errors.model.message}</p>
           )}
+
+          <div className="flex items-center justify-between rounded-md border border-border/60 bg-muted/30 px-3 py-2.5">
+            <div className="space-y-0.5">
+              <p className="text-sm font-medium">
+                Always use task agent &amp; model
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Override the column&apos;s agent and model with this
+                task&apos;s own settings.
+              </p>
+            </div>
+            <Controller
+              name="useTaskAgentAndModel"
+              control={control}
+              render={({ field }) => (
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+          </div>
 
           <Controller
             name="description"

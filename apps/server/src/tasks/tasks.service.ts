@@ -26,6 +26,7 @@ export class TasksService {
       description?: string | null;
       agentId: string;
       model: string;
+      useTaskAgentAndModel: boolean;
       completedAt?: Date | null;
       agent: { id: string; name: string; tag: string } | null;
       columnAssignment?: {
@@ -35,7 +36,10 @@ export class TasksService {
           projectId?: string;
           instructions?: string;
           index?: number;
+          agentId?: string | null;
+          model?: string | null;
           createdAt?: string | Date;
+          agent?: { id: string; name: string; tag: string } | null;
         };
       } | null;
     },
@@ -52,6 +56,7 @@ export class TasksService {
     },
   ): TaskDetails {
     const raw = task.columnAssignment?.column ?? null;
+    const rawColumnAgent = raw?.agent ?? null;
     const column: KanbanColumn | null = raw
       ? {
           id: raw.id,
@@ -59,6 +64,15 @@ export class TasksService {
           projectId: raw.projectId ?? '',
           instructions: raw.instructions ?? '',
           index: raw.index ?? 0,
+          agentId: raw.agentId ?? null,
+          agent: rawColumnAgent
+            ? {
+                id: rawColumnAgent.id,
+                name: rawColumnAgent.name,
+                tag: rawColumnAgent.tag as unknown as AgentTag,
+              }
+            : null,
+          model: raw.model ?? null,
           createdAt:
             raw.createdAt instanceof Date
               ? raw.createdAt.toISOString()
@@ -81,6 +95,7 @@ export class TasksService {
           }
         : null,
       model: task.model,
+      useTaskAgentAndModel: task.useTaskAgentAndModel,
       projectId: project.id,
       project: {
         id: project.id,
@@ -122,12 +137,20 @@ export class TasksService {
         createdAt: c.createdAt.toISOString(),
       })),
     };
+    // Resolve column agent for the override when it has an agentId
+    let resolvedColumnAgent: { id: string; name: string; tag: string } | null = null;
+    if (columnOverride?.agentId) {
+      resolvedColumnAgent = await this.prisma.agent.findUnique({
+        where: { id: columnOverride.agentId },
+        select: { id: true, name: true, tag: true },
+      });
+    }
     const taskWithColumnOverride =
       columnOverride !== undefined
         ? {
             ...task,
             columnAssignment: columnOverride
-              ? { column: columnOverride }
+              ? { column: { ...columnOverride, agent: resolvedColumnAgent } }
               : null,
           }
         : task;
@@ -169,6 +192,7 @@ export class TasksService {
       terminalId: string;
       agentId: string;
       model: string;
+      useTaskAgentAndModel?: boolean;
     },
   ) {
     const count = await this.prisma.task.count({
@@ -181,6 +205,7 @@ export class TasksService {
           description: data.description,
           agentId: data.agentId,
           model: data.model,
+          useTaskAgentAndModel: data.useTaskAgentAndModel ?? false,
           projectId,
           order: count,
         },
@@ -192,7 +217,7 @@ export class TasksService {
         where: { id: created.id },
         include: {
           terminalAssignment: { include: { terminal: true } },
-          columnAssignment: { include: { column: true } },
+          columnAssignment: { include: { column: { include: { agent: true } } } },
           agent: true,
         },
       });
@@ -212,7 +237,7 @@ export class TasksService {
       orderBy: [{ order: "asc" }, { createdAt: "asc" }],
       include: {
         terminalAssignment: { include: { terminal: true } },
-        columnAssignment: { include: { column: true } },
+        columnAssignment: { include: { column: { include: { agent: true } } } },
         agent: true,
       },
     });
@@ -224,7 +249,7 @@ export class TasksService {
       where: { id },
       include: {
         terminalAssignment: { include: { terminal: true } },
-        columnAssignment: { include: { column: true } },
+        columnAssignment: { include: { column: { include: { agent: true } } } },
         project: { include: { skills: true } },
         agent: true,
       },
@@ -237,7 +262,7 @@ export class TasksService {
     const task = await this.prisma.task.findUnique({
       where: { id },
       include: {
-        columnAssignment: { include: { column: true } },
+        columnAssignment: { include: { column: { include: { agent: true } } } },
         project: {
           include: {
             skills: true,
@@ -287,7 +312,7 @@ export class TasksService {
       } else {
         const col = await tx.kanbanColumn.findUniqueOrThrow({
           where: { id: columnId },
-          select: { id: true, name: true, index: true, projectId: true, instructions: true, createdAt: true },
+          select: { id: true, name: true, index: true, projectId: true, instructions: true, agentId: true, model: true, createdAt: true },
         });
         column = { ...col, createdAt: col.createdAt.toISOString() };
         await tx.taskColumn.upsert({
@@ -369,7 +394,7 @@ export class TasksService {
         if (item.columnId) {
           const col = await this.prisma.kanbanColumn.findUnique({
             where: { id: item.columnId },
-            select: { id: true, name: true, index: true, projectId: true, instructions: true, createdAt: true },
+            select: { id: true, name: true, index: true, projectId: true, instructions: true, agentId: true, model: true, createdAt: true },
           });
           column = col ? { ...col, createdAt: col.createdAt.toISOString() } : null;
         }
@@ -401,7 +426,7 @@ export class TasksService {
         include: {
           task: {
             include: {
-              columnAssignment: { include: { column: true } },
+              columnAssignment: { include: { column: { include: { agent: true } } } },
               project: {
                 include: {
                   skills: true,
@@ -467,6 +492,7 @@ export class TasksService {
       columnId?: string | null;
       agentId?: string;
       model?: string;
+      useTaskAgentAndModel?: boolean;
     },
   ) {
     const { columnId, ...taskData } = data;

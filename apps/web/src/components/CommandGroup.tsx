@@ -11,6 +11,8 @@ export interface CommandGroupData {
   jobId: string;
   command: string;
   terminalName?: string | null;
+  agentName?: string | null;
+  model?: string | null;
   startTs: number;
   exitCode?: number;
   lines: RoomMessage[];
@@ -54,6 +56,11 @@ export function CommandGroup({ group, onStop }: { group: CommandGroupData; onSto
         <span className="text-amber-500 dark:text-amber-400/80 font-mono text-xs truncate flex-1">
           {getDisplayCommand(group.command)}
         </span>
+        {(group.agentName || group.model) && (
+          <span className="text-muted-foreground/50 text-[11px] shrink-0 truncate max-w-[160px]">
+            {[group.agentName, group.model].filter(Boolean).join(" · ")}
+          </span>
+        )}
         <span className="text-muted-foreground/60 text-xs shrink-0">
           {startTime}
         </span>

@@ -14,6 +14,8 @@ export interface CreateMessageDto {
   exitCode?: number;
   stream?: string;
   content: string;
+  agentId?: string;
+  model?: string;
   inputTokens?: number;
   outputTokens?: number;
   totalCostUsd?: number;
@@ -43,8 +45,9 @@ export class MessagesService {
     const messages = await this.prisma.message.findMany({
       where: { taskId },
       orderBy: { ts: "asc" },
+      include: { agent: { select: { name: true } } },
     });
     // Convert BigInt ts to number for JSON serialization
-    return messages.map((m) => ({ ...m, ts: Number(m.ts) }));
+    return messages.map((m) => ({ ...m, agentName: m.agent?.name ?? null, agent: undefined, ts: Number(m.ts) }));
   }
 }

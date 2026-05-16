@@ -1,10 +1,12 @@
 "use client";
 
-import { useForm, FormProvider, Controller } from "react-hook-form";
-import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateTask } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
@@ -14,13 +16,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { updateTask } from "@/lib/api";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { BACKLOG_COLUMN_ID, type Task, type Agent, type KanbanColumn } from "@onezone/shared";
+  BACKLOG_COLUMN_ID,
+  type Agent,
+  type KanbanColumn,
+  type Task,
+} from "@onezone/shared";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { Controller, FormProvider, useForm } from "react-hook-form";
 
 interface EditTaskForm {
   name: string;
@@ -28,6 +34,7 @@ interface EditTaskForm {
   columnId: string; // BACKLOG_COLUMN_ID sentinel or a real column UUID
   agentId: string;
   model: string;
+  useTaskAgentAndModel: boolean;
 }
 
 interface EditTaskDialogProps {
@@ -57,6 +64,7 @@ export function EditTaskDialog({
       columnId: task.columnId ?? BACKLOG_COLUMN_ID,
       agentId: task.agentId,
       model: task.model,
+      useTaskAgentAndModel: task.useTaskAgentAndModel,
     },
   });
 
@@ -80,10 +88,11 @@ export function EditTaskDialog({
         columnId: task.columnId ?? BACKLOG_COLUMN_ID,
         agentId: task.agentId,
         model: task.model,
+        useTaskAgentAndModel: task.useTaskAgentAndModel,
       });
       setEditorKey((k) => k + 1);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const mutation = useMutation({
@@ -94,6 +103,7 @@ export function EditTaskDialog({
         columnId: data.columnId === BACKLOG_COLUMN_ID ? null : data.columnId,
         agentId: data.agentId,
         model: data.model,
+        useTaskAgentAndModel: data.useTaskAgentAndModel,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["task", task.id] });
@@ -131,15 +141,25 @@ export function EditTaskDialog({
               <label className="text-sm font-medium">Column</label>
               <Select
                 value={columnId}
-                onValueChange={(v) => v != null && setValue("columnId", v, { shouldValidate: true })}
+                onValueChange={(v) =>
+                  v != null && setValue("columnId", v, { shouldValidate: true })
+                }
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>
+                    {(v: string) =>
+                      v === BACKLOG_COLUMN_ID
+                        ? "Backlog"
+                        : (columns.find((c) => c.id === v)?.name ?? v)
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={BACKLOG_COLUMN_ID}>Backlog</SelectItem>
                   {columns.map((col) => (
-                    <SelectItem key={col.id} value={col.id}>{col.name}</SelectItem>
+                    <SelectItem key={col.id} value={col.id}>
+                      {col.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -168,7 +188,7 @@ export function EditTaskDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {agents.map((a) => (
-                    <SelectItem key={a.id} value={a.id} label={a.name}>
+                    <SelectItem key={a.id} value={a.id}>
                       {a.name}
                     </SelectItem>
                   ))}
@@ -186,6 +206,28 @@ export function EditTaskDialog({
                   {errors.model.message}
                 </p>
               )}
+            </div>
+
+            <div className="flex items-center justify-between rounded-md border border-border/60 bg-muted/30 px-3 py-2.5">
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">
+                  Always use task agent &amp; model
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Override the column&apos;s agent and model with this
+                  task&apos;s own settings.
+                </p>
+              </div>
+              <Controller
+                name="useTaskAgentAndModel"
+                control={methods.control}
+                render={({ field }) => (
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
             </div>
 
             <div className="space-y-2">
