@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -142,6 +143,7 @@ export function EditProjectDialog({
           <DialogTitle>Project settings</DialogTitle>
         </DialogHeader>
 
+        <DialogBody>
         <Tabs defaultValue="details">
           <TabsList className="w-full">
             <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
@@ -265,6 +267,7 @@ export function EditProjectDialog({
             />
           </TabsContent>
         </Tabs>
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

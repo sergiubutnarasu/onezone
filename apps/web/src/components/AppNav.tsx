@@ -3,15 +3,18 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FolderOpen, Bot, Zap, Sun, Moon, Menu, X, Monitor, Blocks } from 'lucide-react';
+import { FolderOpen, Bot, Zap, Sun, Moon, Menu, X, Monitor, Blocks, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme';
+import { useQuery } from '@tanstack/react-query';
+import { fetchUnreadCount } from '@/lib/api';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Projects', icon: FolderOpen, exact: true },
   { href: '/agents', label: 'Agents', icon: Bot, exact: true },
   { href: '/terminals', label: 'Terminals', icon: Monitor, exact: true },
   { href: '/skills', label: 'Skills', icon: Blocks, exact: true },
+  { href: '/notifications', label: 'Notifications', icon: Bell, exact: true },
 ];
 
 export function AppNav() {
@@ -19,9 +22,16 @@ export function AppNav() {
   const { theme, setTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['notifications-unread-count'],
+    queryFn: fetchUnreadCount,
+    refetchInterval: 30_000,
+  });
+
   const navLinks = (onNav?: () => void) =>
     NAV_ITEMS.map(({ href, label, icon: Icon, exact }) => {
       const active = exact ? pathname === href : pathname.startsWith(href);
+      const isNotifications = href === '/notifications';
       return (
         <Link
           key={href}
@@ -35,7 +45,12 @@ export function AppNav() {
           )}
         >
           <Icon className="size-4 shrink-0" />
-          {label}
+          <span className="flex-1">{label}</span>
+          {isNotifications && unreadCount > 0 && (
+            <span className="ml-auto flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold leading-none">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
         </Link>
       );
     });

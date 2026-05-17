@@ -3,6 +3,7 @@
 import {
   type Agent,
   type KanbanColumn,
+  type Notification,
   ProjectInfo,
   type ProjectSkill,
   type RoomMessage,
@@ -158,6 +159,19 @@ export const installGlobalSkill = (data: {
   source: string;
   skillName: string;
 }) => httpClient.post<ProjectSkill>("/skills", data);
+
+// Notifications
+export const fetchNotifications = (includeRead = false) =>
+  httpClient.get<Notification[]>(`/notifications${includeRead ? '?includeRead=true' : ''}`);
+
+export const fetchUnreadCount = () =>
+  httpClient.get<number>("/notifications/unread-count");
+
+export const markNotificationRead = (id: string) =>
+  httpClient.patch<Notification>(`/notifications/${id}/read`, {});
+
+export const markAllNotificationsRead = () =>
+  httpClient.patch<void>("/notifications/read-all", {});
 
 export const removeGlobalSkill = (skillId: string) =>
   httpClient.delete<void>(`/skills/${skillId}`);

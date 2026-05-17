@@ -12,6 +12,7 @@ export enum EventCommands {
   AssignTask = "terminal:assign-task",
   TaskDeleted = "task:deleted",
   TaskColumnUpdated = "task:column-updated",
+  NotificationCreated = "notification:created",
 }
 
 export enum MessageRole {
@@ -141,6 +142,22 @@ export interface ChatMessage {
   role: MessageRole;
   content: string;
   task?: TaskDetails | null;
+}
+
+// --- Notifications ---
+
+export type NotificationType = 'TASK_COMPLETED' | 'COMMAND_EXIT_SUCCESS' | 'COMMAND_EXIT_FAILURE';
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  taskId: string;
+  task: { id: string; name: string };
+  projectId: string;
+  project: { id: string; name: string };
+  message: string;
+  readAt: string | null;
+  createdAt: string;
 }
 
 // --- Socket event payloads ---

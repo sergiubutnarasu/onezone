@@ -10,9 +10,10 @@ import { OutputLineHandler } from './message-handlers/output-line.handler';
 import { CommandStartHandler } from './message-handlers/command-start.handler';
 import { CommandExitHandler } from './message-handlers/command-exit.handler';
 import { SocketAuthGuard } from './socket-auth.guard';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [MessagesModule, TasksModule, TerminalsModule],
+  imports: [MessagesModule, TasksModule, TerminalsModule, NotificationsModule],
   providers: [
     ChatGateway,
     SocketAuthGuard,

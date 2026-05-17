@@ -6,8 +6,10 @@ import {
   MessageRole,
   TaskDetails,
 } from "@onezone/shared";
+import { NotificationType } from "@prisma/client";
 import { TerminalRegistryService } from "../gateways/terminal-registry.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { TaskOrderItemDto } from "./tasks.dto";
 
 @Injectable()
@@ -17,6 +19,7 @@ export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly terminalRegistry: TerminalRegistryService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   private mapToTaskDetails(
@@ -345,6 +348,18 @@ export class TasksService {
       id,
       await this.toChatMessage(updated),
     );
+    if (completed) {
+      try {
+        await this.notificationsService.create({
+          type: NotificationType.TASK_COMPLETED,
+          taskId: id,
+          projectId: updated.project!.id,
+          message: `Task "${updated.name}" was completed`,
+        });
+      } catch (e) {
+        this.logger.warn(`Failed to create task completed notification for task ${id}`, e);
+      }
+    }
     return updated;
   }
 

@@ -2,11 +2,12 @@
 
 import {
   Dialog,
+  DialogBody,
+  DialogClose,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
@@ -38,7 +39,9 @@ export function ConfirmDialog({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <p className="text-sm text-muted-foreground">{description}</p>
+        <DialogBody>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </DialogBody>
         <DialogFooter>
           <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
           <Button variant="destructive" onClick={handleConfirm}>

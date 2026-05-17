@@ -3,6 +3,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactNode, useState } from 'react';
 import { ThemeProvider } from '@/lib/theme';
+import { useGlobalSocket } from '@/hooks/useGlobalSocket';
+
+function GlobalSocketListener() {
+  useGlobalSocket();
+  return null;
+}
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -19,7 +25,10 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <ThemeProvider>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <GlobalSocketListener />
+        {children}
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }

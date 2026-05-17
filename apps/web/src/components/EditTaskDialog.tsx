@@ -3,7 +3,9 @@
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -123,7 +125,8 @@ export function EditTaskDialog({
           <DialogTitle>Edit Task</DialogTitle>
         </DialogHeader>
         <FormProvider {...methods}>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
+          <DialogBody>
+            <form id="edit-task-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-1">
             <div className="space-y-2">
               <label className="text-sm font-medium">Name</label>
               <Input
@@ -246,22 +249,24 @@ export function EditTaskDialog({
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting || mutation.isPending}
-              >
-                {mutation.isPending ? "Saving..." : "Save Changes"}
-              </Button>
-            </div>
-          </form>
+            </form>
+          </DialogBody>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="edit-task-form"
+              disabled={isSubmitting || mutation.isPending}
+            >
+              {mutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
         </FormProvider>
       </DialogContent>
     </Dialog>

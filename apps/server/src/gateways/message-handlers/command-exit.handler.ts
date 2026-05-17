@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventCommands, MessageRole } from '@onezone/shared';
-import { MessageType } from '@prisma/client';
+import { MessageType, NotificationType } from '@prisma/client';
 import { Server, Socket } from 'socket.io';
 import { MessagesService } from '../../messages/messages.service';
 import { TasksService } from '../../tasks/tasks.service';
+import { NotificationsService } from '../../notifications/notifications.service';
 import { extractTaskId } from '@onezone/shared';
 import { IMessageHandler } from './message-handler.interface';
 
@@ -31,6 +32,7 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
   constructor(
     private readonly messagesService: MessagesService,
     private readonly tasksService: TasksService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async handle(
@@ -77,6 +79,24 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
           await this.tasksService.updateColumn(taskId, data.nextColumnId);
         } else {
           await this.tasksService.setCompleted(taskId, true);
+        }
+      }
+
+      if (taskId) {
+        try {
+          const task = await this.tasksService.findOne(taskId);
+          const notifType = data.exitCode === 0
+            ? NotificationType.COMMAND_EXIT_SUCCESS
+            : NotificationType.COMMAND_EXIT_FAILURE;
+          const notif = await this.notificationsService.create({
+            type: notifType,
+            taskId,
+            projectId: task.project!.id,
+            message: `Command "${data.command}" exited with code ${data.exitCode}`,
+          });
+          server?.emit(EventCommands.NotificationCreated, notif);
+        } catch (e) {
+          this.logger.warn(`Failed to create command exit notification for task ${taskId}`, e);
         }
       }
 

@@ -10,6 +10,7 @@ import { GatewaysModule } from './gateways/gateways.module';
 import { TerminalsModule } from './terminals/terminals.module';
 import { AgentsModule } from './agents/agents.module';
 import { TerminalRegistryModule } from './gateways/terminal-registry.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   controllers: [HealthController],
@@ -24,6 +25,7 @@ import { TerminalRegistryModule } from './gateways/terminal-registry.module';
     TerminalsModule,
     AgentsModule,
     GatewaysModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

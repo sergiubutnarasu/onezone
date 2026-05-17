@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -149,10 +150,12 @@ export function KanbanColumnDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit column" : "Add column"}</DialogTitle>
         </DialogHeader>
-        <form
-          onSubmit={handleSubmit((data) => mutation.mutate(data))}
-          className="space-y-4"
-        >
+        <DialogBody>
+          <form
+            id="kanban-column-form"
+            onSubmit={handleSubmit((data) => mutation.mutate(data))}
+            className="space-y-4 py-1"
+          >
           <div className="space-y-1.5">
             <label htmlFor="col-name" className="text-sm font-medium">
               Name
@@ -231,7 +234,9 @@ export function KanbanColumnDialog({
             />
           </div>
 
-          <DialogFooter>
+          </form>
+        </DialogBody>
+        <DialogFooter>
             <Button
               type="button"
               variant="outline"
@@ -239,11 +244,10 @@ export function KanbanColumnDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting || mutation.isPending}>
+            <Button type="submit" form="kanban-column-form" disabled={isSubmitting || mutation.isPending}>
               {isEdit ? "Save" : "Add column"}
             </Button>
           </DialogFooter>
-        </form>
       </DialogContent>
     </Dialog>
   );

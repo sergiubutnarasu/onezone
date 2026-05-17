@@ -14,6 +14,12 @@ enum MessageType {
   COMMAND_EXIT
 }
 
+enum NotificationType {
+  TASK_COMPLETED
+  COMMAND_EXIT_SUCCESS
+  COMMAND_EXIT_FAILURE
+}
+
 model Agent {
   id            String         @id @default(uuid())
   name          String         @unique
@@ -40,6 +46,7 @@ model Project {
   tasks          Task[]
   skills         ProjectSkill[]
   kanbanColumns  KanbanColumn[]
+  notifications  Notification[]
 
   @@map("projects")
 }
@@ -91,6 +98,7 @@ model Task {
   messages             Message[]
   terminalAssignment   TaskTerminal?
   columnAssignment     TaskColumn?
+  notifications        Notification[]
 
   @@index([projectId])
   @@map("tasks")
@@ -157,4 +165,22 @@ model Terminal {
   taskAssignments TaskTerminal[]
 
   @@map("terminals")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  type      NotificationType
+  taskId    String
+  task      Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  message   String
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([readAt])
+  @@index([createdAt])
+  @@index([taskId])
+  @@index([projectId])
+  @@map("notifications")
 }

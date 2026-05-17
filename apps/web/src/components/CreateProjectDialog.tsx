@@ -16,7 +16,9 @@ import {
 } from "@/components/ui/select";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -102,10 +104,12 @@ export function CreateProjectDialog({
         <DialogHeader>
           <DialogTitle>Create project</DialogTitle>
         </DialogHeader>
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="flex flex-col gap-3 pt-2"
-        >
+        <DialogBody>
+          <form
+            id="create-project-form"
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex flex-col gap-3 py-1"
+          >
           <Input
             {...register("name", { required: "Name is required" })}
             placeholder="Project name"
@@ -174,14 +178,17 @@ export function CreateProjectDialog({
             )}
           />
 
+          </form>
+        </DialogBody>
+        <DialogFooter>
           <Button
             type="submit"
+            form="create-project-form"
             disabled={isSubmitting || mutation.isPending}
-            className="w-full mt-1"
           >
             {mutation.isPending ? "Creating…" : "Create project"}
           </Button>
-        </form>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
