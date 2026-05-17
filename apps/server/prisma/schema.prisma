@@ -16,6 +16,7 @@ enum MessageType {
 
 enum NotificationType {
   TASK_COMPLETED
+  COMMAND_START
   COMMAND_EXIT_SUCCESS
   COMMAND_EXIT_FAILURE
 }

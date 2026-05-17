@@ -146,7 +146,7 @@ export interface ChatMessage {
 
 // --- Notifications ---
 
-export type NotificationType = 'TASK_COMPLETED' | 'COMMAND_EXIT_SUCCESS' | 'COMMAND_EXIT_FAILURE';
+export type NotificationType = 'TASK_COMPLETED' | 'COMMAND_START' | 'COMMAND_EXIT_SUCCESS' | 'COMMAND_EXIT_FAILURE';
 
 export interface Notification {
   id: string;

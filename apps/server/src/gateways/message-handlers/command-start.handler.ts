@@ -2,11 +2,28 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { EventCommands, MessageRole } from '@onezone/shared';
-import { MessageType } from '@prisma/client';
+import { MessageType, NotificationType } from '@prisma/client';
 import { Server, Socket } from 'socket.io';
 import { MessagesService } from '../../messages/messages.service';
+import { TasksService } from '../../tasks/tasks.service';
+import { NotificationsService } from '../../notifications/notifications.service';
 import { extractTaskId } from '@onezone/shared';
 import { IMessageHandler } from './message-handler.interface';
+
+interface RunnerPayload {
+  taskName?: string;
+  kanbanColumnName?: string;
+}
+
+function parseRunnerCommand(command: string): RunnerPayload | null {
+  const match = command.match(/^\/onezone-runner\s+(\{.+\})$/s);
+  if (!match) return null;
+  try {
+    return JSON.parse(match[1]) as RunnerPayload;
+  } catch {
+    return null;
+  }
+}
 
 export interface CommandStartData {
   roomId: string;
@@ -23,7 +40,11 @@ export interface CommandStartData {
 export class CommandStartHandler implements IMessageHandler<CommandStartData> {
   private readonly logger = new Logger(CommandStartHandler.name);
 
-  constructor(private readonly messagesService: MessagesService) {}
+  constructor(
+    private readonly messagesService: MessagesService,
+    private readonly tasksService: TasksService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async handle(
     data: CommandStartData,
@@ -58,6 +79,24 @@ export class CommandStartHandler implements IMessageHandler<CommandStartData> {
         model: data.model,
         ts,
       });
+
+      if (taskId) {
+        try {
+          const task = await this.tasksService.findOne(taskId);
+          const runnerPayload = parseRunnerCommand(data.command);
+          const columnName = runnerPayload?.kanbanColumnName ?? data.command;
+          const taskName = runnerPayload?.taskName ?? task.name;
+          const notif = await this.notificationsService.create({
+            type: NotificationType.COMMAND_START,
+            taskId,
+            projectId: task.project!.id,
+            message: `Command "${columnName}" for task "${taskName}" started.`,
+          });
+          server?.emit(EventCommands.NotificationCreated, notif);
+        } catch (e) {
+          this.logger.warn(`Failed to create command start notification for task ${taskId}`, e);
+        }
+      }
 
       return { status: 'ok' };
     } catch (error) {

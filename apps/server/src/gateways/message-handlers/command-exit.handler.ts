@@ -8,6 +8,21 @@ import { NotificationsService } from '../../notifications/notifications.service'
 import { extractTaskId } from '@onezone/shared';
 import { IMessageHandler } from './message-handler.interface';
 
+interface RunnerPayload {
+  taskName?: string;
+  kanbanColumnName?: string;
+}
+
+function parseRunnerCommand(command: string): RunnerPayload | null {
+  const match = command.match(/^\/onezone-runner\s+(\{.+\})$/s);
+  if (!match) return null;
+  try {
+    return JSON.parse(match[1]) as RunnerPayload;
+  } catch {
+    return null;
+  }
+}
+
 export interface CommandExitData {
   roomId: string;
   terminalId?: string;
@@ -88,11 +103,17 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
           const notifType = data.exitCode === 0
             ? NotificationType.COMMAND_EXIT_SUCCESS
             : NotificationType.COMMAND_EXIT_FAILURE;
+          const runnerPayload = parseRunnerCommand(data.command);
+          const columnName = runnerPayload?.kanbanColumnName ?? data.command;
+          const taskName = runnerPayload?.taskName ?? task.name;
+          const message = data.exitCode === 0
+            ? `Command "${columnName}" for task "${taskName}" finished.`
+            : `Command "${columnName}" for task "${taskName}" failed (exit code: ${data.exitCode}).`;
           const notif = await this.notificationsService.create({
             type: notifType,
             taskId,
             projectId: task.project!.id,
-            message: `Command "${data.command}" exited with code ${data.exitCode}`,
+            message,
           });
           server?.emit(EventCommands.NotificationCreated, notif);
         } catch (e) {

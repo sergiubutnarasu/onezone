@@ -1,19 +1,26 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchNotifications,
-  markNotificationRead,
   markAllNotificationsRead,
+  markNotificationRead,
 } from "@/lib/api";
-import type { Notification } from "@onezone/shared";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Bell, CheckCheck, CheckCircle, XCircle, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Notification } from "@onezone/shared";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Bell,
+  CheckCheck,
+  CheckCircle,
+  Inbox,
+  Play,
+  XCircle,
+} from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -30,6 +37,8 @@ function NotificationIcon({ type }: { type: Notification["type"] }) {
     return <CheckCircle className="size-4 text-green-500 shrink-0 mt-0.5" />;
   if (type === "COMMAND_EXIT_SUCCESS")
     return <CheckCircle className="size-4 text-blue-500 shrink-0 mt-0.5" />;
+  if (type === "COMMAND_START")
+    return <Play className="size-4 text-muted-foreground shrink-0 mt-0.5" />;
   return <XCircle className="size-4 text-destructive shrink-0 mt-0.5" />;
 }
 
