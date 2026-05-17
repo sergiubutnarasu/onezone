@@ -1,7 +1,6 @@
 "use client";
 
-import { MessageInput } from "@/components/MessageInput";
-import { TerminalStatusBar } from "@/components/TerminalStatusBar";
+import { useState } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useTaskRoom } from "@/hooks/useTaskRoom";
 import {
@@ -15,14 +14,16 @@ import { type Agent, type KanbanColumn, type Terminal } from "@onezone/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
-import { TaskChatArea } from "./_components/TaskChatArea";
-import { TaskDetails } from "./_components/TaskDetails";
-import { TaskHeader } from "./_components/TaskHeader";
+import { TaskSidebar } from "./_components/TaskSidebar";
+import { TaskMainContent } from "./_components/TaskMainContent";
+import { TaskInfoPanel } from "./_components/TaskInfoPanel";
 import { buildChatItems } from "./_lib/chat-items";
 
 export default function TaskChatPage() {
   const { id: projectId, taskId } = useParams<{ id: string; taskId: string }>();
   const router = useRouter();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [infoPanelOpen, setInfoPanelOpen] = useState(false);
 
   const { data: task } = useQuery({
     queryKey: ["task", taskId],
@@ -103,33 +104,43 @@ export default function TaskChatPage() {
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col h-screen bg-background">
-        <TaskHeader
+      <div className="flex h-[calc(100dvh-3rem)] md:h-dvh bg-background overflow-hidden">
+        <TaskSidebar
           projectId={projectId}
-          taskId={taskId}
+          currentTaskId={taskId}
+          mobileOpen={sidebarOpen}
+          onMobileClose={() => setSidebarOpen(false)}
+        />
+
+        <TaskMainContent
           task={task}
+          taskId={taskId}
+          displayInputTokens={displayInputTokens}
+          displayOutputTokens={displayOutputTokens}
+          displayCostUsd={displayCostUsd}
+          chatItems={chatItems}
+          connectedTerminals={connectedTerminals}
           isConnected={isConnected}
-          isTerminalActive={isTerminalActive}
-          agents={agents}
-          terminals={terminals}
-          columns={columns}
-          onDeleted={() => router.push(`/projects/${projectId}`)}
+          onStop={stopCommand}
+          onSend={sendMessage}
+          onToggleSidebar={() => setSidebarOpen((s) => !s)}
+          onToggleInfoPanel={() => setInfoPanelOpen((s) => !s)}
         />
 
         {task && (
-          <TaskDetails
+          <TaskInfoPanel
             task={task}
-            displayInputTokens={displayInputTokens}
-            displayOutputTokens={displayOutputTokens}
-            displayCostUsd={displayCostUsd}
+            projectId={projectId}
+            isConnected={isConnected}
+            isTerminalActive={isTerminalActive}
+            agents={agents}
+            terminals={terminals}
+            columns={columns}
+            onDeleted={() => router.push(`/projects/${projectId}`)}
+            mobileOpen={infoPanelOpen}
+            onMobileClose={() => setInfoPanelOpen(false)}
           />
         )}
-
-        <TerminalStatusBar terminals={connectedTerminals} />
-
-        <TaskChatArea chatItems={chatItems} onStop={stopCommand} />
-
-        <MessageInput onSend={sendMessage} disabled={!isConnected} />
       </div>
     </TooltipProvider>
   );
