@@ -14,16 +14,18 @@ import {
   Pencil,
   Trash2,
   X,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useTaskMutations } from "./useTaskMutations";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
@@ -49,31 +51,11 @@ interface TaskInfoPanelProps {
   onMobileClose: () => void;
 }
 
-function StatusBadge({
-  task,
-  columns,
-}: {
-  task: Task;
-  columns: KanbanColumn[];
-}) {
-  if (task.completedAt) {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-emerald-400">
-        <CheckCircle2 className="size-4" />
-        <span className="text-sm font-medium">Completed</span>
-      </span>
-    );
-  }
-
-  const columnName = task.columnId
-    ? (columns.find((c) => c.id === task.columnId)?.name ?? "Unknown")
-    : "Backlog";
-
+function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-sky-400">
-      <Circle className="size-4" />
-      <span className="text-sm font-medium">{columnName}</span>
-    </span>
+    <div className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold select-none">
+      {children}
+    </div>
   );
 }
 
@@ -94,270 +76,241 @@ export function TaskInfoPanel({
   const { assignMutation, columnMutation, agentMutation, deleteMutation } =
     useTaskMutations(task, projectId, onDeleted);
 
+  const currentColumnName = task.completedAt
+    ? "Completed"
+    : task.columnId
+      ? (columns.find((c) => c.id === task.columnId)?.name ?? "Unknown")
+      : "Backlog";
+
   const panelContent = (
     <>
       <ScrollArea className="flex-1 h-full min-h-0">
-        <div className="p-4 space-y-4">
-          {/* Connection Status */}
-          <Card
-            size="sm"
-            className={cn(
-              "ring-1",
-              isConnected ? "ring-emerald-500/20" : "ring-foreground/10",
-            )}
-          >
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-                Connection
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div
-                className={cn(
-                  "flex items-center gap-2",
-                  isConnected ? "text-emerald-400" : "text-muted-foreground",
-                )}
-              >
-                {isConnected ? (
-                  <Wifi className="size-4" />
-                ) : (
-                  <WifiOff className="size-4" />
-                )}
-                <span className="text-sm font-medium">
-                  {isConnected ? "Connected" : "Disconnected"}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="px-4 py-3 space-y-3">
+          {/* Connection */}
+          <div className="space-y-2">
+            <SectionLabel>Connection</SectionLabel>
+            <div
+              className={cn(
+                "flex items-center gap-2 rounded-md px-2.5 py-1.5 ring-1",
+                isConnected
+                  ? "text-emerald-400 ring-emerald-500/15 bg-emerald-500/5"
+                  : "text-muted-foreground ring-foreground/5",
+              )}
+            >
+              {isConnected ? (
+                <Wifi className="size-3.5" />
+              ) : (
+                <WifiOff className="size-3.5" />
+              )}
+              <span className="text-xs font-medium">
+                {isConnected ? "Connected" : "Disconnected"}
+              </span>
+            </div>
+          </div>
+
+          <Separator />
 
           {/* Status */}
-          <Card size="sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-                Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <StatusBadge task={task} columns={columns} />
+          <div className="space-y-2">
+            <SectionLabel>Status</SectionLabel>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 w-full rounded-md px-2.5 py-1.5 text-left hover:bg-muted/50 transition-colors group">
+                  {task.completedAt ? (
+                    <CheckCircle2 className="size-3.5 text-emerald-400 shrink-0" />
+                  ) : (
+                    <Circle className="size-3.5 text-sky-400 shrink-0" />
+                  )}
+                  <span className="text-xs font-medium flex-1 truncate">
+                    {currentColumnName}
+                  </span>
+                  <ChevronDown className="size-3 text-muted-foreground/50 shrink-0 group-hover:text-muted-foreground transition-colors" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem
+                  onClick={() => columnMutation.mutate(null)}
+                  className="text-xs"
+                >
+                  Backlog
+                  {task.columnId === null && !task.completedAt && (
+                    <span className="ml-auto text-[10px] text-muted-foreground">
+                      Current
+                    </span>
+                  )}
+                </DropdownMenuItem>
+                {columns.map((col) => (
+                  <DropdownMenuItem
+                    key={col.id}
+                    onClick={() => columnMutation.mutate(col.id)}
+                    className="text-xs"
+                  >
+                    {col.name}
+                    {!task.completedAt && task.columnId === col.id && (
+                      <span className="ml-auto text-[10px] text-muted-foreground">
+                        Current
+                      </span>
+                    )}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => columnMutation.mutate(COMPLETED_COLUMN_ID)}
+                  className="text-xs"
+                >
+                  Completed
+                  {task.completedAt && (
+                    <span className="ml-auto text-[10px] text-muted-foreground">
+                      Current
+                    </span>
+                  )}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full text-xs">
-                    Change status
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem
-                    onClick={() => columnMutation.mutate(null)}
-                    className="text-xs"
-                  >
-                    Backlog
-                    {task.columnId === null && !task.completedAt && (
-                      <span className="ml-auto text-[10px] text-muted-foreground">
-                        Current
-                      </span>
-                    )}
-                  </DropdownMenuItem>
-                  {columns.map((col) => (
-                    <DropdownMenuItem
-                      key={col.id}
-                      onClick={() => columnMutation.mutate(col.id)}
-                      className="text-xs"
-                    >
-                      {col.name}
-                      {!task.completedAt && task.columnId === col.id && (
-                        <span className="ml-auto text-[10px] text-muted-foreground">
-                          Current
-                        </span>
-                      )}
-                    </DropdownMenuItem>
-                  ))}
-                  <DropdownMenuItem
-                    onClick={() => columnMutation.mutate(COMPLETED_COLUMN_ID)}
-                    className="text-xs"
-                  >
-                    Completed
-                    {task.completedAt && (
-                      <span className="ml-auto text-[10px] text-muted-foreground">
-                        Current
-                      </span>
-                    )}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </CardContent>
-          </Card>
+          <Separator />
 
           {/* Terminal */}
-          <Card size="sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-                Terminal
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Monitor className="size-4 text-muted-foreground" />
-                <span className="text-sm">
-                  {task.terminal?.name ?? "Not assigned"}
-                </span>
-                {task.terminal && (
-                  <span
-                    className={cn(
-                      "size-2 rounded-full",
-                      task.terminal.isConnected
-                        ? "bg-emerald-400"
-                        : "bg-muted-foreground",
-                    )}
-                  />
-                )}
-              </div>
-
-              {isTerminalActive && (
-                <div className="flex items-center gap-1.5 text-xs text-amber-400">
-                  <Loader2 className="size-3 animate-spin" />
-                  Running
-                </div>
-              )}
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full text-xs">
-                    Change terminal
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  {terminals.length === 0 ? (
-                    <div className="px-2 py-2 text-xs text-muted-foreground">
-                      No terminals
-                    </div>
-                  ) : (
-                    terminals.map((t) => (
-                      <DropdownMenuItem
-                        key={t.id}
-                        onClick={() => assignMutation.mutate(t.id)}
-                        className="text-xs"
-                      >
-                        {t.name}
-                        {task.terminal?.id === t.id && (
-                          <span className="ml-auto text-[10px] text-muted-foreground">
-                            Current
-                          </span>
-                        )}
-                      </DropdownMenuItem>
-                    ))
+          <div className="space-y-2">
+            <SectionLabel>Terminal</SectionLabel>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 w-full rounded-md px-2.5 py-1.5 text-left hover:bg-muted/50 transition-colors group">
+                  <Monitor className="size-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-xs flex-1 truncate">
+                    {task.terminal?.name ?? "Not assigned"}
+                  </span>
+                  {task.terminal && (
+                    <span
+                      className={cn(
+                        "size-1.5 rounded-full shrink-0",
+                        task.terminal.isConnected
+                          ? "bg-emerald-400"
+                          : "bg-muted-foreground/50",
+                      )}
+                    />
                   )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </CardContent>
-          </Card>
-
-          {/* Agent */}
-          <Card size="sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-                Agent
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Bot className="size-4 text-primary" />
-                <span className="text-sm font-medium">
-                  {task.agent?.name ?? "Unknown"}
-                </span>
-              </div>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full text-xs">
-                    Change agent
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  {agents.map((a) => (
+                  {isTerminalActive && (
+                    <Loader2 className="size-3 animate-spin text-amber-400 shrink-0" />
+                  )}
+                  <ChevronDown className="size-3 text-muted-foreground/50 shrink-0 group-hover:text-muted-foreground transition-colors" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {terminals.length === 0 ? (
+                  <div className="px-2 py-2 text-xs text-muted-foreground">
+                    No terminals
+                  </div>
+                ) : (
+                  terminals.map((t) => (
                     <DropdownMenuItem
-                      key={a.id}
-                      onClick={() => agentMutation.mutate(a.id)}
+                      key={t.id}
+                      onClick={() => assignMutation.mutate(t.id)}
                       className="text-xs"
                     >
-                      {a.name}
-                      {task.agentId === a.id && (
+                      {t.name}
+                      {task.terminal?.id === t.id && (
                         <span className="ml-auto text-[10px] text-muted-foreground">
                           Current
                         </span>
                       )}
                     </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </CardContent>
-          </Card>
+                  ))
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <Separator />
+
+          {/* Agent */}
+          <div className="space-y-2">
+            <SectionLabel>Agent</SectionLabel>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 w-full rounded-md px-2.5 py-1.5 text-left hover:bg-muted/50 transition-colors group">
+                  <Bot className="size-3.5 text-primary shrink-0" />
+                  <span className="text-xs font-medium flex-1 truncate">
+                    {task.agent?.name ?? "Unknown"}
+                  </span>
+                  <ChevronDown className="size-3 text-muted-foreground/50 shrink-0 group-hover:text-muted-foreground transition-colors" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {agents.map((a) => (
+                  <DropdownMenuItem
+                    key={a.id}
+                    onClick={() => agentMutation.mutate(a.id)}
+                    className="text-xs"
+                  >
+                    {a.name}
+                    {task.agentId === a.id && (
+                      <span className="ml-auto text-[10px] text-muted-foreground">
+                        Current
+                      </span>
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <Separator />
 
           {/* Model */}
-          <Card size="sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-                Model
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <Cpu className="size-4 text-violet-400" />
-                <span className="text-sm font-mono">{task.model}</span>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-2">
+            <SectionLabel>Model</SectionLabel>
+            <div className="flex items-center gap-2 rounded-md px-2.5 py-1.5">
+              <Cpu className="size-3.5 text-violet-400 shrink-0" />
+              <span className="text-xs font-mono">{task.model}</span>
+            </div>
+          </div>
 
           {/* Repository */}
           {task.project?.repository && (
-            <Card size="sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-                  Repository
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+            <>
+              <Separator />
+              <div className="space-y-2">
+                <SectionLabel>Repository</SectionLabel>
                 <a
                   href={task.project.repository}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                 >
-                  <GitBranch className="size-4 shrink-0" />
-                  <span className="truncate">{task.project.repository}</span>
+                  <GitBranch className="size-3.5 shrink-0" />
+                  <span className="text-xs truncate">
+                    {task.project.repository}
+                  </span>
                 </a>
-              </CardContent>
-            </Card>
+              </div>
+            </>
           )}
 
+          <Separator />
+
           {/* Actions */}
-          <Card size="sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-                Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full text-xs"
-                onClick={() => setEditOpen(true)}
-              >
-                <Pencil className="size-3 mr-1.5" />
-                Edit task
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full text-xs text-destructive hover:text-destructive"
-                onClick={() => setConfirmOpen(true)}
-              >
-                <Trash2 className="size-3 mr-1.5" />
-                Delete task
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="space-y-1.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setEditOpen(true)}
+            >
+              <Pencil className="size-3 mr-2" />
+              Edit task
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-xs text-muted-foreground hover:text-destructive"
+              onClick={() => setConfirmOpen(true)}
+            >
+              <Trash2 className="size-3 mr-2" />
+              Delete task
+            </Button>
+          </div>
         </div>
       </ScrollArea>
 
@@ -382,7 +335,7 @@ export function TaskInfoPanel({
   return (
     <>
       {/* Desktop panel */}
-      <aside className="hidden xl:flex flex-col w-72 shrink-0 border-l border-border bg-card/30 overflow-hidden">
+      <aside className="hidden xl:flex flex-col w-64 shrink-0 border-l border-border bg-card/30 overflow-hidden">
         {panelContent}
       </aside>
 
