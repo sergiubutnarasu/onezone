@@ -59,6 +59,7 @@ export default function TaskChatPage() {
     prependMessages,
   } = useTaskRoom(taskId, {
     onTaskDeleted: () => router.push(`/projects/${projectId}`),
+    projectId,
   });
 
   // Load history into the room on mount

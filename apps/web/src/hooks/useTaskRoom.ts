@@ -18,7 +18,7 @@ const SERVER_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5026";
 
 export function useTaskRoom(
   taskId: string,
-  options?: { onTaskDeleted?: () => void },
+  options?: { onTaskDeleted?: () => void; projectId?: string },
 ) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [isConnected, setIsConnected] = useReducerState(false);
@@ -47,6 +47,9 @@ export function useTaskRoom(
 
     socket.on(EventCommands.TaskColumnUpdated, () => {
       qc.invalidateQueries({ queryKey: ["task", taskId] });
+      if (options?.projectId) {
+        qc.invalidateQueries({ queryKey: ["tasks", options.projectId] });
+      }
     });
 
     socket.on("chat:message", (msg: RoomMessage) => {
