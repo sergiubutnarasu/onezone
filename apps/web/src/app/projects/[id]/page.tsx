@@ -1,21 +1,28 @@
-'use client';
+"use client";
 
-import { useParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { ChevronRight, Home } from 'lucide-react';
-import Link from 'next/link';
-import { fetchProject, fetchTasks, fetchTerminals, fetchAgents, fetchKanbanColumns, fetchProjectCostStats } from '@/lib/api';
-import { KanbanBoard } from '@/components/kanban/KanbanBoard';
-import { EditProjectButton } from '@/components/EditProjectButton';
-import { CreateTaskButton } from '@/components/CreateTaskButton';
-import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import { CollapsibleDescription } from '@/components/CollapsibleDescription';
-import { ProjectCostStats } from '@/components/ProjectCostStats';
-import { useProjectTasksSocket } from '@/hooks/useProjectTasksSocket';
-import type { Terminal, Task, Agent, KanbanColumn } from '@onezone/shared';
-import type { Project } from '@/lib/api';
+import { useParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { ChevronRight, Home } from "lucide-react";
+import Link from "next/link";
+import {
+  fetchProject,
+  fetchTasks,
+  fetchTerminals,
+  fetchAgents,
+  fetchKanbanColumns,
+  fetchProjectCostStats,
+} from "@/lib/api";
+import { KanbanBoard } from "@/components/kanban/KanbanBoard";
+import { EditProjectButton } from "@/components/EditProjectButton";
+import { CreateTaskButton } from "@/components/CreateTaskButton";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { CollapsibleDescription } from "@/components/CollapsibleDescription";
+import { ProjectCostStats } from "@/components/ProjectCostStats";
+import { useProjectTasksSocket } from "@/hooks/useProjectTasksSocket";
+import type { Terminal, Task, Agent, KanbanColumn } from "@onezone/shared";
+import type { Project } from "@/lib/api";
 
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();
@@ -23,32 +30,32 @@ export default function ProjectPage() {
   useProjectTasksSocket(id);
 
   const { data: project, isLoading: projectLoading } = useQuery<Project>({
-    queryKey: ['project', id],
+    queryKey: ["project", id],
     queryFn: () => fetchProject(id),
   });
 
   const { data: tasks = [], isLoading: tasksLoading } = useQuery<Task[]>({
-    queryKey: ['tasks', id],
+    queryKey: ["tasks", id],
     queryFn: () => fetchTasks(id),
   });
 
   const { data: terminals = [] } = useQuery<Terminal[]>({
-    queryKey: ['terminals'],
+    queryKey: ["terminals"],
     queryFn: fetchTerminals,
   });
 
   const { data: agents = [] } = useQuery<Agent[]>({
-    queryKey: ['agents'],
+    queryKey: ["agents"],
     queryFn: fetchAgents,
   });
 
   const { data: columns = [] } = useQuery<KanbanColumn[]>({
-    queryKey: ['kanban-columns', id],
+    queryKey: ["kanban-columns", id],
     queryFn: () => fetchKanbanColumns(id),
   });
 
   const { data: costStats } = useQuery({
-    queryKey: ['project-cost-stats', id],
+    queryKey: ["project-cost-stats", id],
     queryFn: () => fetchProjectCostStats(id),
   });
 
@@ -59,49 +66,73 @@ export default function ProjectPage() {
         <div className="px-8 pt-6 pb-4 border-b border-border/60">
           {/* Breadcrumb */}
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
-            <Link href="/" className="flex items-center gap-1 hover:text-foreground transition-colors">
+            <Link
+              href="/"
+              className="flex items-center gap-1 hover:text-foreground transition-colors"
+            >
               <Home className="size-3" />
               Projects
             </Link>
             <ChevronRight className="size-3" />
-            {projectLoading
-              ? <Skeleton className="h-3 w-24" />
-              : <span className="text-foreground">{project?.name}</span>
-            }
+            {projectLoading ? (
+              <Skeleton className="h-3 w-24" />
+            ) : (
+              <span className="text-foreground">{project?.name}</span>
+            )}
           </div>
 
-          <div className="flex items-end justify-between gap-4">
-            <div>
+          <div className="flex items-baseline gap-4 justify-between">
+            {projectLoading ? (
+              <Skeleton className="h-7 w-48" />
+            ) : (
+              <h1 className="text-xl font-semibold tracking-tight">
+                {project?.name}
+              </h1>
+            )}
+
+            <div className="flex items-center gap-2">
               {projectLoading ? (
                 <>
-                  <Skeleton className="h-7 w-48 mb-1" />
-                  <Skeleton className="h-4 w-64" />
+                  <Skeleton className="h-8 w-28" />
+                  <Skeleton className="h-8 w-8" />
                 </>
               ) : (
                 <>
-                  <h1 className="text-xl font-semibold tracking-tight">{project?.name}</h1>
-                  {project?.description && (
-                    <div className="text-sm text-muted-foreground mt-0.5">
-                      <CollapsibleDescription value={project.description} />
-                    </div>
-                  )}
-                  {costStats && (
-                    <ProjectCostStats
-                      inputTokens={costStats.inputTokens}
-                      outputTokens={costStats.outputTokens}
-                      costUsd={costStats.costUsd}
-                    />
+                  <CreateTaskButton
+                    projectId={id}
+                    project={project ?? null}
+                    terminals={terminals}
+                    agents={agents}
+                  />
+
+                  {project && (
+                    <EditProjectButton project={project} agents={agents} />
                   )}
                 </>
               )}
             </div>
-
-            <div className="flex items-center gap-2">
-              <CreateTaskButton projectId={id} project={project ?? null} terminals={terminals} agents={agents} />
-
-              {project && <EditProjectButton project={project} agents={agents} />}
-            </div>
           </div>
+
+          {projectLoading ? (
+            <div className="mt-2 space-y-1.5">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-20" />
+            </div>
+          ) : (
+            project?.description && (
+              <div className="text-sm text-muted-foreground mt-2">
+                <CollapsibleDescription value={project.description} />
+              </div>
+            )
+          )}
+
+          {costStats && (
+            <ProjectCostStats
+              inputTokens={costStats.inputTokens}
+              outputTokens={costStats.outputTokens}
+              costUsd={costStats.costUsd}
+            />
+          )}
         </div>
 
         <Separator />
