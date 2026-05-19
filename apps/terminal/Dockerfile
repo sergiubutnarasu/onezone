@@ -19,7 +19,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
   && rm -rf /var/lib/apt/lists/*
 
 # Install onezone-terminal globally (as root)
-RUN npm install -g @onezone/terminal@0.0.3
+RUN npm install -g @onezone/terminal@0.0.4
 
 ARG USER_UID=1000
 ARG USER_GID=1000

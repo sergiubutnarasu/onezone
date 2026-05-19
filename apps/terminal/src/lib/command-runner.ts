@@ -26,6 +26,8 @@ export interface SpawnCommandProps {
   payload: unknown;
   deps: CommandRunnerDeps;
   activeProcesses: Map<string, ActiveProcessEntry>;
+  /** When true, parses [[ONEZONE_NEXT_COLUMN:...]] and emits taskRunnerFinished. Defaults to false. */
+  isTaskRunner?: boolean;
 }
 
 /**
@@ -38,6 +40,7 @@ export async function spawnCommand({
   payload,
   deps,
   activeProcesses,
+  isTaskRunner = false,
 }: SpawnCommandProps): Promise<void> {
   const { socket, roomId, terminalId, terminalName, log } = deps;
 
@@ -90,6 +93,7 @@ export async function spawnCommand({
   const command = `${terminalAgent.config.cmd} ${shellQuote(content)}`;
 
   let cancelled = false;
+  let resultReceived = false;
   let taskRunnerFinished = false;
   let resultUsage: {
     totalCostUsd?: number;
@@ -126,13 +130,16 @@ export async function spawnCommand({
             inputTokens: parsed.usage?.input_tokens ?? undefined,
             outputTokens: parsed.usage?.output_tokens ?? undefined,
           };
-          const match = (parsed.result as string | undefined)?.match(
-            /\[\[ONEZONE_NEXT_COLUMN:(\S+)\]\]/,
-          );
-          if (match) {
-            nextColumnId = match[1] === "backlog" ? null : match[1];
+          resultReceived = true;
+          if (isTaskRunner) {
+            const match = (parsed.result as string | undefined)?.match(
+              /\[\[ONEZONE_NEXT_COLUMN:(\S+)\]\]/,
+            );
+            if (match) {
+              nextColumnId = match[1] === "backlog" ? null : match[1];
+            }
+            taskRunnerFinished = true;
           }
-          taskRunnerFinished = true;
           if (proc.pid) killTree(proc.pid);
         }
       } catch {
@@ -154,7 +161,7 @@ export async function spawnCommand({
 
       // If we already received the result line and killed the process ourselves,
       // treat it as a clean exit regardless of the signal exit code.
-      const effectiveCode = taskRunnerFinished ? 0 : exitCode;
+      const effectiveCode = resultReceived ? 0 : exitCode;
 
       if (effectiveCode !== 0) {
         let stderrTs = Date.now();
