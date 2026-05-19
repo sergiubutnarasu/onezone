@@ -144,6 +144,16 @@ export interface ChatMessage {
   task?: TaskDetails | null;
 }
 
+// --- Pagination ---
+
+export interface Paginated<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
 // --- Notifications ---
 
 export type NotificationType = 'TASK_COMPLETED' | 'COMMAND_START' | 'COMMAND_EXIT_SUCCESS' | 'COMMAND_EXIT_FAILURE';

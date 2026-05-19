@@ -4,6 +4,7 @@ import {
   type Agent,
   type KanbanColumn,
   type Notification,
+  type Paginated,
   ProjectInfo,
   type ProjectSkill,
   type RoomMessage,
@@ -161,8 +162,12 @@ export const installGlobalSkill = (data: {
 }) => httpClient.post<ProjectSkill>("/skills", data);
 
 // Notifications
-export const fetchNotifications = (includeRead = false) =>
-  httpClient.get<Notification[]>(`/notifications${includeRead ? '?includeRead=true' : ''}`);
+export const fetchNotifications = (includeRead = false, page = 1, limit = 20) => {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (includeRead) params.set('includeRead', 'true');
+  return httpClient.get<Paginated<Notification>>(`/notifications?${params}`);
+};
+export type { Paginated };
 
 export const fetchUnreadCount = () =>
   httpClient.get<number>("/notifications/unread-count");

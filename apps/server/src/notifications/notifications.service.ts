@@ -17,15 +17,23 @@ export class NotificationsService {
     return this.prisma.notification.create({ data: dto });
   }
 
-  async findAll(includeRead: boolean) {
-    return this.prisma.notification.findMany({
-      where: includeRead ? undefined : { readAt: null },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        task: { select: { id: true, name: true } },
-        project: { select: { id: true, name: true } },
-      },
-    });
+  async findAll(includeRead: boolean, page: number, limit: number) {
+    const where = includeRead ? undefined : { readAt: null };
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+      this.prisma.notification.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        include: {
+          task: { select: { id: true, name: true } },
+          project: { select: { id: true, name: true } },
+        },
+      }),
+      this.prisma.notification.count({ where }),
+    ]);
+    return { data, total, page, limit, hasMore: skip + data.length < total };
   }
 
   async markRead(id: string) {

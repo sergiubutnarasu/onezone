@@ -10,12 +10,13 @@ import {
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { Notification } from "@onezone/shared";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bell,
   CheckCheck,
   CheckCircle,
   Inbox,
+  Loader2,
   Play,
   XCircle,
 } from "lucide-react";
@@ -110,10 +111,21 @@ export default function NotificationsPage() {
   const [showRead, setShowRead] = useState(false);
   const qc = useQueryClient();
 
-  const { data: notifications = [], isLoading } = useQuery({
+  const {
+    data,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ["notifications", showRead],
-    queryFn: () => fetchNotifications(showRead),
+    queryFn: ({ pageParam }) => fetchNotifications(showRead, pageParam),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore ? lastPage.page + 1 : undefined,
   });
+
+  const notifications = data?.pages.flatMap((p) => p.data) ?? [];
 
   const markRead = useMutation({
     mutationFn: markNotificationRead,
@@ -187,7 +199,7 @@ export default function NotificationsPage() {
                 onClick={() => setShowRead(true)}
                 className="text-xs underline underline-offset-2 hover:text-foreground transition-colors"
               >
-                View archived
+                View old notifications
               </button>
             )}
           </div>
@@ -201,6 +213,21 @@ export default function NotificationsPage() {
           ))
         )}
       </div>
+      {hasNextPage && (
+        <div className="flex justify-center mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+          >
+            {isFetchingNextPage ? (
+              <Loader2 className="size-3.5 mr-1.5 animate-spin" />
+            ) : null}
+            Load more
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
