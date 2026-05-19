@@ -1,28 +1,28 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Home } from "lucide-react";
-import Link from "next/link";
-import {
-  fetchProject,
-  fetchTasks,
-  fetchTerminals,
-  fetchAgents,
-  fetchKanbanColumns,
-  fetchProjectCostStats,
-} from "@/lib/api";
-import { KanbanBoard } from "@/components/kanban/KanbanBoard";
-import { EditProjectButton } from "@/components/EditProjectButton";
+import { CollapsibleDescription } from "@/components/CollapsibleDescription";
 import { CreateTaskButton } from "@/components/CreateTaskButton";
+import { EditProjectButton } from "@/components/EditProjectButton";
+import { KanbanBoard } from "@/components/kanban/KanbanBoard";
+import { ProjectCostStats } from "@/components/ProjectCostStats";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { CollapsibleDescription } from "@/components/CollapsibleDescription";
-import { ProjectCostStats } from "@/components/ProjectCostStats";
 import { useProjectTasksSocket } from "@/hooks/useProjectTasksSocket";
-import type { Terminal, Task, Agent, KanbanColumn } from "@onezone/shared";
 import type { Project } from "@/lib/api";
+import {
+  fetchAgents,
+  fetchKanbanColumns,
+  fetchProject,
+  fetchProjectCostStats,
+  fetchTasks,
+  fetchTerminals,
+} from "@/lib/api";
+import type { Agent, KanbanColumn, Task, Terminal } from "@onezone/shared";
+import { useQuery } from "@tanstack/react-query";
+import { ChevronRight, Home } from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();
@@ -61,9 +61,9 @@ export default function ProjectPage() {
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full gap-4 overflow-hidden">
         {/* Page header */}
-        <div className="px-8 pt-6 pb-4 border-b border-border/60">
+        <div className="px-8 pt-6">
           {/* Breadcrumb */}
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
             <Link
@@ -138,7 +138,7 @@ export default function ProjectPage() {
         <Separator />
 
         {/* Kanban area */}
-        <div className="flex-1 overflow-x-auto p-6">
+        <div className="flex-1 min-h-0 flex flex-col overflow-x-auto px-6">
           {tasksLoading ? (
             <div className="flex gap-4">
               {[...Array(4)].map((_, i) => (
@@ -149,7 +149,9 @@ export default function ProjectPage() {
               ))}
             </div>
           ) : (
-            <KanbanBoard tasks={tasks} projectId={id} columns={columns} />
+            <div className="flex-1 min-h-0 bg-background">
+              <KanbanBoard tasks={tasks} projectId={id} columns={columns} />
+            </div>
           )}
         </div>
       </div>

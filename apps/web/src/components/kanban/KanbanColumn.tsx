@@ -1,30 +1,33 @@
-'use client';
+"use client";
 
-import { memo, useRef, useMemo, useState } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { KanbanCard } from './KanbanCard';
-import { type Task } from '@onezone/shared';
-import { GripVertical, Pencil, Trash2, CheckCircle2 } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { deleteKanbanColumn } from '@/lib/api';
-import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { KanbanColumnDialog } from '@/components/KanbanColumnDialog';
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { KanbanColumnDialog } from "@/components/KanbanColumnDialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { deleteKanbanColumn } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { type Task } from "@onezone/shared";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { CheckCircle2, GripVertical, Pencil, Trash2 } from "lucide-react";
+import { memo, useMemo, useRef, useState } from "react";
+import { KanbanCard } from "./KanbanCard";
 
 const COLUMN_COLORS = [
-  'text-sky-400',
-  'text-amber-400',
-  'text-violet-400',
-  'text-orange-400',
-  'text-emerald-400',
-  'text-blue-400',
-  'text-pink-400',
-  'text-teal-400',
+  "text-sky-400",
+  "text-amber-400",
+  "text-violet-400",
+  "text-orange-400",
+  "text-emerald-400",
+  "text-blue-400",
+  "text-pink-400",
+  "text-teal-400",
 ];
 
 interface KanbanColumnProps {
@@ -55,7 +58,10 @@ export const KanbanColumn = memo(function KanbanColumn({
   isCompleted = false,
 }: KanbanColumnProps) {
   // Backlog and Completed use disabled useSortable so they stay droppable but not draggable.
-  const sortable = useSortable({ id: columnId, disabled: isBacklog || isCompleted });
+  const sortable = useSortable({
+    id: columnId,
+    disabled: isBacklog || isCompleted,
+  });
 
   const setNodeRef = sortable.setNodeRef;
   const isOver = sortable.isOver;
@@ -76,29 +82,32 @@ export const KanbanColumn = memo(function KanbanColumn({
   });
 
   const colorClass = isBacklog
-    ? 'text-slate-400'
+    ? "text-slate-400"
     : isCompleted
-      ? 'text-emerald-500'
+      ? "text-emerald-500"
       : COLUMN_COLORS[columnIndex % COLUMN_COLORS.length];
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteKanbanColumn(projectId, columnId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['kanban-columns', projectId] });
-      qc.invalidateQueries({ queryKey: ['tasks', projectId] });
+      qc.invalidateQueries({ queryKey: ["kanban-columns", projectId] });
+      qc.invalidateQueries({ queryKey: ["tasks", projectId] });
     },
   });
 
-  const style = (isBacklog || isCompleted) ? undefined : {
-    transform: CSS.Transform.toString(sortable.transform),
-    transition: sortable.transition,
-    opacity: sortable.isDragging ? 0.4 : undefined,
-  };
+  const style =
+    isBacklog || isCompleted
+      ? undefined
+      : {
+          transform: CSS.Transform.toString(sortable.transform),
+          transition: sortable.transition,
+          opacity: sortable.isDragging ? 0.4 : undefined,
+        };
 
   return (
     <>
       <div
-        className="group/col flex flex-col gap-2 min-w-65 w-65"
+        className="group/col flex flex-col gap-2 min-w-65 w-65 h-full"
         style={style}
         {...(isBacklog || isCompleted ? {} : sortable.attributes)}
       >
@@ -117,7 +126,12 @@ export const KanbanColumn = memo(function KanbanColumn({
                 <GripVertical className="size-3.5" />
               </button>
             )}
-            <span className={cn('text-xs font-semibold uppercase tracking-wider truncate', colorClass)}>
+            <span
+              className={cn(
+                "text-xs font-semibold uppercase tracking-wider truncate",
+                colorClass,
+              )}
+            >
               {columnName}
             </span>
             <Badge variant="secondary" className="text-xs h-5 px-1.5 shrink-0">
@@ -149,21 +163,26 @@ export const KanbanColumn = memo(function KanbanColumn({
         <div
           ref={setNodeRef}
           className={cn(
-            'flex-1 rounded-lg border border-border/70 bg-muted/40 p-2 transition-colors',
-            isOver && 'bg-primary/5 border-primary/40',
+            "flex-1 rounded-lg border border-border/70 bg-muted/40 p-2 transition-colors min-h-0",
+            isOver && "bg-primary/5 border-primary/40",
           )}
         >
-          <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-            <div
-              ref={scrollRef}
-              className="h-[calc(100vh-260px)] overflow-y-auto chat-scroll"
-            >
+          <SortableContext
+            items={itemIds}
+            strategy={verticalListSortingStrategy}
+          >
+            <div ref={scrollRef} className="h-full overflow-y-auto chat-scroll">
               {tasks.length === 0 ? (
                 <p className="text-xs text-muted-foreground/50 text-center py-10">
                   Drop tasks here
                 </p>
               ) : (
-                <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+                <div
+                  style={{
+                    height: virtualizer.getTotalSize(),
+                    position: "relative",
+                  }}
+                >
                   {virtualizer.getVirtualItems().map((virtualRow) => {
                     const task = tasks[virtualRow.index];
                     return (
@@ -172,10 +191,10 @@ export const KanbanColumn = memo(function KanbanColumn({
                         data-index={virtualRow.index}
                         ref={virtualizer.measureElement}
                         style={{
-                          position: 'absolute',
+                          position: "absolute",
                           top: 0,
                           left: 0,
-                          width: '100%',
+                          width: "100%",
                           transform: `translateY(${virtualRow.start}px)`,
                         }}
                       >
@@ -196,7 +215,13 @@ export const KanbanColumn = memo(function KanbanColumn({
             open={editOpen}
             onOpenChange={setEditOpen}
             projectId={projectId}
-            column={{ id: columnId, name: columnName, instructions: columnInstructions, agentId: columnAgentId, model: columnModel }}
+            column={{
+              id: columnId,
+              name: columnName,
+              instructions: columnInstructions,
+              agentId: columnAgentId,
+              model: columnModel,
+            }}
           />
           <ConfirmDialog
             open={deleteOpen}

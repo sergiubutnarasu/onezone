@@ -54,9 +54,9 @@ export function KanbanBoard({ tasks: initialTasks, projectId, columns }: KanbanB
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
     >
-      <div ref={wrapperRef}>
-        <ScrollArea className="w-full">
-          <div className="flex gap-4 pb-4">
+      <div ref={wrapperRef} className="h-full">
+        <ScrollArea className="w-full h-full">
+          <div className="flex gap-4 pb-4 h-full">
             {/* Static backlog column — always first */}
             <KanbanColumnComponent
               columnId={BACKLOG_COLUMN_ID}
