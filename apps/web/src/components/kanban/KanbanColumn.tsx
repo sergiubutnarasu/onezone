@@ -156,7 +156,7 @@ export const KanbanColumn = memo(function KanbanColumn({
           <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
             <div
               ref={scrollRef}
-              className="h-[calc(100vh-260px)] overflow-y-auto"
+              className="h-[calc(100vh-260px)] overflow-y-auto chat-scroll"
             >
               {tasks.length === 0 ? (
                 <p className="text-xs text-muted-foreground/50 text-center py-10">
