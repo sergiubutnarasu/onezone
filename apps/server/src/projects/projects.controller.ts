@@ -48,6 +48,11 @@ export class ProjectsController {
     return this.projectsService.listSkills(id);
   }
 
+  @Get(':id/cost-stats')
+  getCostStats(@Param('id') id: string) {
+    return this.projectsService.getCostStats(id);
+  }
+
   @Post(':id/skills')
   @HttpCode(HttpStatus.CREATED)
   installSkill(@Param('id') id: string, @Body() body: InstallSkillDto) {

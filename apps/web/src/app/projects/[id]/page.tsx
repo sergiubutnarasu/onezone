@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronRight, Home } from 'lucide-react';
 import Link from 'next/link';
-import { fetchProject, fetchTasks, fetchTerminals, fetchAgents, fetchKanbanColumns } from '@/lib/api';
+import { fetchProject, fetchTasks, fetchTerminals, fetchAgents, fetchKanbanColumns, fetchProjectCostStats } from '@/lib/api';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { EditProjectButton } from '@/components/EditProjectButton';
 import { CreateTaskButton } from '@/components/CreateTaskButton';
@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { CollapsibleDescription } from '@/components/CollapsibleDescription';
+import { ProjectCostStats } from '@/components/ProjectCostStats';
 import { useProjectTasksSocket } from '@/hooks/useProjectTasksSocket';
 import type { Terminal, Task, Agent, KanbanColumn } from '@onezone/shared';
 import type { Project } from '@/lib/api';
@@ -46,6 +47,11 @@ export default function ProjectPage() {
     queryFn: () => fetchKanbanColumns(id),
   });
 
+  const { data: costStats } = useQuery({
+    queryKey: ['project-cost-stats', id],
+    queryFn: () => fetchProjectCostStats(id),
+  });
+
   return (
     <TooltipProvider>
       <div className="flex flex-col h-full">
@@ -78,6 +84,13 @@ export default function ProjectPage() {
                     <div className="text-sm text-muted-foreground mt-0.5">
                       <CollapsibleDescription value={project.description} />
                     </div>
+                  )}
+                  {costStats && (
+                    <ProjectCostStats
+                      inputTokens={costStats.inputTokens}
+                      outputTokens={costStats.outputTokens}
+                      costUsd={costStats.costUsd}
+                    />
                   )}
                 </>
               )}

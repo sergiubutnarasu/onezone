@@ -13,6 +13,7 @@ export enum EventCommands {
   TaskDeleted = "task:deleted",
   TaskColumnUpdated = "task:column-updated",
   NotificationCreated = "notification:created",
+  ProjectCostUpdated = "project:cost-updated",
 }
 
 export enum MessageRole {

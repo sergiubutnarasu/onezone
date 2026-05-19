@@ -11,9 +11,10 @@ import { CommandStartHandler } from './message-handlers/command-start.handler';
 import { CommandExitHandler } from './message-handlers/command-exit.handler';
 import { SocketAuthGuard } from './socket-auth.guard';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { ProjectsModule } from '../projects/projects.module';
 
 @Module({
-  imports: [MessagesModule, TasksModule, TerminalsModule, NotificationsModule],
+  imports: [MessagesModule, TasksModule, TerminalsModule, NotificationsModule, ProjectsModule],
   providers: [
     ChatGateway,
     SocketAuthGuard,

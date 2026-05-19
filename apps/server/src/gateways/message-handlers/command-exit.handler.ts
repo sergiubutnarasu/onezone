@@ -1,10 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EventCommands, MessageRole } from '@onezone/shared';
+import { EventCommands, MessageRole, createProjectRoomId } from '@onezone/shared';
 import { MessageType, NotificationType } from '@prisma/client';
 import { Server, Socket } from 'socket.io';
 import { MessagesService } from '../../messages/messages.service';
 import { TasksService } from '../../tasks/tasks.service';
 import { NotificationsService } from '../../notifications/notifications.service';
+import { ProjectsService } from '../../projects/projects.service';
 import { extractTaskId } from '@onezone/shared';
 import { IMessageHandler } from './message-handler.interface';
 
@@ -48,6 +49,7 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
     private readonly messagesService: MessagesService,
     private readonly tasksService: TasksService,
     private readonly notificationsService: NotificationsService,
+    private readonly projectsService: ProjectsService,
   ) {}
 
   async handle(
@@ -100,6 +102,7 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
       if (taskId) {
         try {
           const task = await this.tasksService.findOne(taskId);
+          const projectId = task.project!.id;
           const notifType = data.exitCode === 0
             ? NotificationType.COMMAND_EXIT_SUCCESS
             : NotificationType.COMMAND_EXIT_FAILURE;
@@ -112,10 +115,19 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
           const notif = await this.notificationsService.create({
             type: notifType,
             taskId,
-            projectId: task.project!.id,
+            projectId,
             message,
           });
           server?.emit(EventCommands.NotificationCreated, notif);
+
+          if (server) {
+            try {
+              const costStats = await this.projectsService.getCostStats(projectId);
+              server.to(createProjectRoomId(projectId)).emit(EventCommands.ProjectCostUpdated, costStats);
+            } catch (e) {
+              this.logger.warn(`Failed to emit project cost update for project ${projectId}`, e);
+            }
+          }
         } catch (e) {
           this.logger.warn(`Failed to create command exit notification for task ${taskId}`, e);
         }

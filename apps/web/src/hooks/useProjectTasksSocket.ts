@@ -19,6 +19,10 @@ export function useProjectTasksSocket(projectId: string) {
       qc.invalidateQueries({ queryKey: ['tasks', projectId] });
     });
 
+    socket.on(EventCommands.ProjectCostUpdated, (data: { inputTokens: number; outputTokens: number; costUsd: number }) => {
+      qc.setQueryData(['project-cost-stats', projectId], data);
+    });
+
     return () => {
       socket.disconnect();
     };

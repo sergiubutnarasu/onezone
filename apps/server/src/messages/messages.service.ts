@@ -50,4 +50,5 @@ export class MessagesService {
     // Convert BigInt ts to number for JSON serialization
     return messages.map((m) => ({ ...m, agentName: m.agent?.name ?? null, agent: undefined, ts: Number(m.ts) }));
   }
+
 }

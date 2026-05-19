@@ -52,6 +52,9 @@ export const deleteProject = (id: string) =>
 export const fetchProject = (id: string) =>
   httpClient.get<ProjectInfo>(`/projects/${id}`);
 
+export const fetchProjectCostStats = (id: string) =>
+  httpClient.get<{ inputTokens: number; outputTokens: number; costUsd: number }>(`/projects/${id}/cost-stats`);
+
 export const fetchAgents = () => httpClient.get<Agent[]>("/agents");
 
 export const updateAgent = (id: string, data: { model: string }) =>

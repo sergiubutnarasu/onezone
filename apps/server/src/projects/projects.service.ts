@@ -167,4 +167,28 @@ export class ProjectsService {
     await this.prisma.projectSkill.delete({ where: { id: skillId } });
     this.logger.log(`Removed global skill "${skill.skillName}"`);
   }
+
+  async getCostStats(projectId: string): Promise<{
+    inputTokens: number;
+    outputTokens: number;
+    costUsd: number;
+  }> {
+    await this.findOne(projectId);
+    const result = await this.prisma.message.aggregate({
+      where: {
+        task: { projectId },
+        messageType: 'COMMAND_EXIT',
+      },
+      _sum: {
+        inputTokens: true,
+        outputTokens: true,
+        totalCostUsd: true,
+      },
+    });
+    return {
+      inputTokens: result._sum.inputTokens ?? 0,
+      outputTokens: result._sum.outputTokens ?? 0,
+      costUsd: result._sum.totalCostUsd ?? 0,
+    };
+  }
 }
