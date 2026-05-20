@@ -16,7 +16,7 @@ export default class Logout extends Command {
   async run(): Promise<void> {
     const { flags } = await this.parse(Logout);
     const baseUrl = flags.server;
-    const refreshToken = getRefreshToken();
+    const refreshToken = await getRefreshToken();
 
     if (refreshToken) {
       try {
@@ -30,7 +30,7 @@ export default class Logout extends Command {
       }
     }
 
-    clearTokens();
+    await clearTokens();
     this.log("Logged out successfully.");
   }
 }

@@ -20,8 +20,8 @@ export function createTerminalSocket(
   const { serverUrl, taskId, terminalId, terminalName } = options;
 
   const socket = io(`${serverUrl}/chat`, {
-    auth: (cb: (data: object) => void) => {
-      const token = getAccessToken();
+    auth: async (cb: (data: object) => void) => {
+      const token = await getAccessToken();
       cb({
         ...(taskId ? { taskId } : {}),
         role: MessageRole.Terminal,

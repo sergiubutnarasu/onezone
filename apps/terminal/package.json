@@ -9,14 +9,20 @@
   "bin": {
     "onezone-terminal": "./bin/run.js"
   },
-  "files": ["dist", "bin", ".oclif.manifest.json"],
+  "files": [
+    "dist",
+    "bin",
+    ".oclif.manifest.json"
+  ],
   "oclif": {
     "bin": "onezone-terminal",
     "dirname": "onezone-terminal",
     "commands": {
       "strategy": "pattern",
       "target": "./dist/commands",
-      "globPatterns": ["**/*.js"]
+      "globPatterns": [
+        "**/*.js"
+      ]
     },
     "topicSeparator": " "
   },
@@ -27,10 +33,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@napi-rs/keyring": "^1.3.0",
     "@oclif/core": "^4.0.27",
     "@onezone/shared": "workspace:*",
     "socket.io-client": "^4.8.0"
-
   },
   "devDependencies": {
     "@onezone/tsconfig": "workspace:*",

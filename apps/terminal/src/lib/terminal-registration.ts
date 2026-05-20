@@ -15,7 +15,7 @@ export interface RegisterTerminalInput {
 export async function registerTerminal(input: RegisterTerminalInput): Promise<string> {
   const { serverUrl, name } = input;
   const url = `${serverUrl}/terminals/register`;
-  const token = getAccessToken();
+  const token = await getAccessToken();
 
   if (!token) {
     throw new Error('Not authenticated. Run "onezone-terminal login" first.');

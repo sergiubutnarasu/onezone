@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { login, safeReturnTo } from "@/lib/api";
@@ -11,6 +11,14 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Bot } from "lucide-react";
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refetch } = useAuth();

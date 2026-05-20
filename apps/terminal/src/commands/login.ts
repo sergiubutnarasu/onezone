@@ -79,7 +79,7 @@ export default class Login extends Command {
       }
 
       if (result.access_token && result.refresh_token) {
-        setTokens(result.access_token, result.refresh_token);
+        await setTokens(result.access_token, result.refresh_token);
         this.log("Logged in successfully.");
         return;
       }
