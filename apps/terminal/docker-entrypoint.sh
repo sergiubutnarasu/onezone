@@ -21,4 +21,9 @@ EOF
   chmod 600 /home/agent/.ssh/config
 fi
 
+# Check if already authenticated; if not, run login first
+if ! onezone-terminal whoami --server "${TERMINAL_SERVER_URL}" 2>/dev/null; then
+  onezone-terminal login --server "${TERMINAL_SERVER_URL}"
+fi
+
 exec onezone-terminal listen --name "${TERMINAL_NAME}" --server "${TERMINAL_SERVER_URL}"

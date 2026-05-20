@@ -1,16 +1,41 @@
 // apps/terminal/src/lib/config.ts
-// Manages persistent auth tokens stored in the OS keychain via @napi-rs/keyring
+// Manages persistent auth tokens stored in the OS keychain via @napi-rs/keyring,
+// with a file-based fallback (~/.onezone/tokens.json) for environments without
+// a secret service (e.g. Docker).
 
 import { Entry } from "@napi-rs/keyring";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 const SERVICE_NAME = "onezone";
+const TOKEN_FILE = join(homedir(), ".onezone", "tokens.json");
+
+interface TokenFile {
+  access_token?: string;
+  refresh_token?: string;
+}
+
+async function readTokenFile(): Promise<TokenFile> {
+  try {
+    const data = await readFile(TOKEN_FILE, "utf-8");
+    return JSON.parse(data) as TokenFile;
+  } catch {
+    return {};
+  }
+}
+
+async function writeTokenFile(tokens: TokenFile): Promise<void> {
+  await mkdir(join(homedir(), ".onezone"), { recursive: true });
+  await writeFile(TOKEN_FILE, JSON.stringify(tokens), { mode: 0o600 });
+}
 
 export async function getAccessToken(): Promise<string | undefined> {
   const entry = new Entry(SERVICE_NAME, "access_token");
   try {
     return (await entry.getPassword()) ?? undefined;
   } catch {
-    return undefined;
+    return (await readTokenFile()).access_token;
   }
 }
 
@@ -19,13 +44,17 @@ export async function getRefreshToken(): Promise<string | undefined> {
   try {
     return (await entry.getPassword()) ?? undefined;
   } catch {
-    return undefined;
+    return (await readTokenFile()).refresh_token;
   }
 }
 
 export async function setTokens(accessToken: string, refreshToken: string): Promise<void> {
-  await new Entry(SERVICE_NAME, "access_token").setPassword(accessToken);
-  await new Entry(SERVICE_NAME, "refresh_token").setPassword(refreshToken);
+  try {
+    await new Entry(SERVICE_NAME, "access_token").setPassword(accessToken);
+    await new Entry(SERVICE_NAME, "refresh_token").setPassword(refreshToken);
+  } catch {
+    await writeTokenFile({ access_token: accessToken, refresh_token: refreshToken });
+  }
 }
 
 export async function clearTokens(): Promise<void> {
@@ -34,6 +63,9 @@ export async function clearTokens(): Promise<void> {
   } catch {}
   try {
     await new Entry(SERVICE_NAME, "refresh_token").deletePassword();
+  } catch {}
+  try {
+    await rm(TOKEN_FILE);
   } catch {}
 }
 

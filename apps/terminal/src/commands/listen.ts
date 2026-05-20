@@ -1,6 +1,7 @@
 // apps/terminal/src/commands/listen.ts
 
 import { Command, Flags } from "@oclif/core";
+import type { TaskDetails } from "@onezone/shared";
 import { hostname } from "node:os";
 import { connectToLobby } from "../lib/lobby-connection.js";
 import { registerCleanupHandlers } from "../lib/process-runner.js";
@@ -57,25 +58,34 @@ export default class Listen extends Command {
 
     registerCleanupHandlers();
 
-    const connections: Promise<void>[] = [
-      connectToLobby({
-        serverUrl: flags.server,
-        terminalId,
-        terminalName,
-        activeTaskIds: this.activeTaskIds,
-        onTaskAssigned: (task) =>
-          connectToTask({
-            serverUrl: flags.server,
-            task,
-            terminalId,
-            terminalName,
-            activeTaskIds: this.activeTaskIds,
-            log: (msg, ...args) => this.log(msg, ...args),
-          }),
-        log: (msg, ...args) => this.log(msg, ...args),
-      }),
-    ];
+    const lobbyDeps = {
+      serverUrl: flags.server,
+      terminalId,
+      terminalName,
+      activeTaskIds: this.activeTaskIds,
+      onTaskAssigned: (task: TaskDetails) =>
+        connectToTask({
+          serverUrl: flags.server,
+          task,
+          terminalId,
+          terminalName,
+          activeTaskIds: this.activeTaskIds,
+          log: (msg, ...args) => this.log(msg, ...args),
+        }),
+      log: (msg: string, ...args: unknown[]) => this.log(msg, ...args),
+    };
 
-    await Promise.all(connections);
+    // Retry loop: if the server disconnects the lobby (e.g. due to an expired
+    // token), wait briefly (so any in-flight token refresh can complete) then
+    // reconnect with the updated token.
+    while (true) {
+      try {
+        await connectToLobby(lobbyDeps);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        this.log(`[${terminalName}] ${message}, reconnecting in 3s...`);
+        await new Promise<void>((resolve) => setTimeout(resolve, 3000));
+      }
+    }
   }
 }

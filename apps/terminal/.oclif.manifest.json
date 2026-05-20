@@ -99,6 +99,35 @@
         "logout.js"
       ]
     },
+    "whoami": {
+      "aliases": [],
+      "args": {},
+      "description": "Show current authenticated user information",
+      "flags": {
+        "server": {
+          "description": "Server URL",
+          "name": "server",
+          "default": "http://localhost:5026",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "whoami",
+      "pluginAlias": "@onezone/terminal",
+      "pluginName": "@onezone/terminal",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "whoami.js"
+      ]
+    },
     "column:list": {
       "aliases": [],
       "args": {},
@@ -469,5 +498,5 @@
       ]
     }
   },
-  "version": "0.0.4"
+  "version": "0.0.5"
 }
