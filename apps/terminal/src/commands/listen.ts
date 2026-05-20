@@ -84,6 +84,10 @@ export default class Listen extends Command {
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
         this.log(`[${terminalName}] ${message}, reconnecting in 3s...`);
+        // When the server disconnects the lobby, all task sockets to that
+        // server are also dead. Clear tracking so the server can reassign
+        // every task cleanly on reconnect.
+        this.activeTaskIds.clear();
         await new Promise<void>((resolve) => setTimeout(resolve, 3000));
       }
     }
