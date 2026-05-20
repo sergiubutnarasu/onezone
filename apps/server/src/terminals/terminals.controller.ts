@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, NotFoundException, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Request } from '@nestjs/common';
 import { TerminalsService } from './terminals.service';
 import { TerminalRegistryService } from '../gateways/terminal-registry.service';
 import { TasksService } from '../tasks/tasks.service';
@@ -18,8 +18,8 @@ export class TerminalsController {
   }
 
   @Post('register')
-  register(@Body() dto: RegisterTerminalDto) {
-    return this.terminalsService.registerByName({ name: dto.name, hostname: dto.hostname });
+  register(@Body() dto: RegisterTerminalDto, @Request() req: { user: { id: string } }) {
+    return this.terminalsService.registerByName({ name: dto.name, hostname: dto.hostname, userId: req.user.id });
   }
 
   @Post(':terminalId/disconnect')

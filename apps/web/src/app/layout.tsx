@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
-import { AppNav } from '@/components/AppNav';
+import { AppShell } from '@/components/AppShell';
 import { cn } from '@/lib/utils';
 
 const geistSans = Geist({ subsets: ['latin'], variable: '--font-sans' });
@@ -30,10 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="bg-background text-foreground antialiased" suppressHydrationWarning>
         <Providers>
-          <div className="flex h-dvh overflow-hidden">
-            <AppNav />
-            <main className="flex-1 min-w-0 overflow-y-auto pt-12 md:pt-0">{children}</main>
-          </div>
+          <AppShell>{children}</AppShell>
         </Providers>
       </body>
     </html>

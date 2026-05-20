@@ -7,6 +7,7 @@ import {
   Param,
   HttpCode,
   HttpStatus,
+  Request,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto, ReorderTasksDto } from './tasks.dto';
@@ -20,8 +21,9 @@ export class ProjectTasksController {
   create(
     @Param('projectId') projectId: string,
     @Body() body: CreateTaskDto,
+    @Request() req: { user: { id: string } },
   ) {
-    return this.tasksService.create(projectId, body);
+    return this.tasksService.create(projectId, { ...body, userId: req.user.id });
   }
 
   @Get()

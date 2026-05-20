@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactNode, useState } from 'react';
 import { ThemeProvider } from '@/lib/theme';
 import { useGlobalSocket } from '@/hooks/useGlobalSocket';
+import { AuthProvider } from '@/lib/auth-context';
 
 function GlobalSocketListener() {
   useGlobalSocket();
@@ -26,8 +27,10 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <GlobalSocketListener />
-        {children}
+        <AuthProvider>
+          <GlobalSocketListener />
+          {children}
+        </AuthProvider>
       </QueryClientProvider>
     </ThemeProvider>
   );

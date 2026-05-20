@@ -25,6 +25,7 @@ export class ChatMessageHandler implements IMessageHandler<ChatMessageData> {
     data: ChatMessageData,
     client: Socket,
     server?: Server,
+    userId?: string,
   ): Promise<{ status: "ok" | "error" }> {
     try {
       const taskId = extractTaskId(data.roomId);
@@ -41,6 +42,7 @@ export class ChatMessageHandler implements IMessageHandler<ChatMessageData> {
           (task?.terminal as { name?: string } | null)?.name ?? undefined,
         messageType: "CHAT",
         content: data.content,
+        userId: userId ?? (client.data as { userId?: string }).userId ?? '',
         ts,
       });
 

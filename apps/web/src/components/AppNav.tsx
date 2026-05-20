@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FolderOpen, Bot, Zap, Sun, Moon, Menu, X, Monitor, Blocks, Bell } from 'lucide-react';
+import { FolderOpen, Bot, Zap, Sun, Moon, Menu, X, Monitor, Blocks, Bell, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme';
 import { useQuery } from '@tanstack/react-query';
 import { fetchUnreadCount } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Projects', icon: FolderOpen, exact: true },
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
 export function AppNav() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
+  const { logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const { data: unreadCount = 0 } = useQuery({
@@ -68,13 +70,22 @@ export function AppNav() {
         <nav className="flex flex-col gap-1 p-2 flex-1">{navLinks()}</nav>
         <div className="px-4 py-3 border-t border-border flex items-center justify-between">
           <p className="text-xs text-muted-foreground">Terminal task runner</p>
-          <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Toggle theme"
-          >
-            {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            </button>
+            <button
+              onClick={logout}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Log out"
+            >
+              <LogOut className="size-4" />
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -123,13 +134,22 @@ export function AppNav() {
             </nav>
             <div className="px-4 py-3 border-t border-border flex items-center justify-between">
               <p className="text-xs text-muted-foreground">Terminal task runner</p>
-              <button
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-                aria-label="Toggle theme"
-              >
-                {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Toggle theme"
+                >
+                  {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
+                </button>
+                <button
+                  onClick={logout}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Log out"
+                >
+                  <LogOut className="size-4" />
+                </button>
+              </div>
             </div>
           </aside>
         </>

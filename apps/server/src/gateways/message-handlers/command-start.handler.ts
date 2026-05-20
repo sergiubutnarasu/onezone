@@ -50,6 +50,7 @@ export class CommandStartHandler implements IMessageHandler<CommandStartData> {
     data: CommandStartData,
     client: Socket,
     server?: Server,
+    userId?: string,
   ): Promise<{ status: 'ok' | 'error' }> {
     try {
       const taskId = extractTaskId(data.roomId);
@@ -67,6 +68,7 @@ export class CommandStartHandler implements IMessageHandler<CommandStartData> {
         content: `[${data.terminalName}] started: ${data.command}`,
         agentId: data.agentId,
         model: data.model,
+        userId: userId ?? (client.data as { userId?: string }).userId ?? '',
         ts,
       });
 

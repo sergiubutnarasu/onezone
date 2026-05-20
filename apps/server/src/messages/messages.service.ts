@@ -19,6 +19,7 @@ export interface CreateMessageDto {
   inputTokens?: number;
   outputTokens?: number;
   totalCostUsd?: number;
+  userId: string;
   ts: number;
 }
 

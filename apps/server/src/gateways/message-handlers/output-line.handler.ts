@@ -34,6 +34,7 @@ export class OutputLineHandler implements IMessageHandler<OutputLineData> {
     data: OutputLineData,
     client: Socket,
     server?: Server,
+    userId?: string,
   ): Promise<{ status: 'ok' | 'error' }> {
     try {
       const taskId = extractTaskId(data.roomId);
@@ -54,6 +55,7 @@ export class OutputLineHandler implements IMessageHandler<OutputLineData> {
         model: data.model,
         inputTokens: data.inputTokens,
         outputTokens: data.outputTokens,
+        userId: userId ?? (client.data as { userId?: string }).userId ?? '',
         ts,
       });
 

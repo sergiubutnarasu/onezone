@@ -5,6 +5,7 @@ import {
 } from "@onezone/shared";
 import { hostname } from "node:os";
 import { io, Socket } from "socket.io-client";
+import { getAccessToken } from "./config.js";
 
 export interface TerminalSocketOptions {
   serverUrl: string;
@@ -19,12 +20,16 @@ export function createTerminalSocket(
   const { serverUrl, taskId, terminalId, terminalName } = options;
 
   const socket = io(`${serverUrl}/chat`, {
-    auth: {
-      ...(taskId ? { taskId } : {}),
-      role: MessageRole.Terminal,
-      terminalId,
-      terminalName,
-      terminalHostname: hostname(),
+    auth: (cb: (data: object) => void) => {
+      const token = getAccessToken();
+      cb({
+        ...(taskId ? { taskId } : {}),
+        role: MessageRole.Terminal,
+        terminalId,
+        terminalName,
+        terminalHostname: hostname(),
+        ...(token ? { token: `Bearer ${token}` } : {}),
+      });
     },
     reconnection: true,
   });

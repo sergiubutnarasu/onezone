@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export interface RegisterTerminalInput {
   name: string;
   hostname: string;
+  userId: string;
 }
 
 @Injectable()
@@ -84,6 +85,7 @@ export class TerminalsService implements OnModuleInit {
         name: trimmedName,
         hostname: input.hostname,
         isConnected: false,
+        userId: input.userId,
       },
     });
     this.logger.log(`Terminal created: ${terminal.id} (${terminal.name})`);

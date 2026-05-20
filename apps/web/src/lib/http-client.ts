@@ -1,18 +1,50 @@
 // apps/web/src/lib/http-client.ts
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5026';
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5026';
+
+let refreshPromise: Promise<boolean> | null = null;
+
+async function tryRefresh(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = fetch(`${API_BASE}/auth/refresh`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+    .then((r) => r.ok)
+    .catch(() => false)
+    .finally(() => {
+      refreshPromise = null;
+    });
+  return refreshPromise;
+}
 
 async function request<T>(
   path: string,
   options: RequestInit = {},
+  isRetry = false,
 ): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
     },
   });
+
+  if (res.status === 401) {
+    if (!isRetry) {
+      const refreshed = await tryRefresh();
+      if (refreshed) {
+        return request<T>(path, options, true);
+      }
+    }
+    // Redirect to login on auth failure (only in browser)
+    if (typeof window !== 'undefined') {
+      window.location.href = '/auth/login';
+    }
+    throw new Error('Unauthorized');
+  }
 
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}: ${path}`);
@@ -43,3 +75,4 @@ export const httpClient = {
     return request<T>(path, { method: 'DELETE' });
   },
 };
+

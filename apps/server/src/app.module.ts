@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { HealthController } from './health.controller';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -11,6 +12,8 @@ import { TerminalsModule } from './terminals/terminals.module';
 import { AgentsModule } from './agents/agents.module';
 import { TerminalRegistryModule } from './gateways/terminal-registry.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { AuthModule } from './auth/auth.module';
+import { GlobalJwtGuard } from './auth/global-jwt.guard';
 
 @Module({
   controllers: [HealthController],
@@ -19,6 +22,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     ScheduleModule.forRoot(),
     PrismaModule,
     TerminalRegistryModule,
+    AuthModule,
     ProjectsModule,
     TasksModule,
     MessagesModule,
@@ -26,6 +30,12 @@ import { NotificationsModule } from './notifications/notifications.module';
     AgentsModule,
     GatewaysModule,
     NotificationsModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: GlobalJwtGuard,
+    },
   ],
 })
 export class AppModule {}

@@ -56,6 +56,7 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
     data: CommandExitData,
     client: Socket,
     server?: Server,
+    userId?: string,
   ): Promise<{ status: 'ok' | 'error' }> {
     try {
       const taskId = extractTaskId(data.roomId);
@@ -77,6 +78,7 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
         inputTokens: data.inputTokens,
         outputTokens: data.outputTokens,
         totalCostUsd: data.totalCostUsd,
+        userId: userId ?? (client.data as { userId?: string }).userId ?? '',
         ts,
       });
 

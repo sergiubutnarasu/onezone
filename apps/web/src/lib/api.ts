@@ -11,12 +11,60 @@ import {
   type Task,
   type Terminal,
 } from "@onezone/shared";
-import { httpClient } from "./http-client";
+import { httpClient, API_BASE } from "./http-client";
 export type {
   Agent,
   KanbanColumn,
   ProjectInfo as Project,
 } from "@onezone/shared";
+
+// ─── Auth types ───────────────────────────────────────────────────────────────
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+}
+
+export function safeReturnTo(value: string | null): string {
+  // Only accept relative paths — prevents open redirect to external domains.
+  // A single leading '/' (not '//') is always same-origin with router.push().
+  if (!value || !value.startsWith('/') || value.startsWith('//')) return '/';
+  return value;
+}
+
+async function authRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...options.headers },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({})) as { error?: string };
+    throw new Error(body.error ?? `HTTP ${res.status}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+export const login = (email: string, password: string) =>
+  authRequest<{ access_token: string; refresh_token: string }>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+
+export const register = (email: string, password: string, name: string) =>
+  authRequest<{ access_token: string; refresh_token: string; message?: string }>('/auth/signup', {
+    method: 'POST',
+    body: JSON.stringify({ email, password, name }),
+  });
+
+export const logout = () =>
+  authRequest<void>('/auth/logout', { method: 'POST' });
+
+export const getMe = () => authRequest<AuthUser>('/auth/me');
+
+export const activateDevice = (user_code: string) =>
+  httpClient.post<{ approved: boolean }>('/auth/activate', { user_code });
 
 export interface TaskOrderItem {
   id: string;

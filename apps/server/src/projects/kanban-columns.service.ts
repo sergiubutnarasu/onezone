@@ -24,6 +24,7 @@ export class KanbanColumnsService {
   async create(
     projectId: string,
     data: { name: string; instructions?: string; agentId?: string | null; model?: string | null },
+    userId: string,
   ) {
     const maxIndex = await this.prisma.kanbanColumn.aggregate({
       where: { projectId },
@@ -38,15 +39,17 @@ export class KanbanColumnsService {
         index: nextIndex,
         agentId: data.agentId ?? null,
         model: data.model ?? null,
+        userId,
       },
     });
   }
 
-  async createDefaults(projectId: string) {
+  async createDefaults(projectId: string, userId: string) {
     await this.prisma.kanbanColumn.createMany({
       data: DEFAULT_KANBAN_COLUMNS.map((col) => ({
         id: randomUUID(),
         projectId,
+        userId,
         ...col,
       })),
     });

@@ -9,6 +9,7 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  Request,
 } from '@nestjs/common';
 import { KanbanColumnsService } from './kanban-columns.service';
 import { CreateKanbanColumnDto, UpdateKanbanColumnDto, ReorderColumnsDto } from './kanban-columns.dto';
@@ -32,8 +33,9 @@ export class KanbanColumnsController {
   create(
     @Param('projectId') projectId: string,
     @Body() body: CreateKanbanColumnDto,
+    @Request() req: { user: { id: string } },
   ) {
-    return this.kanbanColumnsService.create(projectId, body);
+    return this.kanbanColumnsService.create(projectId, body, req.user.id);
   }
 
   @Patch(':columnId')

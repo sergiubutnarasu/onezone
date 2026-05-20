@@ -196,6 +196,7 @@ export class TasksService {
       agentId: string;
       model: string;
       useTaskAgentAndModel?: boolean;
+      userId: string;
     },
   ) {
     const count = await this.prisma.task.count({
@@ -210,6 +211,7 @@ export class TasksService {
           model: data.model,
           useTaskAgentAndModel: data.useTaskAgentAndModel ?? false,
           projectId,
+          userId: data.userId,
           order: count,
         },
       });

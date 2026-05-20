@@ -24,9 +24,10 @@ export class ProjectsService {
     repository?: string;
     defaultAgentId: string;
     defaultModel: string;
+    userId: string;
   }) {
     const project = await this.prisma.project.create({ data });
-    await this.kanbanColumnsService.createDefaults(project.id);
+    await this.kanbanColumnsService.createDefaults(project.id, data.userId);
     this.logger.log(
       `Created project ${project.id} with default kanban columns`,
     );
@@ -95,6 +96,7 @@ export class ProjectsService {
   async installSkill(
     projectId: string,
     data: { source: string; skillName: string },
+    userId: string,
   ) {
     await this.findOne(projectId);
 
@@ -108,7 +110,7 @@ export class ProjectsService {
     }
 
     const skill = await this.prisma.projectSkill.create({
-      data: { projectId, source: data.source, skillName: data.skillName },
+      data: { projectId, source: data.source, skillName: data.skillName, userId },
     });
 
     this.logger.log(`Saved skill "${data.skillName}" on project ${projectId}`);
@@ -138,7 +140,7 @@ export class ProjectsService {
     });
   }
 
-  async installGlobalSkill(data: { source: string; skillName: string }) {
+  async installGlobalSkill(data: { source: string; skillName: string }, userId: string) {
     const existing = await this.prisma.projectSkill.findFirst({
       where: { projectId: null, skillName: data.skillName },
     });
@@ -149,7 +151,7 @@ export class ProjectsService {
     }
 
     const skill = await this.prisma.projectSkill.create({
-      data: { source: data.source, skillName: data.skillName },
+      data: { source: data.source, skillName: data.skillName, userId },
     });
 
     this.logger.log(`Saved global skill "${data.skillName}"`);

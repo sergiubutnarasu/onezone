@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-
-const SERVER_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5026';
+import { API_BASE as SERVER_URL } from '../lib/http-client';
+import { attachSocketAuthRefresh } from '../lib/socket-auth';
 
 export function useSocketConnection(taskId: string): {
   socket: Socket | null;
@@ -15,9 +15,12 @@ export function useSocketConnection(taskId: string): {
   useEffect(() => {
     const socket = io(`${SERVER_URL}/chat`, {
       auth: { taskId, role: 'user' },
+      withCredentials: true,
     });
 
     socketRef.current = socket;
+
+    attachSocketAuthRefresh(socket);
 
     socket.on('connect', () => setIsConnected(true));
     socket.on('disconnect', () => setIsConnected(false));

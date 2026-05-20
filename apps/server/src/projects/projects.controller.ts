@@ -8,6 +8,7 @@ import {
   Param,
   HttpCode,
   HttpStatus,
+  Request,
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto, InstallSkillDto, UpdateProjectDto } from './projects.dto';
@@ -18,8 +19,8 @@ export class ProjectsController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() body: CreateProjectDto) {
-    return this.projectsService.create(body);
+  create(@Body() body: CreateProjectDto, @Request() req: { user: { id: string } }) {
+    return this.projectsService.create({ ...body, userId: req.user.id });
   }
 
   @Get()
@@ -55,8 +56,8 @@ export class ProjectsController {
 
   @Post(':id/skills')
   @HttpCode(HttpStatus.CREATED)
-  installSkill(@Param('id') id: string, @Body() body: InstallSkillDto) {
-    return this.projectsService.installSkill(id, body);
+  installSkill(@Param('id') id: string, @Body() body: InstallSkillDto, @Request() req: { user: { id: string } }) {
+    return this.projectsService.installSkill(id, body, req.user.id);
   }
 
   @Delete(':id/skills/:skillId')

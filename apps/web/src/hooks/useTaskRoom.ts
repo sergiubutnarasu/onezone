@@ -6,6 +6,8 @@ import { io, Socket } from "socket.io-client";
 import { EventCommands } from "@onezone/shared";
 import { reducer, initialState } from "./useTaskRoom.reducer";
 import type { RoomMessage, ConnectedTerminal } from "./useTaskRoom.types";
+import { API_BASE as SERVER_URL } from "../lib/http-client";
+import { attachSocketAuthRefresh } from "../lib/socket-auth";
 
 export type { RoomMessage, ConnectedTerminal };
 
@@ -13,8 +15,6 @@ function useReducerState<T>(initial: T): [T, (value: T) => void] {
   const [val, dispatch] = useReducer((_: T, v: T) => v, initial);
   return [val, dispatch];
 }
-
-const SERVER_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5026";
 
 export function useTaskRoom(
   taskId: string,
@@ -33,9 +33,12 @@ export function useTaskRoom(
   useEffect(() => {
     const socket = io(`${SERVER_URL}/chat`, {
       auth: { taskId, role: "user" },
+      withCredentials: true,
     });
 
     socketRef.current = socket;
+
+    attachSocketAuthRefresh(socket);
 
     socket.on("connect", () => setIsConnected(true));
     socket.on("disconnect", () => setIsConnected(false));

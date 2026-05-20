@@ -43,12 +43,15 @@ model Project {
   defaultAgentId String
   defaultAgent   Agent          @relation(fields: [defaultAgentId], references: [id], onDelete: Restrict)
   defaultModel   String
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Restrict)
   createdAt      DateTime       @default(now())
   tasks          Task[]
   skills         ProjectSkill[]
   kanbanColumns  KanbanColumn[]
   notifications  Notification[]
 
+  @@index([userId])
   @@map("projects")
 }
 
@@ -62,11 +65,14 @@ model KanbanColumn {
   agentId         String?
   agent           Agent?       @relation(fields: [agentId], references: [id], onDelete: SetNull)
   model           String?
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Restrict)
   createdAt       DateTime     @default(now())
   taskAssignments TaskColumn[]
 
   @@index([projectId])
   @@index([index])
+  @@index([userId])
   @@map("kanban_columns")
 }
 
@@ -76,10 +82,13 @@ model ProjectSkill {
   project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   source      String
   skillName   String
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Restrict)
   installedAt DateTime @default(now())
 
   @@unique([projectId, skillName])
   @@index([projectId])
+  @@index([userId])
   @@map("project_skills")
 }
 
@@ -95,6 +104,8 @@ model Task {
   model                String
   useTaskAgentAndModel Boolean       @default(false)
   completedAt          DateTime?
+  userId               String
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Restrict)
   createdAt            DateTime      @default(now())
   messages             Message[]
   terminalAssignment   TaskTerminal?
@@ -102,6 +113,7 @@ model Task {
   notifications        Notification[]
 
   @@index([projectId])
+  @@index([userId])
   @@map("tasks")
 }
 
@@ -147,12 +159,15 @@ model Message {
   inputTokens  Int?
   outputTokens Int?
   totalCostUsd Float?
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Restrict)
   ts           BigInt
   createdAt    DateTime @default(now())
 
   @@index([roomId])
   @@index([taskId])
   @@index([ts])
+  @@index([userId])
   @@map("messages")
 }
 
@@ -162,9 +177,12 @@ model Terminal {
   hostname        String
   isConnected     Boolean        @default(false)
   lastSeenAt      DateTime?
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Restrict)
   createdAt       DateTime       @default(now())
   taskAssignments TaskTerminal[]
 
+  @@index([userId])
   @@map("terminals")
 }
 
@@ -184,4 +202,49 @@ model Notification {
   @@index([taskId])
   @@index([projectId])
   @@map("notifications")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String
+  name          String
+  createdAt     DateTime       @default(now())
+  refreshTokens RefreshToken[]
+  deviceCodes   DeviceCode[]
+  projects      Project[]
+  tasks         Task[]
+  kanbanColumns KanbanColumn[]
+  skills        ProjectSkill[]
+  terminals     Terminal[]
+  messages      Message[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model DeviceCode {
+  id            String   @id @default(uuid())
+  deviceCode    String   @unique
+  userCode      String   @unique
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approved      Boolean  @default(false)
+  expiresAt     DateTime
+  lastPolledAt  DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([userCode])
+  @@map("device_codes")
 }

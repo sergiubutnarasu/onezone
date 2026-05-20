@@ -3,6 +3,7 @@
 import { EventCommands, HEARTBEAT_INTERVAL_MS, createTaskRoomId } from '@onezone/shared';
 import { Socket } from 'socket.io-client';
 import { createTerminalSocket } from './socket-client.js';
+import { refreshAccessToken } from './config.js';
 
 export interface TaskSocketCallbacks {
   onConnect: (roomId: string) => void;
@@ -14,6 +15,14 @@ export interface TaskSocketCallbacks {
 export interface TaskSocketConnection {
   socket: Socket;
   cleanup: () => void;
+}
+
+function attachUnauthorizedRefresh(socket: Socket, serverUrl: string): void {
+  socket.on('error', (err: { message?: string }) => {
+    if (err?.message === 'Unauthorized') {
+      refreshAccessToken(serverUrl).catch(() => {});
+    }
+  });
 }
 
 /**
@@ -32,6 +41,8 @@ export function createTaskSocket(
   const socket = createTerminalSocket({ serverUrl, taskId, terminalId, terminalName });
 
   let heartbeatTimer: NodeJS.Timeout | undefined;
+
+  attachUnauthorizedRefresh(socket, serverUrl);
 
   socket.on('connect', () => {
     heartbeatTimer = setInterval(() => {
@@ -84,6 +95,8 @@ export function createLobbySocket(
   const socket = createTerminalSocket({ serverUrl, terminalId, terminalName });
 
   let heartbeatTimer: NodeJS.Timeout | undefined;
+
+  attachUnauthorizedRefresh(socket, serverUrl);
 
   socket.on('connect', () => {
     heartbeatTimer = setInterval(() => {
