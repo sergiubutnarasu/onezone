@@ -55,6 +55,7 @@ export class CommandStartHandler implements IMessageHandler<CommandStartData> {
     try {
       const taskId = extractTaskId(data.roomId);
       const ts = Date.now();
+      const effectiveUserId = userId ?? (client.data as { userId?: string }).userId ?? '';
 
       await this.messagesService.create({
         roomId: data.roomId,
@@ -68,7 +69,7 @@ export class CommandStartHandler implements IMessageHandler<CommandStartData> {
         content: `[${data.terminalName}] started: ${data.command}`,
         agentId: data.agentId,
         model: data.model,
-        userId: userId ?? (client.data as { userId?: string }).userId ?? '',
+        userId: effectiveUserId,
         ts,
       });
 
@@ -84,7 +85,7 @@ export class CommandStartHandler implements IMessageHandler<CommandStartData> {
 
       if (taskId) {
         try {
-          const task = await this.tasksService.findOne(taskId);
+          const task = await this.tasksService.findOne(taskId, effectiveUserId);
           const runnerPayload = parseRunnerCommand(data.command);
           const columnName = runnerPayload?.kanbanColumnName ?? data.command;
           const taskName = runnerPayload?.taskName ?? task.name;

@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Request } from '@nestjs/common';
+import { Body, Controller, Delete, Get, NotFoundException, Param, Post } from '@nestjs/common';
 import { TerminalsService } from './terminals.service';
 import { TerminalRegistryService } from '../gateways/terminal-registry.service';
 import { TasksService } from '../tasks/tasks.service';
 import { AssignTaskDto, RegisterTerminalDto } from './terminals.dto';
+import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 
 @Controller('terminals')
 export class TerminalsController {
@@ -13,23 +14,29 @@ export class TerminalsController {
   ) {}
 
   @Get()
-  findAll() {
-    return this.terminalsService.findAll();
+  findAll(@CurrentUser() user: AuthUser) {
+    return this.terminalsService.findAll(user.id);
   }
 
   @Post('register')
-  register(@Body() dto: RegisterTerminalDto, @Request() req: { user: { id: string } }) {
-    return this.terminalsService.registerByName({ name: dto.name, hostname: dto.hostname, userId: req.user.id });
+  register(@Body() dto: RegisterTerminalDto, @CurrentUser() user: AuthUser) {
+    return this.terminalsService.registerByName({ name: dto.name, hostname: dto.hostname, userId: user.id });
   }
 
   @Post(':terminalId/disconnect')
-  disconnect(@Param('terminalId') terminalId: string) {
+  async disconnect(@Param('terminalId') terminalId: string, @CurrentUser() user: AuthUser) {
+    await this.terminalsService.findOne(terminalId, user.id);
     return this.terminalsService.markDisconnected(terminalId);
   }
 
   @Post(':terminalId/assign-task')
-  async assignTask(@Param('terminalId') terminalId: string, @Body() dto: AssignTaskDto) {
-    const task = await this.tasksService.findOneDetails(dto.taskId);
+  async assignTask(
+    @Param('terminalId') terminalId: string,
+    @Body() dto: AssignTaskDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    await this.terminalsService.findOne(terminalId, user.id);
+    const task = await this.tasksService.findOneDetails(dto.taskId, user.id);
     const sent = this.terminalRegistry.assignTask(terminalId, task);
     if (!sent) {
       throw new NotFoundException(`Terminal ${terminalId} is not currently connected`);
@@ -38,8 +45,8 @@ export class TerminalsController {
   }
 
   @Delete(':terminalId')
-  async delete(@Param('terminalId') terminalId: string) {
+  async delete(@Param('terminalId') terminalId: string, @CurrentUser() user: AuthUser) {
     this.terminalRegistry.disconnectTerminal(terminalId);
-    return this.terminalsService.delete(terminalId);
+    return this.terminalsService.delete(terminalId, user.id);
   }
 }

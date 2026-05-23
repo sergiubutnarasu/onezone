@@ -228,7 +228,7 @@ export class TasksService {
       });
     });
     this.logger.log(`Created task ${task.id} for project ${projectId}`);
-    const fullTask = await this.findOne(task.id);
+    const fullTask = await this.findOne(task.id, data.userId);
     this.terminalRegistry.assignTask(
       data.terminalId,
       (await this.toChatMessage(fullTask)).task!,
@@ -236,9 +236,9 @@ export class TasksService {
     return this.flattenTask(task);
   }
 
-  async findAllByProject(projectId: string) {
+  async findAllByProject(projectId: string, userId: string) {
     const tasks = await this.prisma.task.findMany({
-      where: { projectId },
+      where: { projectId, userId },
       orderBy: [{ order: "asc" }, { createdAt: "asc" }],
       include: {
         terminalAssignment: { include: { terminal: true } },
@@ -249,9 +249,9 @@ export class TasksService {
     return tasks.map((t) => this.flattenTask(t));
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, userId: string) {
     const task = await this.prisma.task.findUnique({
-      where: { id },
+      where: { id, userId },
       include: {
         terminalAssignment: { include: { terminal: true } },
         columnAssignment: { include: { column: { include: { agent: true } } } },
@@ -263,9 +263,9 @@ export class TasksService {
     return this.flattenTask(task);
   }
 
-  async findOneDetails(id: string): Promise<TaskDetails> {
+  async findOneDetails(id: string, userId: string): Promise<TaskDetails> {
     const task = await this.prisma.task.findUnique({
-      where: { id },
+      where: { id, userId },
       include: {
         columnAssignment: { include: { column: { include: { agent: true } } } },
         project: {
@@ -306,8 +306,8 @@ export class TasksService {
     return this.mapToTaskDetails(taskForMap, projectWithAllSkills);
   }
 
-  async updateColumn(id: string, columnId: string | null) {
-    const existing = await this.findOne(id);
+  async updateColumn(id: string, columnId: string | null, userId: string) {
+    const existing = await this.findOne(id, userId);
     let column: KanbanColumn | null = null;
 
     await this.prisma.$transaction(async (tx) => {
@@ -335,17 +335,17 @@ export class TasksService {
       await this.toChatMessage(existing, column),
     );
 
-    return this.findOne(id);
+    return this.findOne(id, userId);
   }
 
-  async setCompleted(id: string, completed: boolean) {
-    await this.findOne(id);
+  async setCompleted(id: string, completed: boolean, userId: string) {
+    await this.findOne(id, userId);
     await this.prisma.task.update({
       where: { id },
       data: { completedAt: completed ? new Date() : null },
     });
     this.logger.log(`Set task ${id} completedAt to ${completed ? 'now' : 'null'}`);
-    const updated = await this.findOne(id);
+    const updated = await this.findOne(id, userId);
     this.terminalRegistry.notifyTaskColumnUpdated(
       id,
       await this.toChatMessage(updated),
@@ -365,9 +365,9 @@ export class TasksService {
     return updated;
   }
 
-  async reorder(projectId: string, items: TaskOrderItemDto[]) {
+  async reorder(projectId: string, items: TaskOrderItemDto[], userId: string) {
     const existing = await this.prisma.task.findMany({
-      where: { id: { in: items.map((i) => i.id) }, projectId },
+      where: { id: { in: items.map((i) => i.id) }, projectId, userId },
       include: { columnAssignment: true },
     });
     const existingMap = new Map(existing.map((t) => [t.id, t]));
@@ -406,7 +406,7 @@ export class TasksService {
       const prev = existingMap.get(item.id)!;
       const prevColumnId = prev.columnAssignment?.columnId ?? null;
       if (item.columnId !== prevColumnId) {
-        const updated = await this.findOne(item.id);
+        const updated = await this.findOne(item.id, userId);
         let column: KanbanColumn | null = null;
         if (item.columnId) {
           const col = await this.prisma.kanbanColumn.findUnique({
@@ -425,11 +425,11 @@ export class TasksService {
     this.logger.log(
       `Reordered ${validItems.length} tasks for project ${projectId}`,
     );
-    return this.findAllByProject(projectId);
+    return this.findAllByProject(projectId, userId);
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, userId: string) {
+    await this.findOne(id, userId);
     this.terminalRegistry.cleanupTaskRoom(id);
     const task = await this.prisma.task.delete({ where: { id } });
     this.logger.log(`Deleted task ${id}`);
@@ -484,8 +484,8 @@ export class TasksService {
     });
   }
 
-  async assignTerminal(id: string, terminalId: string) {
-    await this.findOne(id);
+  async assignTerminal(id: string, terminalId: string, userId: string) {
+    await this.findOne(id, userId);
     await this.prisma.taskTerminal.upsert({
       where: { taskId: id },
       create: { taskId: id, terminalId },
@@ -493,7 +493,7 @@ export class TasksService {
     });
     this.logger.log(`Assigned terminal ${terminalId} to task ${id}`);
     this.terminalRegistry.evictTaskTerminal(id);
-    const task = await this.findOne(id);
+    const task = await this.findOne(id, userId);
     this.terminalRegistry.assignTask(
       terminalId,
       (await this.toChatMessage(task)).task!,
@@ -511,19 +511,20 @@ export class TasksService {
       model?: string;
       useTaskAgentAndModel?: boolean;
     },
+    userId: string,
   ) {
     const { columnId, ...taskData } = data;
-    await this.findOne(id);
+    await this.findOne(id, userId);
 
     if (Object.keys(taskData).length > 0) {
       await this.prisma.task.update({ where: { id }, data: taskData });
     }
 
     if (columnId !== undefined) {
-      await this.updateColumn(id, columnId);
+      await this.updateColumn(id, columnId, userId);
     }
 
     this.logger.log(`Updated task ${id}`);
-    return this.findOne(id);
+    return this.findOne(id, userId);
   }
 }

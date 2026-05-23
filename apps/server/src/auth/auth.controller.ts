@@ -19,10 +19,7 @@ import { Public } from './public.decorator';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { ActivateDto } from './dto/activate.dto';
-
-interface AuthenticatedRequest extends Request {
-  user: { id: string; email: string };
-}
+import { AuthUser, CurrentUser } from './current-user.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -48,9 +45,9 @@ export class AuthController {
   @Post('activate')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async activate(@Body() dto: ActivateDto, @Req() req: AuthenticatedRequest) {
+  async activate(@Body() dto: ActivateDto, @CurrentUser() user: AuthUser) {
     const approved = await this.authService.approveDeviceCode(
-      req.user.id,
+      user.id,
       dto.user_code,
     );
     return { approved };
@@ -139,8 +136,8 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  me(@Req() req: AuthenticatedRequest) {
-    return this.authService.getMe(req.user.id);
+  me(@CurrentUser() user: AuthUser) {
+    return this.authService.getMe(user.id);
   }
 
   // ─── Cookie helpers ───────────────────────────────────────────────────────────

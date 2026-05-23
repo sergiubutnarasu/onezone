@@ -34,16 +34,17 @@ export class ProjectsService {
     return project;
   }
 
-  async findAll() {
+  async findAll(userId: string) {
     return this.prisma.project.findMany({
+      where: { userId },
       orderBy: { createdAt: "desc" },
       include: { skills: true },
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, userId: string) {
     const project = await this.prisma.project.findUnique({
-      where: { id },
+      where: { id, userId },
       include: { skills: true },
     });
     if (!project) throw new NotFoundException(`Project ${id} not found`);
@@ -59,15 +60,16 @@ export class ProjectsService {
       defaultAgentId?: string;
       defaultModel?: string;
     },
+    userId: string,
   ) {
-    await this.findOne(id);
+    await this.findOne(id, userId);
     const project = await this.prisma.project.update({ where: { id }, data });
     this.logger.log(`Updated project ${id}`);
     return project;
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, userId: string) {
+    await this.findOne(id, userId);
 
     const tasks = await this.prisma.task.findMany({
       where: { projectId: id },
@@ -85,8 +87,8 @@ export class ProjectsService {
     return project;
   }
 
-  async listSkills(projectId: string) {
-    await this.findOne(projectId);
+  async listSkills(projectId: string, userId: string) {
+    await this.findOne(projectId, userId);
     return this.prisma.projectSkill.findMany({
       where: { projectId },
       orderBy: { installedAt: "asc" },
@@ -98,7 +100,7 @@ export class ProjectsService {
     data: { source: string; skillName: string },
     userId: string,
   ) {
-    await this.findOne(projectId);
+    await this.findOne(projectId, userId);
 
     const existing = await this.prisma.projectSkill.findUnique({
       where: { projectId_skillName: { projectId, skillName: data.skillName } },
@@ -117,7 +119,8 @@ export class ProjectsService {
     return skill;
   }
 
-  async removeSkill(projectId: string, skillId: string) {
+  async removeSkill(projectId: string, skillId: string, userId: string) {
+    await this.findOne(projectId, userId);
     const skill = await this.prisma.projectSkill.findUnique({
       where: { id: skillId },
     });
@@ -170,12 +173,12 @@ export class ProjectsService {
     this.logger.log(`Removed global skill "${skill.skillName}"`);
   }
 
-  async getCostStats(projectId: string): Promise<{
+  async getCostStats(projectId: string, userId: string): Promise<{
     inputTokens: number;
     outputTokens: number;
     costUsd: number;
   }> {
-    await this.findOne(projectId);
+    await this.findOne(projectId, userId);
     const result = await this.prisma.message.aggregate({
       where: {
         task: { projectId },

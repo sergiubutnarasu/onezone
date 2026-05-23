@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Delete, Body, Param, HttpCode, HttpStatus, Request } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { InstallSkillDto } from './projects.dto';
+import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 
 @Controller('skills')
 export class GlobalSkillsController {
@@ -13,8 +14,8 @@ export class GlobalSkillsController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  install(@Body() body: InstallSkillDto, @Request() req: { user: { id: string } }) {
-    return this.projectsService.installGlobalSkill(body, req.user.id);
+  install(@Body() body: InstallSkillDto, @CurrentUser() user: AuthUser) {
+    return this.projectsService.installGlobalSkill(body, user.id);
   }
 
   @Delete(':skillId')

@@ -30,8 +30,9 @@ export class ChatMessageHandler implements IMessageHandler<ChatMessageData> {
     try {
       const taskId = extractTaskId(data.roomId);
       const ts = Date.now();
+      const effectiveUserId = userId ?? (client.data as { userId?: string }).userId ?? '';
 
-      const task = await this.tasksService.findOne(taskId).catch(() => null);
+      const task = await this.tasksService.findOne(taskId, effectiveUserId).catch(() => null);
 
       const message = await this.messagesService.create({
         roomId: data.roomId,
@@ -42,7 +43,7 @@ export class ChatMessageHandler implements IMessageHandler<ChatMessageData> {
           (task?.terminal as { name?: string } | null)?.name ?? undefined,
         messageType: "CHAT",
         content: data.content,
-        userId: userId ?? (client.data as { userId?: string }).userId ?? '',
+        userId: effectiveUserId,
         ts,
       });
 

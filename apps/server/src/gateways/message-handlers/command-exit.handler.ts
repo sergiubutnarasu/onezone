@@ -61,6 +61,7 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
     try {
       const taskId = extractTaskId(data.roomId);
       const ts = data.ts ?? Date.now();
+      const effectiveUserId = userId ?? (client.data as { userId?: string }).userId ?? '';
 
       await this.messagesService.create({
         roomId: data.roomId,
@@ -78,7 +79,7 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
         inputTokens: data.inputTokens,
         outputTokens: data.outputTokens,
         totalCostUsd: data.totalCostUsd,
-        userId: userId ?? (client.data as { userId?: string }).userId ?? '',
+        userId: effectiveUserId,
         ts,
       });
 
@@ -95,15 +96,15 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
 
       if (taskId && data.taskRunnerFinished) {
         if (data.nextColumnId !== undefined) {
-          await this.tasksService.updateColumn(taskId, data.nextColumnId);
+          await this.tasksService.updateColumn(taskId, data.nextColumnId, effectiveUserId);
         } else {
-          await this.tasksService.setCompleted(taskId, true);
+          await this.tasksService.setCompleted(taskId, true, effectiveUserId);
         }
       }
 
       if (taskId) {
         try {
-          const task = await this.tasksService.findOne(taskId);
+          const task = await this.tasksService.findOne(taskId, effectiveUserId);
           const projectId = task.project!.id;
           const notifType = data.exitCode === 0
             ? NotificationType.COMMAND_EXIT_SUCCESS
@@ -124,7 +125,7 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
 
           if (server) {
             try {
-              const costStats = await this.projectsService.getCostStats(projectId);
+              const costStats = await this.projectsService.getCostStats(projectId, effectiveUserId);
               server.to(createProjectRoomId(projectId)).emit(EventCommands.ProjectCostUpdated, costStats);
             } catch (e) {
               this.logger.warn(`Failed to emit project cost update for project ${projectId}`, e);

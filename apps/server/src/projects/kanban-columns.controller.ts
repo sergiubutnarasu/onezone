@@ -9,54 +9,75 @@ import {
   Body,
   HttpCode,
   HttpStatus,
-  Request,
 } from '@nestjs/common';
 import { KanbanColumnsService } from './kanban-columns.service';
+import { ProjectsService } from './projects.service';
 import { CreateKanbanColumnDto, UpdateKanbanColumnDto, ReorderColumnsDto } from './kanban-columns.dto';
+import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 
 @Controller('projects/:projectId/kanban-columns')
 export class KanbanColumnsController {
-  constructor(private readonly kanbanColumnsService: KanbanColumnsService) {}
+  constructor(
+    private readonly kanbanColumnsService: KanbanColumnsService,
+    private readonly projectsService: ProjectsService,
+  ) {}
 
   @Get()
-  findAll(@Param('projectId') projectId: string) {
+  async findAll(@Param('projectId') projectId: string, @CurrentUser() user: AuthUser) {
+    await this.projectsService.findOne(projectId, user.id);
     return this.kanbanColumnsService.findAllByProject(projectId);
   }
 
   @Get(':columnId')
-  findOne(@Param('columnId') columnId: string) {
+  async findOne(
+    @Param('projectId') projectId: string,
+    @Param('columnId') columnId: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    await this.projectsService.findOne(projectId, user.id);
     return this.kanbanColumnsService.findOne(columnId);
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(
+  async create(
     @Param('projectId') projectId: string,
     @Body() body: CreateKanbanColumnDto,
-    @Request() req: { user: { id: string } },
+    @CurrentUser() user: AuthUser,
   ) {
-    return this.kanbanColumnsService.create(projectId, body, req.user.id);
+    await this.projectsService.findOne(projectId, user.id);
+    return this.kanbanColumnsService.create(projectId, body, user.id);
   }
 
   @Patch(':columnId')
-  update(
+  async update(
+    @Param('projectId') projectId: string,
     @Param('columnId') columnId: string,
     @Body() body: UpdateKanbanColumnDto,
+    @CurrentUser() user: AuthUser,
   ) {
+    await this.projectsService.findOne(projectId, user.id);
     return this.kanbanColumnsService.update(columnId, body);
   }
 
   @Delete(':columnId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('columnId') columnId: string) {
+  async remove(
+    @Param('projectId') projectId: string,
+    @Param('columnId') columnId: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    await this.projectsService.findOne(projectId, user.id);
     return this.kanbanColumnsService.remove(columnId);
   }
 
   @Put('reorder')
-  reorder(
+  async reorder(
     @Param('projectId') projectId: string,
     @Body() body: ReorderColumnsDto,
+    @CurrentUser() user: AuthUser,
   ) {
+    await this.projectsService.findOne(projectId, user.id);
     return this.kanbanColumnsService.reorder(projectId, body.columns);
   }
 }

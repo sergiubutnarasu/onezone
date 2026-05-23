@@ -106,7 +106,7 @@ export class ChatGateway
     const { taskId, role, terminalId, terminalName, terminalHostname } = auth;
 
     try {
-      await this.tasksService.findOne(taskId);
+      await this.tasksService.findOne(taskId, client.data.userId as string);
     } catch (error) {
       this.logger.warn(`Socket ${client.id} rejected: task ${taskId} not found`, error);
       client.emit('error', { message: 'Task not found' });

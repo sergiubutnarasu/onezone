@@ -42,9 +42,9 @@ export class MessagesService {
     });
   }
 
-  async findByTask(taskId: string) {
+  async findByTask(taskId: string, userId: string) {
     const messages = await this.prisma.message.findMany({
-      where: { taskId },
+      where: { taskId, userId },
       orderBy: { ts: "asc" },
       include: { agent: { select: { name: true } } },
     });

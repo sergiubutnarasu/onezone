@@ -31,8 +31,9 @@ export class TerminalsService implements OnModuleInit {
     }
   }
 
-  findAll() {
+  findAll(userId: string) {
     return this.prisma.terminal.findMany({
+      where: { userId },
       orderBy: [{ isConnected: 'desc' }, { name: 'asc' }],
       include: {
         _count: {
@@ -47,6 +48,12 @@ export class TerminalsService implements OnModuleInit {
         pendingTaskCount: _count.taskAssignments,
       }))
     );
+  }
+
+  async findOne(id: string, userId: string) {
+    const terminal = await this.prisma.terminal.findUnique({ where: { id, userId } });
+    if (!terminal) throw new NotFoundException(`Terminal ${id} not found`);
+    return terminal;
   }
 
   /**
@@ -133,8 +140,8 @@ export class TerminalsService implements OnModuleInit {
     }
   }
 
-  async delete(terminalId: string) {
-    const terminal = await this.prisma.terminal.findUnique({ where: { id: terminalId } });
+  async delete(terminalId: string, userId: string) {
+    const terminal = await this.prisma.terminal.findUnique({ where: { id: terminalId, userId } });
     if (!terminal) throw new NotFoundException(`Terminal ${terminalId} not found`);
 
     await this.prisma.terminal.delete({ where: { id: terminalId } });

@@ -1,5 +1,10 @@
 // packages/shared/src/types.ts
 
+export interface AuthUser {
+  id: string;
+  email: string;
+}
+
 export enum EventCommands {
   ChatMessage = "chat:message",
   OutputLine = "output:line",
