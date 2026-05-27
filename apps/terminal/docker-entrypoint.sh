@@ -7,14 +7,10 @@ if ! command -v claude >/dev/null 2>&1; then
   curl -fsSL https://claude.ai/install.sh | bash
 fi
 
-# Install uv if not present, then semble
+# Install uv if not present
 if ! command -v uv >/dev/null 2>&1; then
   echo "Installing uv..."
   curl -LsSf https://astral.sh/uv/install.sh | sh
-fi
-if ! uv tool list 2>/dev/null | grep -q semble; then
-  echo "Installing semble..."
-  uv tool install semble
 fi
 
 # Install RTK if not present

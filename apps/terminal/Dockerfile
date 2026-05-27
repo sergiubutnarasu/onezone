@@ -32,7 +32,7 @@ RUN chmod +x /home/agent/docker-entrypoint.sh \
   && chown -R $USER_UID:$USER_GID /home/agent
 USER ${USER_UID}:${USER_GID}
 
-# Add ~/.local/bin to PATH (Claude Code, RTK, uv, semble installed at container start via entrypoint)
+# Add ~/.local/bin to PATH (Claude Code, RTK, uv installed at container start via entrypoint)
 ENV PATH="/home/agent/.local/bin:$PATH"
 ENV RTK_TELEMETRY_DISABLED=1
 
