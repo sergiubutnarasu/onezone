@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim
+FROM node:22-trixie-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -19,7 +19,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
   && rm -rf /var/lib/apt/lists/*
 
 # Install onezone-terminal globally (as root)
-RUN npm install -g @onezone/terminal@0.0.7
+RUN npm install -g @onezone/terminal@0.0.8
 
 ARG USER_UID=1000
 ARG USER_GID=1000
