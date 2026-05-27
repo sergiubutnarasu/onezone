@@ -8,6 +8,18 @@ argument-hint: "Optional context hint, e.g. 'just ran migration' or 'fixed auth 
 
 Maintain a living `config/memories/project-memory.md` in the workspace root that accumulates project knowledge across sessions.
 
+**IMPORTANT - File location:** `config/` is a sibling of `workdir/`, NOT inside it. The correct path is `<workspace-root>/config/memories/project-memory.md`. Never write to `workdir/config/...`.
+
+```
+<workspace-root>/
+  config/
+    memories/
+      project-memory.md   ← correct location
+  workdir/                ← config is NOT inside here
+```
+
+If the `config/memories` folder does not exist, create it at the workspace root level (sibling to `workdir`).
+
 ## When to Invoke
 
 Invoke this skill after:

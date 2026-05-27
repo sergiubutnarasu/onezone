@@ -96,7 +96,12 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
 
       if (taskId && data.taskRunnerFinished) {
         if (data.nextColumnId !== undefined) {
-          await this.tasksService.updateColumn(taskId, data.nextColumnId, effectiveUserId);
+          try {
+            await this.tasksService.updateColumn(taskId, data.nextColumnId, effectiveUserId);
+          } catch (e) {
+            this.logger.warn(`Column ${data.nextColumnId} not found, marking task ${taskId} as completed`);
+            await this.tasksService.setCompleted(taskId, true, effectiveUserId);
+          }
         } else {
           await this.tasksService.setCompleted(taskId, true, effectiveUserId);
         }
