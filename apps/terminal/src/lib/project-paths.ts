@@ -16,15 +16,6 @@ const isRtkAvailable = (): boolean => {
   }
 };
 
-const isSembleAvailable = (): boolean => {
-  try {
-    execSync("semble -h", { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 export const getProjectFolder = (projectId: string): string => {
   return path.join(os.homedir(), ONEZONE_PROJECTS_LOCATION, projectId);
 };
@@ -219,12 +210,8 @@ export const createClaudeSettings = (projectId: string): boolean => {
     const skillsDestPath = path.join(claudeDir, "skills");
 
     if (fs.existsSync(skillsSourcePath)) {
-      const sembleAvailable = isSembleAvailable();
       const skillDirs = fs.readdirSync(skillsSourcePath);
       for (const skillDir of skillDirs) {
-        if (skillDir === "onezone-semble" && !sembleAvailable) {
-          continue;
-        }
         fs.cpSync(
           path.join(skillsSourcePath, skillDir),
           path.join(skillsDestPath, skillDir),
