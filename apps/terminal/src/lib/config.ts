@@ -91,3 +91,36 @@ export async function refreshAccessToken(serverUrl: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Fetch with automatic Bearer token injection and a single retry after token refresh.
+ * Throws if not authenticated or if the refresh fails.
+ */
+export async function authenticatedFetch(
+  url: string,
+  init: RequestInit = {},
+  serverUrl: string,
+): Promise<Response> {
+  const token = await getAccessToken();
+  if (!token) {
+    throw new Error("Not authenticated. Run login first.");
+  }
+
+  const withAuth = (t: string): RequestInit => ({
+    ...init,
+    headers: { ...init.headers, Authorization: `Bearer ${t}` },
+  });
+
+  let res = await fetch(url, withAuth(token));
+
+  if (res.status === 401) {
+    const refreshed = await refreshAccessToken(serverUrl);
+    if (!refreshed) {
+      throw new Error("Not authenticated. Run login first.");
+    }
+    const newToken = await getAccessToken();
+    res = await fetch(url, withAuth(newToken!));
+  }
+
+  return res;
+}

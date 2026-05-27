@@ -1,5 +1,6 @@
 import { Args, Command, Flags } from "@oclif/core";
 import type { Task } from "@onezone/shared";
+import { authenticatedFetch } from "../../lib/config.js";
 
 export default class TaskViewCommand extends Command {
   static description = "View details of a task";
@@ -22,10 +23,12 @@ export default class TaskViewCommand extends Command {
 
   async run(): Promise<void> {
     const { args, flags } = await this.parse(TaskViewCommand);
+    const baseUrl = flags.server;
 
     let task: Task;
     try {
-      const response = await fetch(`${flags.server}/tasks/${args.id}`);
+      const response = await authenticatedFetch(`${baseUrl}/tasks/${args.id}`, {}, baseUrl);
+
       if (!response.ok) {
         this.error(
           `Server returned ${response.status}: ${response.statusText}`,

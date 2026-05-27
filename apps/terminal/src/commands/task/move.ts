@@ -1,4 +1,5 @@
 import { Command, Flags } from "@oclif/core";
+import { authenticatedFetch } from "../../lib/config.js";
 
 export default class TaskMoveCommand extends Command {
   static description = "Move a task to a kanban column";
@@ -25,17 +26,20 @@ export default class TaskMoveCommand extends Command {
 
   async run(): Promise<void> {
     const { flags } = await this.parse(TaskMoveCommand);
+    const baseUrl = flags.server;
     const columnId = flags.column === "backlog" ? null : flags.column;
 
     try {
-      const response = await fetch(
-        `${flags.server}/tasks/${flags.task}/column`,
+      const response = await authenticatedFetch(
+        `${baseUrl}/tasks/${flags.task}/column`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ columnId }),
         },
+        baseUrl,
       );
+
       if (!response.ok) {
         this.error(
           `Server returned ${response.status}: ${response.statusText}`,

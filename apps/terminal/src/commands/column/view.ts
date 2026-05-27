@@ -1,5 +1,6 @@
 import { Args, Command, Flags } from "@oclif/core";
 import type { KanbanColumn } from "@onezone/shared";
+import { authenticatedFetch } from "../../lib/config.js";
 
 export default class ColumnView extends Command {
   static description = "View details of a column";
@@ -26,11 +27,12 @@ export default class ColumnView extends Command {
 
   async run(): Promise<void> {
     const { args, flags } = await this.parse(ColumnView);
+    const baseUrl = flags.server;
 
     let column: KanbanColumn;
     try {
-      const url = `${flags.server}/projects/${flags.project}/kanban-columns/${args.id}`;
-      const response = await fetch(url);
+      const url = `${baseUrl}/projects/${flags.project}/kanban-columns/${args.id}`;
+      const response = await authenticatedFetch(url, {}, baseUrl);
       if (!response.ok) {
         this.error(
           `Server returned ${response.status}: ${response.statusText}`,

@@ -1,5 +1,6 @@
 import { Command, Flags } from "@oclif/core";
 import type { Task } from "@onezone/shared";
+import { authenticatedFetch } from "../../lib/config.js";
 
 export default class TaskCreate extends Command {
   static description = "Create a new task in a project";
@@ -34,6 +35,7 @@ export default class TaskCreate extends Command {
 
   async run(): Promise<void> {
     const { flags } = await this.parse(TaskCreate);
+    const baseUrl = flags.server;
 
     const body: { name: string; description?: string; terminalId: string } = {
       name: flags.name,
@@ -43,14 +45,16 @@ export default class TaskCreate extends Command {
 
     let task: Task;
     try {
-      const response = await fetch(
-        `${flags.server}/projects/${flags.project}/tasks`,
+      const response = await authenticatedFetch(
+        `${baseUrl}/projects/${flags.project}/tasks`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         },
+        baseUrl,
       );
+
       if (!response.ok) {
         this.error(
           `Server returned ${response.status}: ${response.statusText}`,

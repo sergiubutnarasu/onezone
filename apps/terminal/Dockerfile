@@ -19,7 +19,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
   && rm -rf /var/lib/apt/lists/*
 
 # Install onezone-terminal globally (as root)
-RUN npm install -g @onezone/terminal@0.0.6
+RUN npm install -g @onezone/terminal@0.0.7
 
 ARG USER_UID=1000
 ARG USER_GID=1000
@@ -37,6 +37,15 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 
 # Add Claude Code to PATH
 ENV PATH="/home/agent/.local/bin:$PATH"
+
+# Install RTK (reduces LLM token usage 60-90% by filtering command output)
+ENV RTK_TELEMETRY_DISABLED=1
+RUN curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh \
+  && rtk init -g --auto-patch
+
+# Install uv and semble (fast code search for agents, ~98% fewer tokens than grep+read)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+  && uv tool install semble
 
 WORKDIR /home/agent
 

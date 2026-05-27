@@ -1,5 +1,6 @@
 import { Args, Command, Flags } from "@oclif/core";
 import * as readline from "node:readline";
+import { authenticatedFetch } from "../../lib/config.js";
 
 export default class TaskDeleteCommand extends Command {
   static description = "Delete a task";
@@ -41,10 +42,15 @@ export default class TaskDeleteCommand extends Command {
       return;
     }
 
+    const baseUrl = flags.server;
+
     try {
-      const response = await fetch(`${flags.server}/tasks/${args.id}`, {
-        method: "DELETE",
-      });
+      const response = await authenticatedFetch(
+        `${baseUrl}/tasks/${args.id}`,
+        { method: "DELETE" },
+        baseUrl,
+      );
+
       if (!response.ok) {
         this.error(
           `Server returned ${response.status}: ${response.statusText}`,

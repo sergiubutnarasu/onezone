@@ -1,7 +1,7 @@
 // apps/terminal/src/commands/whoami.ts
 
 import { Command, Flags } from "@oclif/core";
-import { getAccessToken, refreshAccessToken } from "../lib/config.js";
+import { authenticatedFetch } from "../lib/config.js";
 
 interface MeResponse {
   id: string;
@@ -23,24 +23,11 @@ export default class Whoami extends Command {
     const { flags } = await this.parse(Whoami);
     const baseUrl = flags.server;
 
-    let token = await getAccessToken();
-    if (!token) {
-      this.error("Not authenticated. Run login first.", { exit: 1 });
-    }
-
-    let res = await fetch(`${baseUrl}/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (res.status === 401) {
-      const refreshed = await refreshAccessToken(baseUrl);
-      if (!refreshed) {
-        this.error("Not authenticated. Run login first.", { exit: 1 });
-      }
-      token = await getAccessToken();
-      res = await fetch(`${baseUrl}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    let res: Response;
+    try {
+      res = await authenticatedFetch(`${baseUrl}/auth/me`, {}, baseUrl);
+    } catch (err: unknown) {
+      this.error(err instanceof Error ? err.message : String(err), { exit: 1 });
     }
 
     if (!res.ok) {

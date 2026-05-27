@@ -1,12 +1,12 @@
 ---
 name: onezone-project-memory
-description: "After running commands, completing tasks, or making discoveries, update the project-memory.md file with new knowledge. Use when: finishing a task, encountering a bug, learning a build command, discovering architecture details, or noticing gotchas. Reads existing project-memory.md first, then decides whether to add, update, or skip based on what changed."
+description: "After running commands, completing tasks, or making discoveries, update the config/memories/project-memory.md file with new knowledge. Use when: finishing a task, encountering a bug, learning a build command, discovering architecture details, or noticing gotchas. Reads existing config/memories/project-memory.md first, then decides whether to add, update, or skip based on what changed."
 argument-hint: "Optional context hint, e.g. 'just ran migration' or 'fixed auth bug'"
 ---
 
 # Project Memory Updater
 
-Maintain a living `project-memory.md` in the workspace root that accumulates project knowledge across sessions.
+Maintain a living `config/memories/project-memory.md` in the workspace root that accumulates project knowledge across sessions.
 
 ## When to Invoke
 
@@ -23,7 +23,7 @@ Skip if: the session produced no new information (e.g., only read files without 
 
 ### Step 1 — Read Existing Memory
 
-Check if `project-memory.md` exists in the workspace root.
+Check if `config/memories/project-memory.md` exists in the workspace root.
 - **Exists**: Read the full file. Note every section header and key fact already recorded.
 - **Does not exist**: Proceed to create it fresh.
 
@@ -55,7 +55,7 @@ If nothing is new → write a brief note to the user that memory is already up t
 
 ### Step 4 — Write the File
 
-Write or update `project-memory.md` using the structure below. When creating fresh, use all applicable sections. When updating, add/modify only the changed parts.
+Write or update `config/memories/project-memory.md` using the structure below. When creating fresh, use all applicable sections. When updating, add/modify only the changed parts.
 
 ---
 

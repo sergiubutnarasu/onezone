@@ -1,5 +1,6 @@
 import { Command, Flags } from "@oclif/core";
 import type { Terminal } from "@onezone/shared";
+import { authenticatedFetch } from "../../lib/config.js";
 
 export default class TerminalsList extends Command {
   static description = "List all terminals registered on the server";
@@ -18,10 +19,11 @@ export default class TerminalsList extends Command {
 
   async run(): Promise<void> {
     const { flags } = await this.parse(TerminalsList);
+    const baseUrl = flags.server;
 
     let terminals: Terminal[];
     try {
-      const response = await fetch(`${flags.server}/terminals`);
+      const response = await authenticatedFetch(`${baseUrl}/terminals`, {}, baseUrl);
       if (!response.ok) {
         this.error(
           `Server returned ${response.status}: ${response.statusText}`,

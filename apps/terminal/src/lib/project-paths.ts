@@ -7,6 +7,24 @@ import { ONEZONE_PROJECTS_LOCATION } from "./constants.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+const isRtkAvailable = (): boolean => {
+  try {
+    execSync("rtk --version", { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const isSembleAvailable = (): boolean => {
+  try {
+    execSync("semble --version", { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export const getProjectFolder = (projectId: string): string => {
   return path.join(os.homedir(), ONEZONE_PROJECTS_LOCATION, projectId);
 };
@@ -17,6 +35,16 @@ export const getProjectConfigFolder = (projectId: string): string => {
     ONEZONE_PROJECTS_LOCATION,
     projectId,
     "config",
+  );
+};
+
+export const getProjectMemoriesFolder = (projectId: string): string => {
+  return path.join(
+    os.homedir(),
+    ONEZONE_PROJECTS_LOCATION,
+    projectId,
+    "config",
+    "memories",
   );
 };
 
@@ -126,6 +154,7 @@ export const createClaudeSettings = (projectId: string): boolean => {
   try {
     const workDir = getProjectWorkDir(projectId);
     const projectConfigFolder = getProjectConfigFolder(projectId);
+    const memoriesFolder = getProjectMemoriesFolder(projectId);
     const claudeDir = path.join(projectConfigFolder, ".claude");
     const settingsPath = path.join(claudeDir, "settings.json");
 
@@ -135,15 +164,30 @@ export const createClaudeSettings = (projectId: string): boolean => {
 
     const settings = {
       permissions: {
-        allow: [`Bash(*)`, `Edit(/${workDir})`, `Read(/${workDir})`],
-        deny: [`"Bash(!/${projectConfigFolder}/**)"`],
+        allow: [
+          `Bash(*)`,
+          `Edit(/${workDir})`,
+          `Read(/${workDir})`,
+          `Edit(/${memoriesFolder})`,
+          `Read(/${memoriesFolder})`,
+        ],
       },
       sandbox: {
         filesystem: {
-          allowWrite: [`/${workDir}`],
-          allowRead: [`/${workDir}`],
+          allowWrite: [`/${workDir}`, `/${memoriesFolder}`],
+          allowRead: [`/${workDir}`, `/${memoriesFolder}`],
         },
       },
+      ...(isRtkAvailable() && {
+        hooks: {
+          PreToolUse: [
+            {
+              matcher: "Bash",
+              hooks: [{ type: "command", command: "rtk hook claude" }],
+            },
+          ],
+        },
+      }),
     };
 
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
@@ -175,7 +219,18 @@ export const createClaudeSettings = (projectId: string): boolean => {
     const skillsDestPath = path.join(claudeDir, "skills");
 
     if (fs.existsSync(skillsSourcePath)) {
-      fs.cpSync(skillsSourcePath, skillsDestPath, { recursive: true });
+      const sembleAvailable = isSembleAvailable();
+      const skillDirs = fs.readdirSync(skillsSourcePath);
+      for (const skillDir of skillDirs) {
+        if (skillDir === "onezone-semble" && !sembleAvailable) {
+          continue;
+        }
+        fs.cpSync(
+          path.join(skillsSourcePath, skillDir),
+          path.join(skillsDestPath, skillDir),
+          { recursive: true },
+        );
+      }
     } else {
       console.warn(`Warning: skills folder not found at ${skillsSourcePath}`);
     }

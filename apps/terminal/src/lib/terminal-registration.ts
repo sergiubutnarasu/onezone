@@ -1,7 +1,7 @@
 // apps/terminal/src/lib/terminal-registration.ts
 
 import { hostname } from 'node:os';
-import { getAccessToken } from './config.js';
+import { authenticatedFetch } from './config.js';
 
 export interface RegisterTerminalInput {
   serverUrl: string;
@@ -15,25 +15,25 @@ export interface RegisterTerminalInput {
 export async function registerTerminal(input: RegisterTerminalInput): Promise<string> {
   const { serverUrl, name } = input;
   const url = `${serverUrl}/terminals/register`;
-  const token = await getAccessToken();
-
-  if (!token) {
-    throw new Error('Not authenticated. Run "onezone-terminal login" first.');
-  }
 
   let response: Response;
 
   try {
-    response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+    response = await authenticatedFetch(
+      url,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, hostname: hostname() }),
       },
-      body: JSON.stringify({ name, hostname: hostname() }),
-    });
+      serverUrl,
+    );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
+    // authenticatedFetch throws "Not authenticated..." for missing/expired tokens
+    if (message.includes('Not authenticated')) {
+      throw new Error('Not authenticated. Run "onezone-terminal login" first.');
+    }
     throw new Error(`Could not reach server at ${serverUrl}: ${message}`);
   }
 

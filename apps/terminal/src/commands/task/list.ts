@@ -1,5 +1,6 @@
 import { Command, Flags } from "@oclif/core";
 import type { Task } from "@onezone/shared";
+import { authenticatedFetch } from "../../lib/config.js";
 
 export default class TaskList extends Command {
   static description = "List all tasks for a project";
@@ -22,11 +23,13 @@ export default class TaskList extends Command {
 
   async run(): Promise<void> {
     const { flags } = await this.parse(TaskList);
+    const baseUrl = flags.server;
 
     let tasks: Task[];
     try {
-      const url = new URL(`${flags.server}/projects/${flags.project}/tasks`);
-      const response = await fetch(url.toString());
+      const url = new URL(`${baseUrl}/projects/${flags.project}/tasks`);
+      const response = await authenticatedFetch(url.toString(), {}, baseUrl);
+
       if (!response.ok) {
         this.error(
           `Server returned ${response.status}: ${response.statusText}`,
