@@ -61,6 +61,7 @@ services:
     volumes:
       - terminal_ssh:/home/agent/.ssh
       - terminal_workdir:/home/agent/.onezone
+      - terminal_local:/home/agent/.local
     depends_on:
       server:
         condition: service_healthy
@@ -69,3 +70,4 @@ volumes:
   postgres_data:
   terminal_ssh:
   terminal_workdir:
+  terminal_local:

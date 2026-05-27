@@ -1,6 +1,29 @@
 #!/bin/sh
 set -e
 
+# Install Claude Code if not present (persisted in /home/agent/.local volume)
+if ! command -v claude >/dev/null 2>&1; then
+  echo "Installing Claude Code..."
+  curl -fsSL https://claude.ai/install.sh | bash
+fi
+
+# Install uv if not present, then semble
+if ! command -v uv >/dev/null 2>&1; then
+  echo "Installing uv..."
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+fi
+if ! uv tool list 2>/dev/null | grep -q semble; then
+  echo "Installing semble..."
+  uv tool install semble
+fi
+
+# Install RTK if not present
+if ! command -v rtk >/dev/null 2>&1; then
+  echo "Installing RTK..."
+  curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh
+  rtk init -g --auto-patch
+fi
+
 # Ensure .ssh dir exists with correct permissions
 mkdir -p /home/agent/.ssh
 chmod 700 /home/agent/.ssh

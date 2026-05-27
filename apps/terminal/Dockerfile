@@ -19,7 +19,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
   && rm -rf /var/lib/apt/lists/*
 
 # Install onezone-terminal globally (as root)
-RUN npm install -g @onezone/terminal@0.0.8
+RUN npm install -g @onezone/terminal@0.0.9
 
 ARG USER_UID=1000
 ARG USER_GID=1000
@@ -32,25 +32,16 @@ RUN chmod +x /home/agent/docker-entrypoint.sh \
   && chown -R $USER_UID:$USER_GID /home/agent
 USER ${USER_UID}:${USER_GID}
 
-# Install Claude Code
-RUN curl -fsSL https://claude.ai/install.sh | bash
-
-# Add Claude Code to PATH
+# Add ~/.local/bin to PATH (Claude Code, RTK, uv, semble installed at container start via entrypoint)
 ENV PATH="/home/agent/.local/bin:$PATH"
-
-# Install RTK (reduces LLM token usage 60-90% by filtering command output)
 ENV RTK_TELEMETRY_DISABLED=1
-RUN curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh \
-  && rtk init -g --auto-patch
-
-# Install uv and semble (fast code search for agents, ~98% fewer tokens than grep+read)
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
-  && uv tool install semble
 
 WORKDIR /home/agent
 
 # Pre-create writable directories as agent user
-RUN mkdir -p /home/agent/.onezone/projects
+RUN mkdir -p /home/agent/.onezone/projects \
+  && mkdir -p /home/agent/.local/bin \
+  && mkdir -p /home/agent/.local/share
 
 # Trust GitHub's host key
 RUN mkdir -p /home/agent/.ssh \

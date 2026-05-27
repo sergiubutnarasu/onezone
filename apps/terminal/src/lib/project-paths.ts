@@ -18,7 +18,7 @@ const isRtkAvailable = (): boolean => {
 
 const isSembleAvailable = (): boolean => {
   try {
-    execSync("semble --version", { stdio: "ignore" });
+    execSync("semble -h", { stdio: "ignore" });
     return true;
   } catch {
     return false;
