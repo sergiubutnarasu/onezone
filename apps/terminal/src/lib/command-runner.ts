@@ -1,6 +1,7 @@
 // apps/terminal/src/commands/command-runner.ts
 
 import { EventCommands, MessageStream } from "@onezone/shared";
+import type { ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import type { Socket } from "socket.io-client";
 import { setupTerminalAgent } from "../agents/setup.js";
@@ -69,6 +70,17 @@ export async function spawnCommand({
   socket.emit(EventCommands.TerminalCommandStart, basePayload);
 
   const stderrBuffer: string[] = [];
+  const setupAbortController = new AbortController();
+  let cancelled = false;
+  let proc: ChildProcess | undefined;
+
+  activeProcesses.set(jobId, {
+    cleanup: () => {
+      cancelled = true;
+      setupAbortController.abort();
+      if (proc?.pid) killTree(proc.pid);
+    },
+  });
 
   // Setup messages are emitted synchronously in a tight loop — Date.now() alone
   // returns the same ms value for all of them, so we use a counter for strict ordering.
@@ -81,8 +93,18 @@ export async function spawnCommand({
       ts: setupTs++,
     });
 
-  const setupResult = await setupProject(payload, emitSetupLine);
+  const setupResult = await setupProject(
+    payload,
+    emitSetupLine,
+    setupAbortController.signal,
+  );
   if (!setupResult) {
+    activeProcesses.delete(jobId);
+    socket.emit(EventCommands.TerminalCommandExit, {
+      ...basePayload,
+      exitCode: cancelled ? 130 : 1,
+      ts: Date.now(),
+    });
     log(
       `[${terminalName}] [${roomId}] Failed to setup project environment, skipping command execution.`,
     );
@@ -91,8 +113,10 @@ export async function spawnCommand({
 
   const projectWorkDir = setupResult.projectWorkDir;
   const command = `${terminalAgent.config.cmd} ${shellQuote(content)}`;
+  const killRunningProcess = () => {
+    if (proc?.pid) killTree(proc.pid);
+  };
 
-  let cancelled = false;
   let resultReceived = false;
   let taskRunnerFinished = false;
   let resultUsage: {
@@ -102,7 +126,7 @@ export async function spawnCommand({
   } | null = null;
   let nextColumnId: string | null | undefined = undefined;
 
-  const proc = runProcess({
+  proc = runProcess({
     cmd: command,
     args: [],
     shell: true,
@@ -140,7 +164,7 @@ export async function spawnCommand({
             }
             taskRunnerFinished = true;
           }
-          if (proc.pid) killTree(proc.pid);
+          killRunningProcess();
         }
       } catch {
         // Not JSON — ignore.
@@ -190,10 +214,4 @@ export async function spawnCommand({
     },
   });
 
-  activeProcesses.set(jobId, {
-    cleanup: () => {
-      cancelled = true;
-      if (proc.pid) killTree(proc.pid);
-    },
-  });
 }

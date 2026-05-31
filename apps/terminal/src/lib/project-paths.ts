@@ -1,11 +1,13 @@
-import { execSync } from "child_process";
+import { execFile, execSync } from "child_process";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
+import { promisify } from "util";
 import { fileURLToPath } from "url";
 import { ONEZONE_PROJECTS_LOCATION } from "./constants.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const execFileAsync = promisify(execFile);
 
 const isRtkAvailable = (): boolean => {
   try {
@@ -111,13 +113,18 @@ export const createProjectConfigFolder = (projectId: string): boolean => {
 export const cloneProjectRepo = (
   projectId: string,
   repository: string,
-): boolean => {
+  signal?: AbortSignal,
+): Promise<boolean> => {
   try {
     const workDir = getProjectWorkDir(projectId);
     const gitDir = path.join(workDir, ".git");
 
     if (fs.existsSync(gitDir)) {
-      return true;
+      return Promise.resolve(true);
+    }
+
+    if (signal?.aborted) {
+      return Promise.resolve(false);
     }
 
     const repoUrl = repository.startsWith("https://")
@@ -127,17 +134,17 @@ export const cloneProjectRepo = (
         )
       : repository;
 
-    execSync(
-      `git clone ${JSON.stringify(repoUrl)} ${JSON.stringify(workDir)}`,
-      {
-        stdio: "pipe",
-      },
-    );
-
-    return true;
+    return execFileAsync("git", ["clone", repoUrl, workDir], { signal })
+      .then(() => true)
+      .catch((err) => {
+        if ((err as { name?: string }).name !== "AbortError") {
+          console.error(`Error cloning repository: ${(err as Error).message}`);
+        }
+        return false;
+      });
   } catch (err) {
     console.error(`Error cloning repository: ${(err as Error).message}`);
-    return false;
+    return Promise.resolve(false);
   }
 };
 

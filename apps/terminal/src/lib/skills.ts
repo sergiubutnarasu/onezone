@@ -1,15 +1,16 @@
-import type { ProjectInfo, RunSkillCommandPayload } from "@onezone/shared";
-import { exec } from "node:child_process";
+import {
+  MessageStream,
+  type ProjectInfo,
+  type RunSkillCommandPayload,
+} from "@onezone/shared";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { promisify } from "node:util";
 import {
   getAllInstalledSkills,
   getProjectConfigFolder,
   removeSkill,
 } from "./project-paths.js";
-
-const execAsync = promisify(exec);
+import { killTree, runProcess } from "./process-runner.js";
 
 // Dedupes concurrent install attempts for the same skill across tasks/terminals.
 const inFlightInstalls = new Map<string, Promise<void>>();
@@ -17,6 +18,7 @@ const inFlightInstalls = new Map<string, Promise<void>>();
 export async function runSkillCommand(
   payload: RunSkillCommandPayload,
   log: (message: string) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   const { projectId, source, skillName } = payload;
   const configDir = getProjectConfigFolder(projectId);
@@ -28,7 +30,11 @@ export async function runSkillCommand(
   const pending = inFlightInstalls.get(key);
   if (pending) {
     log(`[skill] Awaiting in-progress install for "${skillName}"`);
-    await pending;
+    await waitForInstall(pending, signal);
+    return;
+  }
+
+  if (signal?.aborted) {
     return;
   }
 
@@ -44,7 +50,19 @@ export async function runSkillCommand(
 
   const installPromise = (async () => {
     try {
-      await execAsync(cmd, { cwd: configDir });
+      const exitCode = await runAbortableShellCommand({
+        cmd,
+        cwd: configDir,
+        signal,
+        onLine: (stream, line) => {
+          const prefix = stream === MessageStream.Stderr ? "stderr" : "stdout";
+          log(`[skill] ${prefix}: ${line}`);
+        },
+      });
+      if (exitCode !== 0) {
+        log(`[skill] Installing "${skillName}" exited with code ${exitCode}`);
+        return;
+      }
       log(`[skill] Installing "${skillName}" completed`);
     } catch (err) {
       const e = err as { message?: string; stderr?: string; stdout?: string };
@@ -64,10 +82,14 @@ export async function runSkillCommand(
 export const setupSkills = async ({
   project,
   emit,
+  signal,
 }: {
   project: ProjectInfo;
   emit?: (message: string) => void;
+  signal?: AbortSignal;
 }) => {
+  if (signal?.aborted) return;
+
   const skills = project?.skills ?? [];
   const configDir = getProjectConfigFolder(project.id);
 
@@ -91,6 +113,7 @@ export const setupSkills = async ({
   if (uninstalledSkills.length > 0) {
     emit?.(`Installing ${uninstalledSkills.length} skill(s)...`);
     for (const skill of uninstalledSkills) {
+      if (signal?.aborted) return;
       await runSkillCommand(
         {
           projectId: project.id,
@@ -98,9 +121,62 @@ export const setupSkills = async ({
           skillName: skill.skillName,
         },
         (msg) => emit?.(msg),
+        signal,
       );
     }
 
+    if (signal?.aborted) return;
     emit?.("✔ Skills ready.");
   }
 };
+
+function waitForInstall(
+  pending: Promise<void>,
+  signal?: AbortSignal,
+): Promise<void> {
+  if (!signal) return pending;
+  if (signal.aborted) return Promise.resolve();
+
+  return Promise.race([
+    pending,
+    new Promise<void>((resolve) => {
+      signal.addEventListener("abort", () => resolve(), { once: true });
+    }),
+  ]);
+}
+
+function runAbortableShellCommand({
+  cmd,
+  cwd,
+  signal,
+  onLine,
+}: {
+  cmd: string;
+  cwd: string;
+  signal?: AbortSignal;
+  onLine: (stream: MessageStream, line: string) => void;
+}): Promise<number> {
+  return new Promise((resolve) => {
+    if (signal?.aborted) {
+      resolve(130);
+      return;
+    }
+
+    const proc = runProcess({
+      cmd,
+      args: [],
+      cwd,
+      shell: true,
+      onLine,
+      onExit: resolve,
+    });
+
+    const abort = () => {
+      if (proc.pid) killTree(proc.pid);
+    };
+
+    signal?.addEventListener("abort", abort, { once: true });
+    proc.once("close", () => signal?.removeEventListener("abort", abort));
+    proc.once("error", () => signal?.removeEventListener("abort", abort));
+  });
+}

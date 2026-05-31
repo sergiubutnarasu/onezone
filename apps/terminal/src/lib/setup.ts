@@ -16,7 +16,10 @@ import type { TaskJobConfig } from "./types.js";
 export const setupProject = async (
   payload: unknown,
   emit?: (message: string) => void,
+  signal?: AbortSignal,
 ): Promise<TaskJobConfig | null> => {
+  if (signal?.aborted) return null;
+
   if (!payload || typeof payload !== "object" || !("task" in payload)) {
     return null;
   }
@@ -79,8 +82,9 @@ export const setupProject = async (
 
   if (repository && typeof repository === "string") {
     lines.push("Checking repository...");
-    const cloned = cloneProjectRepo(projectId, repository);
+    const cloned = await cloneProjectRepo(projectId, repository, signal);
     if (!cloned) {
+      if (signal?.aborted) return null;
       lines.push("✖ Failed to clone repository.");
       flush();
       return null;
@@ -93,7 +97,11 @@ export const setupProject = async (
   lines.push("✔ Claude configuration ready.");
   flush();
 
-  await setupSkills({ project, emit });
+  if (signal?.aborted) return null;
+
+  await setupSkills({ project, emit, signal });
+
+  if (signal?.aborted) return null;
 
   return {
     projectId,
