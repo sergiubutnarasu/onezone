@@ -41,11 +41,14 @@ function attachUnauthorizedRefresh(
   serverUrl: string,
   roomId: string,
   callbacks: Pick<TaskSocketCallbacks, 'onDisconnect'>,
-): { isUnauthorizedPending: () => boolean } {
+): {
+  isUnauthorizedPending: () => boolean;
+  refreshIfUnauthorized: (err: { message?: string }) => boolean;
+} {
   let unauthorizedPending = false;
 
-  socket.on('error', (err: { message?: string }) => {
-    if (err?.message !== 'Unauthorized') return;
+  const refreshAndReconnect = () => {
+    if (unauthorizedPending) return;
 
     unauthorizedPending = true;
     refreshAccessToken(serverUrl)
@@ -63,9 +66,20 @@ function attachUnauthorizedRefresh(
         unauthorizedPending = false;
         callbacks.onDisconnect(roomId, IO_SERVER_DISCONNECT);
       });
-  });
+  };
 
-  return { isUnauthorizedPending: () => unauthorizedPending };
+  const refreshIfUnauthorized = (err: { message?: string }): boolean => {
+    if (err?.message !== 'Unauthorized') return false;
+    refreshAndReconnect();
+    return true;
+  };
+
+  socket.on('error', refreshIfUnauthorized);
+
+  return {
+    isUnauthorizedPending: () => unauthorizedPending,
+    refreshIfUnauthorized,
+  };
 }
 
 /**
@@ -85,7 +99,7 @@ export function createTaskSocket(
 
   let heartbeatTimer: NodeJS.Timeout | undefined;
 
-  const { isUnauthorizedPending } = attachUnauthorizedRefresh(socket, serverUrl, roomId, callbacks);
+  const { isUnauthorizedPending, refreshIfUnauthorized } = attachUnauthorizedRefresh(socket, serverUrl, roomId, callbacks);
 
   socket.on('connect', () => {
     heartbeatTimer = setInterval(() => {
@@ -109,6 +123,7 @@ export function createTaskSocket(
 
   socket.on('connect_error', (err) => {
     clearInterval(heartbeatTimer);
+    if (refreshIfUnauthorized(err)) return;
     callbacks.onConnectError(roomId, err);
   });
 
@@ -143,7 +158,7 @@ export function createLobbySocket(
 
   let heartbeatTimer: NodeJS.Timeout | undefined;
 
-  const { isUnauthorizedPending } = attachUnauthorizedRefresh(socket, serverUrl, 'lobby', callbacks);
+  const { isUnauthorizedPending, refreshIfUnauthorized } = attachUnauthorizedRefresh(socket, serverUrl, 'lobby', callbacks);
 
   socket.on('connect', () => {
     heartbeatTimer = setInterval(() => {
@@ -158,6 +173,7 @@ export function createLobbySocket(
 
   socket.on('connect_error', (err) => {
     clearInterval(heartbeatTimer);
+    if (refreshIfUnauthorized(err)) return;
     callbacks.onConnectError('lobby', err);
   });
 

@@ -31,6 +31,7 @@ function buildSyntheticExits(
         jobId,
         command,
         exitCode: -1,
+        messageType: MessageType.CommandExit,
         content: command ?? jobId,
         ts,
       });

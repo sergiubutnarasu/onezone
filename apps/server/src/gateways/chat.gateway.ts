@@ -217,13 +217,6 @@ export class ChatGateway
 
       if (taskId) {
         this.terminalRegistry.deregisterTaskSocket(taskId, client.id);
-        const roomId = createTaskRoomId(taskId);
-        this.server.to(roomId).emit(EventCommands.TerminalDisconnected, {
-          terminalId,
-          terminalName: meta.terminalName,
-          taskId,
-          ts: Date.now(),
-        });
       } else {
         this.terminalRegistry.deregister(terminalId);
 
@@ -250,6 +243,14 @@ export class ChatGateway
         this.disconnectTimers.delete(terminalId);
         if (!this.hasTerminalAnyConnection(terminalId, disconnectedSocketId)) {
           await this.terminalsService.markDisconnected(terminalId);
+          if (taskId) {
+            this.server.to(createTaskRoomId(taskId)).emit(EventCommands.TerminalDisconnected, {
+              terminalId,
+              terminalName: meta.terminalName,
+              taskId,
+              ts: Date.now(),
+            });
+          }
         }
       }, 2000);
       this.disconnectTimers.set(terminalId, timer);

@@ -76,11 +76,26 @@ function handleCommandExit(
   items: ChatItem[],
 ): void {
   if (!msg.jobId) return;
-  const group = groupMap.get(msg.jobId);
   const code =
     msg.exitCode ??
     parseInt(msg.content.match(/exited with code (\d+)/)?.[1] ?? "-1", 10);
-  if (group) group.exitCode = code;
+  let group = groupMap.get(msg.jobId);
+  if (!group) {
+    group = {
+      jobId: msg.jobId,
+      command: msg.command ?? msg.content,
+      terminalName: msg.terminalName,
+      agentName: msg.agentName,
+      model: msg.model,
+      startTs: msg.ts,
+      exitCode: code,
+      lines: [],
+    };
+    groupMap.set(msg.jobId, group);
+    items.push({ type: "command", group });
+  } else {
+    group.exitCode = code;
+  }
   items.push({
     type: "message",
     msg: { ...msg, exitCode: code, content: msg.command ?? msg.content },
