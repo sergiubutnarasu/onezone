@@ -31,7 +31,6 @@ export function SchedulesButton({
     <>
       <Button
         variant="outline"
-        size="sm"
         onClick={() => setOpen(true)}
         title="Manage task schedules"
       >
