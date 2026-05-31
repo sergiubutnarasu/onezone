@@ -1,166 +1,189 @@
 ---
 name: onezone-project-memory
-description: "After running commands, completing tasks, or making discoveries, update the config/memories/project-memory.md file with new knowledge. Use when: finishing a task, encountering a bug, learning a build command, discovering architecture details, or noticing gotchas. Reads existing config/memories/project-memory.md first, then decides whether to add, update, or skip based on what changed."
-argument-hint: "Optional context hint, e.g. 'just ran migration' or 'fixed auth bug'"
+description: "Maintain a living knowledge wiki for the project. Read at session start; write after completing tasks, discovering patterns, or fixing bugs. Uses a Karpathy-style wiki: raw/ for staged facts, wiki/ for compiled topic articles, INDEX.md as a navigable map."
+argument-hint: "Optional context hint, e.g. 'just ran migration', 'fixed auth bug', 'read' (read-only mode)"
 ---
 
-# Project Memory Updater
+# Project Memory Wiki
 
-Maintain a living `config/memories/project-memory.md` in the workspace root that accumulates project knowledge across sessions.
+Maintain a living knowledge base for the project inside `config/memories/`. Inspired by Karpathy's LLM Knowledge Base workflow: raw facts are staged, then compiled by the LLM into a structured wiki of topic articles with cross-links.
 
-**IMPORTANT - File location:** `config/` is a sibling of `workdir/`, NOT inside it. The correct path is `<workspace-root>/config/memories/project-memory.md`. Never write to `workdir/config/...`.
+**IMPORTANT — File locations:**
+`config/` is a sibling of `workdir/`, NOT inside it. Never write to `workdir/config/...`.
 
 ```
 <workspace-root>/
   config/
     memories/
-      project-memory.md   ← correct location
-  workdir/                ← config is NOT inside here
+      INDEX.md          ← navigable map of all wiki articles (auto-maintained)
+      raw/              ← staging area: unprocessed facts dumped here first
+        YYYY-MM-DD-<slug>.md
+      wiki/             ← compiled knowledge articles (organized by topic)
+        architecture.md
+        commands.md
+        environment.md
+        issues.md
+        decisions.md
+        changelog.md
+        <topic>.md      ← create new articles as the project grows
+  workdir/
 ```
 
-If the `config/memories` folder does not exist, create it at the workspace root level (sibling to `workdir`).
+If `config/memories/` does not exist, create the full structure at the workspace root level.
+
+---
 
 ## When to Invoke
 
-Invoke this skill after:
+**Read mode** (argument contains "read" or no argument at session start):
+- Read `INDEX.md` first; load only the articles relevant to the current task.
+
+**Write mode** (after completing work):
 - Running terminal commands (builds, tests, migrations, installs)
 - Fixing bugs or resolving errors
 - Discovering codebase patterns or architecture details
 - Making configuration changes
 - Completing any non-trivial task
 
-Skip if: the session produced no new information (e.g., only read files without learning anything new).
+Skip writing if the session produced no new information.
+
+---
 
 ## Procedure
 
-### Step 1 — Read Existing Memory
+### READ — Loading Context at Session Start
 
-Check if `config/memories/project-memory.md` exists in the workspace root.
-- **Exists**: Read the full file. Note every section header and key fact already recorded.
-- **Does not exist**: Proceed to create it fresh.
+1. Read `config/memories/INDEX.md`. If it does not exist, the wiki is empty — proceed with an empty context.
+2. From the index, identify which wiki articles are relevant to the current task (e.g., if the task touches auth, load `wiki/architecture.md` and `wiki/decisions.md`).
+3. Load only those articles. Do NOT load the entire wiki upfront — it wastes context. Load additional articles on demand as needed.
 
-### Step 2 — Identify New Knowledge
+### WRITE — After Completing Work
 
-From the current session context, extract facts worth persisting. Prioritize:
+Follow these four steps in order.
 
-| Category | Examples |
-|----------|---------|
-| **Commands** | Build commands, migration steps, seed commands, docker commands that worked |
-| **Architecture** | Module boundaries, data flow, patterns used, framework conventions |
-| **Environment** | Required env vars, ports, service dependencies, Docker setup |
-| **Known Issues** | Bugs, gotchas, workarounds, things that break |
-| **Recent Changes** | Schema changes, API changes, new features added |
-| **Decisions** | Why something was done a certain way |
+#### Step 1 — Stage raw facts
 
-### Step 3 — Merge Decision
+Create a new file in `config/memories/raw/` named `YYYY-MM-DD-<slug>.md` where `<slug>` is a 2–5 word kebab-case description of what was learned (e.g., `2026-05-23-auth-jwt-flow.md`).
 
-For each piece of new knowledge, decide:
+Dump every new fact from the session as bullet points. No formatting required — this is a staging area. Include:
+- Commands that worked (exact invocations)
+- Bug causes and fixes
+- Architecture discoveries
+- Config changes made
+- Decisions and rationale
 
-1. **Skip** — Already recorded accurately → do nothing for that fact.
-2. **Add** — New information not present → add to the appropriate section.
-3. **Update** — Existing entry is outdated or incomplete → replace/extend it.
-4. **Flag** — Existing entry may be wrong (you're uncertain) → add a `> ⚠️ Possibly outdated:` note.
+Skip facts already present in an existing wiki article.
 
-**Do not rewrite sections that haven't changed.** Make surgical additions only.
+#### Step 2 — Compile raw into wiki
 
-If nothing is new → write a brief note to the user that memory is already up to date, and stop. Do NOT rewrite the file.
+For each fact in the new raw file, decide which wiki article it belongs to:
 
-### Step 4 — Write the File
+| Fact type | Target article |
+|-----------|---------------|
+| Build/run/test commands | `wiki/commands.md` |
+| Module structure, data flow, patterns | `wiki/architecture.md` |
+| Env vars, ports, service config | `wiki/environment.md` |
+| Bugs, gotchas, workarounds | `wiki/issues.md` |
+| Why something was built a certain way | `wiki/decisions.md` |
+| What changed recently | `wiki/changelog.md` |
+| A new cohesive topic with 3+ facts | `wiki/<topic>.md` (create new) |
 
-Write or update `config/memories/project-memory.md` using the structure below. When creating fresh, use all applicable sections. When updating, add/modify only the changed parts.
+For each target article:
+- **Exists**: Read it. Make surgical additions only — do not rewrite unchanged sections.
+- **Does not exist**: Create it with the structure shown below.
+
+Add **backlinks** at the bottom of each article pointing to related articles (e.g., `See also: [architecture.md](architecture.md)`).
+
+#### Step 3 — Update INDEX.md
+
+Rewrite `config/memories/INDEX.md` to reflect the current state of the wiki. Format:
+
+```markdown
+# Project Wiki Index
+
+> Last compiled: YYYY-MM-DD
+
+## Articles
+- [architecture.md](wiki/architecture.md) — Module structure, data flow, key patterns
+- [commands.md](wiki/commands.md) — Build, run, test, migration commands
+- [environment.md](wiki/environment.md) — Env vars, ports, service dependencies
+- [issues.md](wiki/issues.md) — Known bugs, gotchas, workarounds
+- [decisions.md](wiki/decisions.md) — Design decisions and rationale
+- [changelog.md](wiki/changelog.md) — Recent significant changes
+- [<topic>.md](wiki/<topic>.md) — <one-line description>
+
+## Raw (uncompiled)
+List any raw/ files not yet merged into the wiki, if any.
+```
+
+Keep descriptions to one line. The index is a navigation aid, not a summary.
+
+#### Step 4 — Lint (opportunistic, not mandatory every session)
+
+When the wiki has grown significantly, run a health check over it:
+- Flag entries that may be outdated (reference code that may have changed)
+- Identify related facts in different articles that should be cross-linked
+- Note potential new article candidates (3+ related facts scattered across articles)
+- Mark resolved issues as `~~resolved YYYY-MM-DD~~`
+
+Report findings as a brief note — do not auto-fix unless confident.
 
 ---
 
-## File Structure
+## Wiki Article Structure
 
 ```markdown
-# Project Memory
+# <Topic Title>
 
 > Last updated: YYYY-MM-DD
-> Auto-maintained by the project-memory skill.
 
-## Project Overview
-Brief description of what the project does and its stack.
+<One paragraph overview of this topic.>
 
-## Stack & Tech
-- Language/runtime versions
-- Key frameworks and libraries
-- Database, cache, message queue
+## <Section>
+...content...
 
-## Development Setup
-Step-by-step to get the project running locally (commands that actually work).
-
-## Key Commands
-| Command | Description |
-|---------|-------------|
-| `pnpm install` | Install deps |
-| ... | ... |
-
-## Architecture
-High-level structure: modules, services, key patterns.
-
-## Environment Variables
-Required `.env` entries and what they control.
-
-## Known Issues & Gotchas
-Bugs, workarounds, non-obvious behavior.
-
-## Recent Changes
-Short log of significant recent work (newest first, keep last ~10 entries).
-
-## Decisions & Rationale
-Why things are the way they are.
+## See Also
+- [related-article.md](related-article.md) — why it's related
 ```
+
+**Rules:**
+- No secrets, tokens, or credentials ever.
+- Commands must be copy-paste ready.
+- Facts must be specific: not "something about auth" but "JWT is verified in `auth.guard.ts` using `JwtAuthGuard`".
+- Timestamps in ISO format (YYYY-MM-DD).
+- When a section hasn't changed, do not rewrite it.
 
 ---
 
-## Update Format
+## Merge Decision Per Fact
 
-When adding to **Recent Changes**, prepend a new line:
-```
-- YYYY-MM-DD: <one-line summary of what changed>
-```
-Keep only the 10 most recent entries. Drop older ones silently.
-
-When updating a **Key Command**, replace the old row. Do not duplicate.
-
-When adding a **Known Issue**, append a bullet. If a known issue was resolved, remove it or mark it ` ~~crossed out~~ — resolved YYYY-MM-DD`.
+1. **Skip** — Already recorded accurately in a wiki article → do nothing.
+2. **Add** — New fact not present anywhere → append to the appropriate article section.
+3. **Update** — Existing entry is outdated → replace it in place.
+4. **Flag** — Uncertain if still accurate → add `> ⚠️ Possibly outdated as of YYYY-MM-DD:` before the entry.
 
 ---
 
-## Quality Checks
-
-Before writing, verify:
-- [ ] No secrets, tokens, or credentials in the file
-- [ ] Commands are copy-paste ready (no placeholders left)
-- [ ] Each new fact is specific (avoid "something about auth" → prefer "JWT is verified in `auth.guard.ts`")
-- [ ] Timestamps use ISO format (YYYY-MM-DD)
-
----
-
-## Example Output
+## Example wiki/commands.md
 
 ```markdown
-# Project Memory
+# Commands
 
 > Last updated: 2026-05-23
 
-## Project Overview
-OneZone — AI agent orchestration platform. Monorepo with NestJS backend, Next.js frontend, terminal service.
-
-## Stack & Tech
-- Node.js 20, pnpm workspaces, Turborepo
-- NestJS (server), Next.js 15 App Router (web), custom terminal CLI
-- PostgreSQL + Prisma ORM, Redis (Socket.io adapter), Docker Compose
-
-## Key Commands
+## Development
 | Command | Description |
 |---------|-------------|
 | `docker compose up -d --build` | Start all services |
+| `pnpm dev` | Start all apps in watch mode |
+
+## Database
+| Command | Description |
+|---------|-------------|
 | `pnpm --filter server prisma migrate dev` | Run DB migrations |
 | `pnpm --filter server prisma db seed` | Seed the database |
 
-## Known Issues & Gotchas
-- Redis requires no auth in dev but must have password in prod (see `.env` `REDIS_PASSWORD`)
-- `editorKey` state in dialogs forces RichTextEditor remount on open to prevent stale content
+## See Also
+- [environment.md](environment.md) — Required env vars before running
+- [architecture.md](architecture.md) — Service overview
 ```
