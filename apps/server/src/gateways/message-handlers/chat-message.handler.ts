@@ -35,6 +35,11 @@ export class ChatMessageHandler implements IMessageHandler<ChatMessageData> {
       const effectiveUserId = userId ?? (client.data as { userId?: string }).userId ?? '';
 
       const task = await this.tasksService.findOne(taskId, effectiveUserId).catch(() => null);
+      if (task?.completedAt) {
+        client.emit("error", { message: "Task is completed" });
+        return { status: "error" };
+      }
+
       const taskDetails = task
         ? await this.tasksService.findOneDetails(taskId, effectiveUserId).catch(() => null)
         : null;

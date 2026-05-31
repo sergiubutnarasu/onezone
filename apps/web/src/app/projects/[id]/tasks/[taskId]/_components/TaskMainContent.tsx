@@ -40,6 +40,8 @@ export function TaskMainContent({
   onToggleSidebar,
   onToggleInfoPanel,
 }: TaskMainContentProps) {
+  const isCompleted = !!task?.completedAt;
+
   return (
     <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
       {/* Task header info */}
@@ -90,7 +92,7 @@ export function TaskMainContent({
 
       <TaskChatArea chatItems={chatItems} onStop={onStop} />
 
-      <MessageInput onSend={onSend} disabled={!isConnected} />
+      {!isCompleted && <MessageInput onSend={onSend} disabled={!isConnected} />}
     </div>
   );
 }

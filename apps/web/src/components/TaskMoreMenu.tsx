@@ -66,9 +66,6 @@ export function TaskMoreMenu({
       if (columnId === COMPLETED_COLUMN_ID) {
         return setTaskCompleted(task.id, true);
       }
-      if (task.completedAt) {
-        await setTaskCompleted(task.id, false);
-      }
       return updateTaskColumn(task.id, columnId);
     },
     onSuccess: () => {

@@ -255,12 +255,17 @@ export function useKanbanDnd(projectId: string, initialTasks: Task[], kanbanColu
 
     // Moving FROM Completed virtual column
     if (originVirtualColumnId === COMPLETED_COLUMN_ID) {
+      const originalTask = preDropSnapshotRef.current.find((t) => t.id === activeId);
+      const originalColumnId = originalTask?.columnId ?? null;
+      const nextColumnId = targetColumnId === BACKLOG_COLUMN_ID ? null : targetColumnId;
+      const underlyingColumnChanged = originalColumnId !== nextColumnId;
       const isDroppedOnCard = overId !== activeId && !columnsRef.current.some((c) => c.id === overId) && overId !== BACKLOG_COLUMN_ID && overId !== COMPLETED_COLUMN_ID;
       const next = isDroppedOnCard ? applyReorder(current, activeId, overId) : current;
       if (next !== current) syncTasks(next);
-      // Explicitly clear completedAt (handles backlog→backlog and other edge cases)
-      persistCompleted({ taskId: activeId, completed: false });
       persistOrder(toReorderPayload(next, columnsRef.current.map((c) => c.id)));
+      if (!underlyingColumnChanged) {
+        persistCompleted({ taskId: activeId, completed: false });
+      }
       return;
     }
 

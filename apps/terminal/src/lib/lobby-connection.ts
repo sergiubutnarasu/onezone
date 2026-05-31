@@ -47,6 +47,13 @@ export function connectToLobby(deps: LobbyConnectionDeps): Promise<void> {
           return;
         }
 
+        if (task.completedAt) {
+          log(
+            `[${terminalName}] Task ${task.id} is completed, skipping`,
+          );
+          return;
+        }
+
         log(`[${terminalName}] Assigned to task: ${task.id}`);
         activeTaskIds.add(task.id);
         onTaskAssigned(task).catch((err: Error) => {

@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import type { Socket } from "socket.io-client";
 import { setupTerminalAgent } from "../agents/setup.js";
 import { shellQuote, stripAnsi } from "../lib/helper.js";
-import { killTree, runProcess } from "../lib/process-runner.js";
+import { runProcess, terminateTree } from "../lib/process-runner.js";
 import { setupProject } from "../lib/setup.js";
 
 export interface CommandRunnerDeps {
@@ -78,7 +78,7 @@ export async function spawnCommand({
     cleanup: () => {
       cancelled = true;
       setupAbortController.abort();
-      if (proc?.pid) killTree(proc.pid);
+      if (proc?.pid) terminateTree(proc.pid);
     },
   });
 
@@ -114,7 +114,7 @@ export async function spawnCommand({
   const projectWorkDir = setupResult.projectWorkDir;
   const command = `${terminalAgent.config.cmd} ${shellQuote(content)}`;
   const killRunningProcess = () => {
-    if (proc?.pid) killTree(proc.pid);
+    if (proc?.pid) terminateTree(proc.pid);
   };
 
   let resultReceived = false;

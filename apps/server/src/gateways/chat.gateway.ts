@@ -106,7 +106,13 @@ export class ChatGateway
     const { taskId, role, terminalId, terminalName, terminalHostname } = auth;
 
     try {
-      await this.tasksService.findOne(taskId, client.data.userId as string);
+      const task = await this.tasksService.findOne(taskId, client.data.userId as string);
+      if (role === 'terminal' && task.completedAt) {
+        this.logger.log(`Terminal socket ${client.id} skipped completed task ${taskId}`);
+        client.emit('error', { message: 'Task is completed' });
+        client.disconnect();
+        return;
+      }
     } catch (error) {
       this.logger.warn(`Socket ${client.id} rejected: task ${taskId} not found`, error);
       client.emit('error', { message: 'Task not found' });

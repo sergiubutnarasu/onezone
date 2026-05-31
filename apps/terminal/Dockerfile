@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
   jq \
   zstd \
   nano \
+  dumb-init \
   procps \
   && rm -rf /var/lib/apt/lists/*
 
@@ -19,7 +20,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
   && rm -rf /var/lib/apt/lists/*
 
 # Install onezone-terminal globally (as root)
-RUN npm install -g @onezone/terminal@0.0.19
+RUN npm install -g @onezone/terminal@0.0.21
 
 ARG USER_UID=1000
 ARG USER_GID=1000
@@ -52,4 +53,4 @@ RUN mkdir -p /home/agent/.ssh \
 ENV TERMINAL_NAME="Docker Terminal"
 ENV TERMINAL_SERVER_URL="http://localhost:5026"
 
-ENTRYPOINT ["/home/agent/docker-entrypoint.sh"]
+ENTRYPOINT ["dumb-init", "--", "/home/agent/docker-entrypoint.sh"]

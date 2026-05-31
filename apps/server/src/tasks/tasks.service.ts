@@ -164,6 +164,18 @@ export class TasksService {
     };
   }
 
+  private async assignTaskToTerminalIfActive(
+    task: Awaited<ReturnType<typeof this.findOne>>,
+  ): Promise<void> {
+    if (task.completedAt) return;
+    const terminalId = (task.terminal as { id?: string } | null)?.id;
+    if (!terminalId) return;
+    this.terminalRegistry.assignTask(
+      terminalId,
+      (await this.toChatMessage(task)).task!,
+    );
+  }
+
   private flattenTask<
     T extends {
       terminalAssignment: { terminal: unknown; assignedAt: unknown } | null;
@@ -319,7 +331,6 @@ export class TasksService {
   }
 
   async updateColumn(id: string, columnId: string | null, userId: string) {
-    const existing = await this.findOne(id, userId);
     let column: KanbanColumn | null = null;
 
     await this.prisma.$transaction(async (tx) => {
@@ -342,12 +353,14 @@ export class TasksService {
     });
 
     this.logger.log(`Updated task ${id} column to ${columnId ?? "backlog"}`);
+    const updated = await this.findOne(id, userId);
     this.terminalRegistry.notifyTaskColumnUpdated(
       id,
-      await this.toChatMessage(existing, column),
+      await this.toChatMessage(updated, column),
     );
+    await this.assignTaskToTerminalIfActive(updated);
 
-    return this.findOne(id, userId);
+    return updated;
   }
 
   async setCompleted(id: string, completed: boolean, userId: string) {
@@ -363,6 +376,7 @@ export class TasksService {
       await this.toChatMessage(updated),
     );
     if (completed) {
+      this.terminalRegistry.disconnectTaskTerminal(id);
       try {
         await this.notificationsService.create({
           type: NotificationType.TASK_COMPLETED,
@@ -373,6 +387,8 @@ export class TasksService {
       } catch (e) {
         this.logger.warn(`Failed to create task completed notification for task ${id}`, e);
       }
+    } else {
+      await this.assignTaskToTerminalIfActive(updated);
     }
     return updated;
   }
@@ -431,6 +447,7 @@ export class TasksService {
           item.id,
           await this.toChatMessage(updated, column),
         );
+        await this.assignTaskToTerminalIfActive(updated);
       }
     }
 
@@ -451,7 +468,7 @@ export class TasksService {
   async findByTerminal(terminalId: string): Promise<TaskDetails[]> {
     const [assignments, globalSkills] = await Promise.all([
       this.prisma.taskTerminal.findMany({
-        where: { terminalId },
+        where: { terminalId, task: { completedAt: null } },
         include: {
           task: {
             include: {

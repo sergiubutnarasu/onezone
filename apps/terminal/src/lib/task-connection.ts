@@ -36,6 +36,7 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const activeProcesses = new Map<string, ActiveProcessEntry>();
     const processedChatMessageIds = new Set<string>();
+    let closedByCompletion = false;
 
     const { socket, cleanup: cleanupSocket } = createTaskSocket(
       serverUrl,
@@ -99,6 +100,17 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
               }
               activeProcesses.clear();
 
+              if (message.task?.completedAt) {
+                log(
+                  `[${terminalName}] [${roomId}] Task completed, disconnecting...`,
+                );
+                closedByCompletion = true;
+                activeTaskIds.delete(taskId);
+                cleanupSocket();
+                resolve();
+                break;
+              }
+
               taskRunner({
                 payload,
                 deps,
@@ -145,6 +157,8 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
           );
         },
         onDisconnect: (_, reason) => {
+          if (closedByCompletion) return;
+
           if (reason === IO_SERVER_DISCONNECT) {
             // Kill any running processes — the connection is gone for good
             // (either the token refresh failed or the server kicked us).

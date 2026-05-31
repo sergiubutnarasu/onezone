@@ -10,7 +10,7 @@ import {
   getProjectConfigFolder,
   removeSkill,
 } from "./project-paths.js";
-import { killTree, runProcess } from "./process-runner.js";
+import { runProcess, terminateTree } from "./process-runner.js";
 
 // Dedupes concurrent install attempts for the same skill across tasks/terminals.
 const inFlightInstalls = new Map<string, Promise<void>>();
@@ -172,7 +172,7 @@ function runAbortableShellCommand({
     });
 
     const abort = () => {
-      if (proc.pid) killTree(proc.pid);
+      if (proc.pid) terminateTree(proc.pid);
     };
 
     signal?.addEventListener("abort", abort, { once: true });

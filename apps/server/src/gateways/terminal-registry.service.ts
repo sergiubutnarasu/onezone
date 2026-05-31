@@ -68,6 +68,17 @@ export class TerminalRegistryService {
     }
   }
 
+  disconnectTaskTerminal(taskId: string): void {
+    const existing = this.taskTerminalSockets.get(taskId);
+    if (existing && this.server) {
+      this.logger.log(
+        `Disconnecting terminal socket ${existing} from completed task ${taskId}`,
+      );
+      this.server.to(existing).disconnectSockets(true);
+    }
+    this.taskTerminalSockets.delete(taskId);
+  }
+
   deregisterTaskSocket(taskId: string, socketId: string): void {
     if (this.taskTerminalSockets.get(taskId) === socketId) {
       this.taskTerminalSockets.delete(taskId);
