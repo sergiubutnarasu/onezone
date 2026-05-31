@@ -5,6 +5,7 @@ import { extractTaskId, MessageRole } from "@onezone/shared";
 import { Server, Socket } from "socket.io";
 import { MessagesService } from "../../messages/messages.service";
 import { TasksService } from "../../tasks/tasks.service";
+import { TerminalRegistryService } from "../terminal-registry.service";
 import { IMessageHandler } from "./message-handler.interface";
 
 export interface ChatMessageData {
@@ -19,6 +20,7 @@ export class ChatMessageHandler implements IMessageHandler<ChatMessageData> {
   constructor(
     private readonly messagesService: MessagesService,
     private readonly tasksService: TasksService,
+    private readonly terminalRegistry: TerminalRegistryService,
   ) {}
 
   async handle(
@@ -68,13 +70,15 @@ export class ChatMessageHandler implements IMessageHandler<ChatMessageData> {
           }
         : null;
 
-      server
-        ?.to(data.roomId)
-        .emit("chat:message", {
-          ...message,
-          ts: Number(message.ts),
-          task: taskDetails,
-        });
+      const payload = {
+        ...message,
+        ts: Number(message.ts),
+        task: taskDetails,
+      };
+
+      server?.to(data.roomId).emit("chat:message", payload);
+
+      this.terminalRegistry.forwardCommandRunToTerminal(taskId, payload);
 
       return { status: "ok" };
     } catch (error) {

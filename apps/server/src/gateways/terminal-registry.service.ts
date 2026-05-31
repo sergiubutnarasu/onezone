@@ -113,6 +113,22 @@ export class TerminalRegistryService {
     );
   }
 
+  /**
+   * Sends a saved user chat message as a command-run request to the terminal
+   * socket assigned to this task. Returns false when no terminal is live.
+   */
+  forwardCommandRunToTerminal(taskId: string, message: unknown): boolean {
+    const socketId = this.taskTerminalSockets.get(taskId);
+    if (!socketId || !this.server) {
+      this.logger.warn(
+        `forwardCommandRunToTerminal: no task terminal socket for ${taskId}`,
+      );
+      return false;
+    }
+    this.server.to(socketId).emit(EventCommands.TerminalCommandRun, message);
+    return true;
+  }
+
   forwardStopCommandToTerminal(taskId: string, jobId: string): boolean {
     const socketId = this.taskTerminalSockets.get(taskId);
     if (!socketId || !this.server) return false;

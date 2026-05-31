@@ -9,17 +9,29 @@ export function MessageInput({
   onSend,
   disabled,
 }: {
-  onSend: (content: string) => void;
+  onSend: (content: string) => void | boolean | Promise<boolean>;
   disabled?: boolean;
 }) {
   const [value, setValue] = useState('');
+  const [isSending, setIsSending] = useState(false);
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const trimmed = value.trim();
-    if (!trimmed) return;
-    onSend(trimmed);
-    setValue('');
+    if (!trimmed || isSending) return;
+
+    setIsSending(true);
+    let sent: void | boolean = false;
+    try {
+      sent = await onSend(trimmed);
+    } finally {
+      setIsSending(false);
+    }
+
+    // Keep the text if delivery fails so the user can retry the same command.
+    if (sent !== false) {
+      setValue('');
+    }
   }
 
   return (
@@ -31,13 +43,13 @@ export function MessageInput({
         className="flex-1 font-mono text-sm bg-muted/30 border-border/50 focus-visible:border-primary/50"
         placeholder={disabled ? 'Connecting…' : '$ Enter message or command…'}
         value={value}
-        disabled={disabled}
+        disabled={disabled || isSending}
         onChange={(e) => setValue(e.target.value)}
       />
       <Button
         type="submit"
         size="icon"
-        disabled={disabled || !value.trim()}
+        disabled={disabled || isSending || !value.trim()}
       >
         <SendHorizonal />
       </Button>

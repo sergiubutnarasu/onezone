@@ -96,7 +96,7 @@ export function createTaskSocket(
 
   // Forward all relevant events to the callback
   const forwardedEvents = [
-    EventCommands.ChatMessage,
+    EventCommands.TerminalCommandRun,
     EventCommands.AssignTask,
     EventCommands.TaskDeleted,
     EventCommands.TaskColumnUpdated,

@@ -25,6 +25,7 @@ export function useTaskRoom(
   const socketRef = useRef<Socket | null>(null);
   const onTaskDeletedRef = useRef(options?.onTaskDeleted);
   const qc = useQueryClient();
+  const projectId = options?.projectId;
 
   useEffect(() => {
     onTaskDeletedRef.current = options?.onTaskDeleted;
@@ -50,8 +51,8 @@ export function useTaskRoom(
 
     socket.on(EventCommands.TaskColumnUpdated, () => {
       qc.invalidateQueries({ queryKey: ["task", taskId] });
-      if (options?.projectId) {
-        qc.invalidateQueries({ queryKey: ["tasks", options.projectId] });
+      if (projectId) {
+        qc.invalidateQueries({ queryKey: ["tasks", projectId] });
       }
     });
 
@@ -109,15 +110,22 @@ export function useTaskRoom(
     return () => {
       socket.disconnect();
     };
-  }, [taskId, setIsConnected, qc]);
+  }, [taskId, setIsConnected, qc, projectId]);
 
   const sendMessage = useCallback(
-    (content: string) => {
+    (content: string): Promise<boolean> => {
       const socket = socketRef.current;
-      if (!socket || !isConnected) return;
-      socket.emit("chat:message", {
-        roomId: `task:${taskId}`,
-        content,
+      if (!socket || !isConnected) return Promise.resolve(false);
+
+      // Wait for the gateway ack before clearing the input, otherwise a brief
+      // socket drop can make a typed command disappear without reaching a job.
+      return new Promise((resolve) => {
+        socket.timeout(10_000).emit(EventCommands.ChatMessage, {
+          roomId: `task:${taskId}`,
+          content,
+        }, (error: Error | null, response?: { status?: "ok" | "error" }) => {
+          resolve(!error && response?.status === "ok");
+        });
       });
     },
     [taskId, isConnected],

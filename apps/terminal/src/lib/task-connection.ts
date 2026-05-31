@@ -35,6 +35,7 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
 
   return new Promise<void>((resolve, reject) => {
     const activeProcesses = new Map<string, ActiveProcessEntry>();
+    const processedChatMessageIds = new Set<string>();
 
     const { socket, cleanup: cleanupSocket } = createTaskSocket(
       serverUrl,
@@ -107,9 +108,17 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
               break;
             }
 
-            case EventCommands.ChatMessage: {
+            case EventCommands.TerminalCommandRun: {
               const message = payload as ChatMessage;
               if (message.role !== MessageRole.User) break;
+
+              // A saved message id makes command spawning idempotent if the
+              // server ever retries command delivery after a reconnect.
+              const messageId = (message as { id?: unknown }).id;
+              if (typeof messageId === "string") {
+                if (processedChatMessageIds.has(messageId)) break;
+                processedChatMessageIds.add(messageId);
+              }
 
               const content = message.content.trim();
               if (!content) break;

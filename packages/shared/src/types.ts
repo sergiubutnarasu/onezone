@@ -12,6 +12,7 @@ export enum EventCommands {
   TerminalDisconnected = "terminal:disconnected",
   TerminalCommandStart = "terminal:command:start",
   TerminalCommandExit = "terminal:command:exit",
+  TerminalCommandRun = "terminal:command:run",
   TerminalCommandStop = "terminal:command:stop",
   TerminalHeartbeat = "terminal:heartbeat",
   AssignTask = "terminal:assign-task",
@@ -269,6 +270,7 @@ export interface CommandExitPayload {
 
 export interface ServerToClientEvents {
   [EventCommands.ChatMessage]: (message: ChatMessage) => void;
+  [EventCommands.TerminalCommandRun]: (message: ChatMessage) => void;
   [EventCommands.TerminalConnected]: (payload: {
     terminalId: string;
     terminalName: string;
