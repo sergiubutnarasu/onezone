@@ -6,6 +6,7 @@ import { CreateTaskButton } from "@/components/CreateTaskButton";
 import { EditProjectButton } from "@/components/EditProjectButton";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { ProjectCostStats } from "@/components/ProjectCostStats";
+import { SchedulesButton } from "@/components/SchedulesButton";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -104,6 +105,14 @@ export default function ProjectPage() {
                     project={project ?? null}
                     terminals={terminals}
                     agents={agents}
+                  />
+
+                  <SchedulesButton
+                    projectId={id}
+                    project={project ?? null}
+                    terminals={terminals}
+                    agents={agents}
+                    columns={columns}
                   />
 
                   {project && (

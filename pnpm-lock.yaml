@@ -71,6 +71,9 @@ importers:
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7
+      cron:
+        specifier: ^4.4.0
+        version: 4.4.0
       passport:
         specifier: ^0.7.0
         version: 0.7.0

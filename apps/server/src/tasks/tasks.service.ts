@@ -197,6 +197,13 @@ export class TasksService {
       model: string;
       useTaskAgentAndModel?: boolean;
       userId: string;
+      /**
+       * Optional starting column. When provided, the task is created already
+       * placed in this column inside the same transaction. This avoids the
+       * race where a subsequent `updateColumn` call emits `TaskColumnUpdated`
+       * before the terminal has joined the task room.
+       */
+      columnId?: string;
     },
   ) {
     const count = await this.prisma.task.count({
@@ -218,6 +225,11 @@ export class TasksService {
       await tx.taskTerminal.create({
         data: { taskId: created.id, terminalId: data.terminalId },
       });
+      if (data.columnId) {
+        await tx.taskColumn.create({
+          data: { taskId: created.id, columnId: data.columnId },
+        });
+      }
       return tx.task.findUniqueOrThrow({
         where: { id: created.id },
         include: {

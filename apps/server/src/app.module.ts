@@ -14,6 +14,7 @@ import { TerminalRegistryModule } from './gateways/terminal-registry.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AuthModule } from './auth/auth.module';
 import { GlobalJwtGuard } from './auth/global-jwt.guard';
+import { SchedulesModule } from './schedules/schedules.module';
 
 @Module({
   controllers: [HealthController],
@@ -30,6 +31,7 @@ import { GlobalJwtGuard } from './auth/global-jwt.guard';
     AgentsModule,
     GatewaysModule,
     NotificationsModule,
+    SchedulesModule,
   ],
   providers: [
     {

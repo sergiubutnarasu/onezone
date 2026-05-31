@@ -31,6 +31,7 @@ model Agent {
   tasks         Task[]
   kanbanColumns KanbanColumn[]
   messages      Message[]
+  taskSchedules TaskSchedule[]
 
   @@map("agents")
 }
@@ -50,6 +51,7 @@ model Project {
   skills         ProjectSkill[]
   kanbanColumns  KanbanColumn[]
   notifications  Notification[]
+  taskSchedules  TaskSchedule[]
 
   @@index([userId])
   @@map("projects")
@@ -69,6 +71,7 @@ model KanbanColumn {
   user            User         @relation(fields: [userId], references: [id], onDelete: Restrict)
   createdAt       DateTime     @default(now())
   taskAssignments TaskColumn[]
+  taskSchedules   TaskSchedule[]
 
   @@index([projectId])
   @@index([index])
@@ -181,6 +184,7 @@ model Terminal {
   user            User           @relation(fields: [userId], references: [id], onDelete: Restrict)
   createdAt       DateTime       @default(now())
   taskAssignments TaskTerminal[]
+  taskSchedules   TaskSchedule[]
 
   @@index([userId])
   @@map("terminals")
@@ -218,6 +222,7 @@ model User {
   skills        ProjectSkill[]
   terminals     Terminal[]
   messages      Message[]
+  taskSchedules TaskSchedule[]
 
   @@map("users")
 }
@@ -247,4 +252,35 @@ model DeviceCode {
 
   @@index([userCode])
   @@map("device_codes")
+}
+
+model TaskSchedule {
+  id                       String       @id @default(uuid())
+  projectId                String
+  project                  Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name                     String
+  description              String?
+  cronExpression           String
+  timezone                 String?
+  startColumnId            String
+  startColumn              KanbanColumn @relation(fields: [startColumnId], references: [id], onDelete: Cascade)
+  terminalId               String
+  terminal                 Terminal     @relation(fields: [terminalId], references: [id], onDelete: Cascade)
+  agentId                  String
+  agent                    Agent        @relation(fields: [agentId], references: [id], onDelete: Restrict)
+  model                    String
+  useScheduleAgentAndModel Boolean      @default(false)
+  enabled                  Boolean      @default(true)
+  runOnce                  Boolean      @default(false)
+  lastRunAt                DateTime?
+  runCount                 Int          @default(0)
+  userId                   String
+  user                     User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @updatedAt
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([enabled])
+  @@map("task_schedules")
 }

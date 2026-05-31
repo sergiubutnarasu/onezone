@@ -176,7 +176,11 @@ export class ProjectsService {
   async exportConfig(projectId: string, userId: string) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId, userId },
-      include: { defaultAgent: true, kanbanColumns: { orderBy: { index: 'asc' }, include: { agent: true } } },
+      include: {
+        defaultAgent: true,
+        kanbanColumns: { orderBy: { index: 'asc' }, include: { agent: true } },
+        skills: { orderBy: { installedAt: 'asc' } },
+      },
     });
     if (!project) throw new NotFoundException(`Project ${projectId} not found`);
 
@@ -193,6 +197,10 @@ export class ProjectsService {
         agent: col.agent?.name ?? null,
         model: col.model ?? null,
       })),
+      skills: project.skills.map((s) => ({
+        source: s.source,
+        skillName: s.skillName,
+      })),
     };
   }
 
@@ -205,6 +213,7 @@ export class ProjectsService {
       defaultAgent: string;
       defaultModel: string;
       columns: { name: string; instructions?: string; agent?: string | null; model?: string | null }[];
+      skills?: { source: string; skillName: string }[];
     },
     userId: string,
   ) {
@@ -248,6 +257,20 @@ export class ProjectsService {
         });
       } else {
         await this.kanbanColumnsService.createDefaults(created.id, userId, tx);
+      }
+
+      if (data.skills && data.skills.length > 0) {
+        const uniqueSkills = Array.from(
+          new Map(data.skills.map((s) => [s.skillName, s])).values(),
+        );
+        await tx.projectSkill.createMany({
+          data: uniqueSkills.map((s) => ({
+            projectId: created.id,
+            source: s.source,
+            skillName: s.skillName,
+            userId,
+          })),
+        });
       }
 
       return created;

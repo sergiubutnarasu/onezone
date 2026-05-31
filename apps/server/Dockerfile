@@ -37,4 +37,6 @@ WORKDIR /app
 COPY --from=builder /deploy ./
 
 EXPOSE 5026
-CMD ["node", "dist/main"]
+# Apply pending migrations and seed reference data (agents) before starting.
+# `prisma db seed` reads the "prisma.seed" script from package.json.
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node_modules/.bin/prisma db seed && node dist/main"]

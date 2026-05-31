@@ -9,6 +9,7 @@ import {
   type ProjectSkill,
   type RoomMessage,
   type Task,
+  type TaskSchedule,
   type Terminal,
 } from "@onezone/shared";
 import { httpClient, API_BASE } from "./http-client";
@@ -105,6 +106,7 @@ export interface ProjectExportConfig {
   defaultAgent: string;
   defaultModel: string;
   columns: { name: string; instructions: string; agent: string | null; model: string | null }[];
+  skills?: { source: string; skillName: string }[];
 }
 
 export const exportProject = (id: string) =>
@@ -247,3 +249,33 @@ export const markAllNotificationsRead = () =>
 
 export const removeGlobalSkill = (skillId: string) =>
   httpClient.delete<void>(`/skills/${skillId}`);
+
+// Task schedules
+export const fetchSchedules = (projectId: string) =>
+  httpClient.get<TaskSchedule[]>(`/projects/${projectId}/schedules`);
+
+export interface ScheduleInput {
+  name: string;
+  description?: string;
+  cronExpression: string;
+  timezone?: string;
+  startColumnId: string;
+  terminalId: string;
+  agentId: string;
+  model: string;
+  useScheduleAgentAndModel?: boolean;
+  enabled?: boolean;
+  runOnce?: boolean;
+}
+
+export const createSchedule = (projectId: string, data: ScheduleInput) =>
+  httpClient.post<TaskSchedule>(`/projects/${projectId}/schedules`, data);
+
+export const updateSchedule = (id: string, data: Partial<ScheduleInput>) =>
+  httpClient.patch<TaskSchedule>(`/schedules/${id}`, data);
+
+export const deleteSchedule = (id: string) =>
+  httpClient.delete<void>(`/schedules/${id}`);
+
+export const runScheduleNow = (id: string) =>
+  httpClient.post<TaskSchedule>(`/schedules/${id}/run`, {});

@@ -9,6 +9,8 @@ import { fetchAgents, fetchProjects, fetchTerminals } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Calendar, FolderOpen, Layers } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -38,6 +40,8 @@ function ProjectCardSkeleton() {
 }
 
 export default function ProjectsPage() {
+  const router = useRouter();
+
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: fetchProjects,
@@ -48,10 +52,25 @@ export default function ProjectsPage() {
     queryFn: fetchAgents,
   });
 
-  const { data: terminals = [] } = useQuery({
+  const { data: terminals = [], isLoading: isLoadingTerminals } = useQuery({
     queryKey: ["terminals"],
     queryFn: fetchTerminals,
   });
+
+  // Redirect to dedicated onboarding flow when the user has no terminals and
+  // no projects yet (fresh install).
+  const dataReady = !isLoading && !isLoadingTerminals;
+  const shouldRedirect =
+    dataReady && projects.length === 0 && terminals.length === 0;
+  useEffect(() => {
+    if (shouldRedirect) {
+      router.replace("/onboarding");
+    }
+  }, [shouldRedirect, router]);
+
+  if (shouldRedirect) {
+    return null;
+  }
 
   return (
     <TooltipProvider>

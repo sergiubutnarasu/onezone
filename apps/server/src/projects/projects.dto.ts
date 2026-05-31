@@ -70,6 +70,16 @@ export class ImportColumnDto {
   model?: string | null;
 }
 
+export class ImportSkillDto {
+  @IsString()
+  @IsNotEmpty()
+  source!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  skillName!: string;
+}
+
 export class ImportProjectDto {
   @IsString()
   @IsNotEmpty()
@@ -99,4 +109,10 @@ export class ImportProjectDto {
   @ValidateNested({ each: true })
   @Type(() => ImportColumnDto)
   columns!: ImportColumnDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ImportSkillDto)
+  skills?: ImportSkillDto[];
 }

@@ -1,19 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createProject } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogBody,
@@ -22,16 +9,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Controller } from "react-hook-form";
+import { ProjectForm } from "./ProjectForm";
 import type { Agent } from "@onezone/shared";
-
-interface CreateProjectForm {
-  name: string;
-  description: string;
-  repository: string;
-  defaultAgentId: string;
-  defaultModel: string;
-}
 
 interface CreateProjectDialogProps {
   agents: Agent[];
@@ -39,65 +18,13 @@ interface CreateProjectDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const FORM_ID = "create-project-form";
+
 export function CreateProjectDialog({
   agents,
   open,
   onOpenChange,
 }: CreateProjectDialogProps) {
-  const qc = useQueryClient();
-
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    control,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<CreateProjectForm>({
-    defaultValues: {
-      name: "",
-      description: "",
-      repository: "",
-      defaultAgentId: agents[0]?.id ?? "",
-      defaultModel: agents[0]?.model ?? "",
-    },
-  });
-
-  const defaultAgentId = watch("defaultAgentId");
-
-  useEffect(() => {
-    if (open && agents.length > 0) {
-      reset({
-        name: "",
-        description: "",
-        repository: "",
-        defaultAgentId: agents[0].id,
-        defaultModel: agents[0].model,
-      });
-    }
-  }, [open, agents, reset]);
-
-  const mutation = useMutation({
-    mutationFn: (data: CreateProjectForm) =>
-      createProject({
-        name: data.name,
-        description: data.description,
-        repository: data.repository || undefined,
-        defaultAgentId: data.defaultAgentId,
-        defaultModel: data.defaultModel,
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["projects"] });
-      onOpenChange(false);
-      reset();
-    },
-  });
-
-  const onSubmit = (data: CreateProjectForm) => {
-    mutation.mutate(data);
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -105,90 +32,20 @@ export function CreateProjectDialog({
           <DialogTitle>Create project</DialogTitle>
         </DialogHeader>
         <DialogBody>
-          <form
-            id="create-project-form"
-            onSubmit={handleSubmit(onSubmit)}
-            className="flex flex-col gap-3 py-1"
-          >
-          <Input
-            {...register("name", { required: "Name is required" })}
-            placeholder="Project name"
-            autoFocus
-          />
-          {errors.name && (
-            <p className="text-xs text-destructive">{errors.name.message}</p>
-          )}
-
-          <Input
-            {...register("repository")}
-            placeholder="Repository URL (optional)"
-            type="url"
-          />
-
-          <Select
-            value={defaultAgentId}
-            onValueChange={(v) => {
-              setValue("defaultAgentId", v ?? "");
-              const agent = agents.find((a) => a.id === v);
-              if (agent) setValue("defaultModel", agent.model);
-            }}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue>
-                {(v: string) =>
-                  v ? (
-                    (agents.find((a) => a.id === v)?.name ?? v)
-                  ) : (
-                    <span className="text-muted-foreground">
-                      Select default agent
-                    </span>
-                  )
-                }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {agents.map((a) => (
-                <SelectItem key={a.id} value={a.id} label={a.name}>
-                  {a.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Input
-            {...register("defaultModel", {
-              required: "Default model is required",
-            })}
-            placeholder="Default model"
-          />
-          {errors.defaultModel && (
-            <p className="text-xs text-destructive">
-              {errors.defaultModel.message}
-            </p>
-          )}
-
-          <Controller
-            name="description"
-            control={control}
-            render={({ field }) => (
-              <RichTextEditor
-                value={field.value}
-                onChange={field.onChange}
-                placeholder="Description (optional)"
-              />
+          <ProjectForm
+            agents={agents}
+            formId={FORM_ID}
+            resetSignal={open}
+            onSuccess={() => onOpenChange(false)}
+            renderFooter={({ isSubmitting }) => (
+              <DialogFooter>
+                <Button type="submit" form={FORM_ID} disabled={isSubmitting}>
+                  {isSubmitting ? "Creating…" : "Create project"}
+                </Button>
+              </DialogFooter>
             )}
           />
-
-          </form>
         </DialogBody>
-        <DialogFooter>
-          <Button
-            type="submit"
-            form="create-project-form"
-            disabled={isSubmitting || mutation.isPending}
-          >
-            {mutation.isPending ? "Creating…" : "Create project"}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

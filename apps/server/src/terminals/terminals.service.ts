@@ -100,7 +100,9 @@ export class TerminalsService implements OnModuleInit {
   }
 
   async updateHeartbeat(terminalId: string) {
-    await this.prisma.terminal.update({
+    // Use updateMany so a heartbeat for a terminal that was already deleted
+    // (e.g. by the cleanup service) is a no-op instead of throwing P2025.
+    await this.prisma.terminal.updateMany({
       where: { id: terminalId },
       data: { lastSeenAt: new Date() },
     });
