@@ -97,6 +97,22 @@ export const updateProject = (
 export const deleteProject = (id: string) =>
   httpClient.delete<void>(`/projects/${id}`);
 
+export interface ProjectExportConfig {
+  version: string;
+  name: string;
+  description: string | null;
+  repository: string | null;
+  defaultAgent: string;
+  defaultModel: string;
+  columns: { name: string; instructions: string; agent: string | null; model: string | null }[];
+}
+
+export const exportProject = (id: string) =>
+  httpClient.get<ProjectExportConfig>(`/projects/${id}/export`);
+
+export const importProject = (config: ProjectExportConfig) =>
+  httpClient.post<ProjectInfo>('/projects/import', config);
+
 export const fetchProject = (id: string) =>
   httpClient.get<ProjectInfo>(`/projects/${id}`);
 

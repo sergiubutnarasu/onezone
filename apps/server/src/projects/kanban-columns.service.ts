@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { ColumnOrderItemDto } from "./kanban-columns.dto";
 import { randomUUID } from "node:crypto";
@@ -44,8 +45,9 @@ export class KanbanColumnsService {
     });
   }
 
-  async createDefaults(projectId: string, userId: string) {
-    await this.prisma.kanbanColumn.createMany({
+  async createDefaults(projectId: string, userId: string, tx?: Prisma.TransactionClient) {
+    const client = tx ?? this.prisma;
+    await client.kanbanColumn.createMany({
       data: DEFAULT_KANBAN_COLUMNS.map((col) => ({
         id: randomUUID(),
         projectId,

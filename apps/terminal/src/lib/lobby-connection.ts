@@ -2,6 +2,7 @@
 
 import { EventCommands } from "@onezone/shared";
 import type { AssignTaskPayload, TaskDetails } from "@onezone/shared";
+import { IO_SERVER_DISCONNECT } from "../lib/constants.js";
 import { createLobbySocket } from "../lib/task-socket.js";
 
 export interface LobbyConnectionDeps {
@@ -61,7 +62,7 @@ export function connectToLobby(deps: LobbyConnectionDeps): Promise<void> {
         );
       },
       onDisconnect: (_, reason) => {
-        if (reason === "io server disconnect") {
+        if (reason === IO_SERVER_DISCONNECT) {
           reject(new Error(`Lobby disconnected: ${reason}`));
         } else {
           log(

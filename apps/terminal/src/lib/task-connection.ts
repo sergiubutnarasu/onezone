@@ -7,6 +7,7 @@ import {
   TaskDetails,
   createTaskRoomId,
 } from "@onezone/shared";
+import { IO_SERVER_DISCONNECT } from "../lib/constants.js";
 import { createTaskSocket } from "../lib/task-socket.js";
 import type { ActiveProcessEntry } from "./command-runner.js";
 import { spawnCommand } from "./command-runner.js";
@@ -35,7 +36,7 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const activeProcesses = new Map<string, ActiveProcessEntry>();
 
-    const { socket } = createTaskSocket(
+    const { socket, cleanup: cleanupSocket } = createTaskSocket(
       serverUrl,
       taskId,
       terminalId,
@@ -43,6 +44,15 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
       {
         onConnect: () => {
           const deps = { socket, roomId, terminalId, terminalName, serverUrl, log };
+
+          // After a socket reconnect (e.g. token refresh), a process may still
+          // be running from the previous connection. Skip re-launching the task
+          // runner to avoid duplicating work; the existing process will continue
+          // streaming output over the re-established socket.
+          if (activeProcesses.size > 0) {
+            log(`[${terminalName}] [${roomId}] Reconnected — process still running, resuming`);
+            return;
+          }
 
           log(
             `[${terminalName}] Connected to ${serverUrl} | room: ${roomId} | Listening for commands...`,
@@ -126,7 +136,15 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
           );
         },
         onDisconnect: (_, reason) => {
-          if (reason === "io server disconnect") {
+          if (reason === IO_SERVER_DISCONNECT) {
+            // Kill any running processes — the connection is gone for good
+            // (either the token refresh failed or the server kicked us).
+            for (const entry of activeProcesses.values()) {
+              entry.cleanup();
+            }
+            activeProcesses.clear();
+            cleanupSocket();
+
             if (!activeTaskIds.has(taskId)) {
               // Task was deleted — clean exit
               resolve();

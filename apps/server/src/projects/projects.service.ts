@@ -173,6 +173,90 @@ export class ProjectsService {
     this.logger.log(`Removed global skill "${skill.skillName}"`);
   }
 
+  async exportConfig(projectId: string, userId: string) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId, userId },
+      include: { defaultAgent: true, kanbanColumns: { orderBy: { index: 'asc' }, include: { agent: true } } },
+    });
+    if (!project) throw new NotFoundException(`Project ${projectId} not found`);
+
+    return {
+      version: '1',
+      name: project.name,
+      description: project.description ?? null,
+      repository: project.repository ?? null,
+      defaultAgent: project.defaultAgent.name,
+      defaultModel: project.defaultModel,
+      columns: project.kanbanColumns.map((col) => ({
+        name: col.name,
+        instructions: col.instructions,
+        agent: col.agent?.name ?? null,
+        model: col.model ?? null,
+      })),
+    };
+  }
+
+  async importConfig(
+    data: {
+      version: string;
+      name: string;
+      description?: string | null;
+      repository?: string | null;
+      defaultAgent: string;
+      defaultModel: string;
+      columns: { name: string; instructions?: string; agent?: string | null; model?: string | null }[];
+    },
+    userId: string,
+  ) {
+    const defaultAgent = await this.prisma.agent.findFirst({ where: { name: data.defaultAgent } });
+    if (!defaultAgent) throw new NotFoundException(`Agent "${data.defaultAgent}" not found`);
+
+    const allAgentNames = [...new Set(data.columns.map((c) => c.agent).filter(Boolean) as string[])];
+    const agentMap = new Map<string, string>();
+    agentMap.set(defaultAgent.name, defaultAgent.id);
+
+    for (const agentName of allAgentNames) {
+      if (!agentMap.has(agentName)) {
+        const agent = await this.prisma.agent.findFirst({ where: { name: agentName } });
+        if (agent) agentMap.set(agentName, agent.id);
+      }
+    }
+
+    const project = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.project.create({
+        data: {
+          name: data.name,
+          description: data.description ?? null,
+          repository: data.repository ?? null,
+          defaultAgentId: defaultAgent.id,
+          defaultModel: data.defaultModel,
+          userId,
+        },
+      });
+
+      if (data.columns.length > 0) {
+        await tx.kanbanColumn.createMany({
+          data: data.columns.map((col, index) => ({
+            projectId: created.id,
+            name: col.name,
+            instructions: col.instructions ?? '',
+            index,
+            agentId: col.agent ? (agentMap.get(col.agent) ?? null) : null,
+            model: col.model ?? null,
+            userId,
+          })),
+        });
+      } else {
+        await this.kanbanColumnsService.createDefaults(created.id, userId, tx);
+      }
+
+      return created;
+    });
+
+    this.logger.log(`Imported project config as project ${project.id}`);
+    return project;
+  }
+
   async getCostStats(projectId: string, userId: string): Promise<{
     inputTokens: number;
     outputTokens: number;

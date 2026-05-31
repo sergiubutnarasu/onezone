@@ -10,7 +10,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
-import { CreateProjectDto, InstallSkillDto, UpdateProjectDto } from './projects.dto';
+import { CreateProjectDto, ImportProjectDto, InstallSkillDto, UpdateProjectDto } from './projects.dto';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 
 @Controller('projects')
@@ -42,6 +42,17 @@ export class ProjectsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.projectsService.remove(id, user.id);
+  }
+
+  @Get(':id/export')
+  exportConfig(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.projectsService.exportConfig(id, user.id);
+  }
+
+  @Post('import')
+  @HttpCode(HttpStatus.CREATED)
+  importConfig(@Body() body: ImportProjectDto, @CurrentUser() user: AuthUser) {
+    return this.projectsService.importConfig(body, user.id);
   }
 
   @Get(':id/skills')

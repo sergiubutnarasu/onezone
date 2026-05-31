@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { updateProject, deleteProject, fetchProjectSkills, installProjectSkill, removeProjectSkill } from "@/lib/api";
+import { updateProject, deleteProject, fetchProjectSkills, installProjectSkill, removeProjectSkill, exportProject } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
@@ -52,6 +52,23 @@ export function EditProjectDialog({
   const router = useRouter();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const config = await exportProject(project.id);
+      const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${project.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-config.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const {
     register,
@@ -218,6 +235,17 @@ export function EditProjectDialog({
                 {mutation.isPending ? "Saving…" : "Save changes"}
               </Button>
             </form>
+
+            <div className="border-t border-border/60 pt-3 mt-3">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleExport}
+                disabled={exporting}
+              >
+                {exporting ? "Exporting…" : "Export configuration"}
+              </Button>
+            </div>
 
             <div className="border-t border-border/60 pt-3 mt-3">
               {confirmDelete ? (

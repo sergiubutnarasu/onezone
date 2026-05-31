@@ -69,27 +69,37 @@ export async function clearTokens(): Promise<void> {
   } catch {}
 }
 
+let activeRefreshPromise: Promise<boolean> | null = null;
+
 export async function refreshAccessToken(serverUrl: string): Promise<boolean> {
-  const refreshToken = await getRefreshToken();
-  if (!refreshToken) return false;
+  if (activeRefreshPromise) return activeRefreshPromise;
 
-  try {
-    const res = await fetch(`${serverUrl}/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-    });
+  activeRefreshPromise = (async () => {
+    const refreshToken = await getRefreshToken();
+    if (!refreshToken) return false;
 
-    if (!res.ok) return false;
+    try {
+      const res = await fetch(`${serverUrl}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
 
-    const data = (await res.json()) as { access_token?: string; refresh_token?: string };
-    if (!data.access_token || !data.refresh_token) return false;
+      if (!res.ok) return false;
 
-    await setTokens(data.access_token, data.refresh_token);
-    return true;
-  } catch {
-    return false;
-  }
+      const data = (await res.json()) as { access_token?: string; refresh_token?: string };
+      if (!data.access_token || !data.refresh_token) return false;
+
+      await setTokens(data.access_token, data.refresh_token);
+      return true;
+    } catch {
+      return false;
+    }
+  })().finally(() => {
+    activeRefreshPromise = null;
+  });
+
+  return activeRefreshPromise;
 }
 
 /**
