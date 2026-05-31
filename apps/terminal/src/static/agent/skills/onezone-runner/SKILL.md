@@ -37,7 +37,7 @@ You **MUST** follow the steps below in order:
    ```
    onezone-git-worktree setup
    ```
-   After setup, perform all file operations inside `.worktrees/<taskId>/` instead of the workdir root.
+   The skill will `cd` into `.worktrees/<taskId>/` as its final step. Verify the working directory has changed (`pwd`) before continuing. **All subsequent file operations must be performed from inside this worktree directory** — never from the main workdir root.
 
 3. **Read `kanbanColumnInstructions`** from the input. These are the authoritative instructions for what to do in this column.
 

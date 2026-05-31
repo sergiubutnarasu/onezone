@@ -83,13 +83,21 @@ fi
 
 ### Step 4: Switch All Work to the Worktree
 
-Record the worktree path for the rest of the session:
+Change the working directory into the worktree **immediately**:
+
+```bash
+cd ".worktrees/<taskId>"
+pwd  # confirm cwd is now inside the worktree
+```
+
+Report the result:
 
 ```
 Worktree ready at .worktrees/<taskId> on branch <type>/<taskId[0:8]>-<slug>
+Now working in: <absolute-path-to-worktree>
 ```
 
-**All subsequent file reads and edits for this task must target `.worktrees/<taskId>/`, not the main workdir root.** Treat `.worktrees/<taskId>/` as the project root for the duration of this task.
+**All subsequent file reads and edits for this task must be performed with the worktree as the working directory.** Never reference the main workdir root for file operations after this point.
 
 ---
 
