@@ -35,6 +35,9 @@ export class ChatMessageHandler implements IMessageHandler<ChatMessageData> {
       const effectiveUserId = userId ?? (client.data as { userId?: string }).userId ?? '';
 
       const task = await this.tasksService.findOne(taskId, effectiveUserId).catch(() => null);
+      const taskDetails = task
+        ? await this.tasksService.findOneDetails(taskId, effectiveUserId).catch(() => null)
+        : null;
 
       const message = await this.messagesService.create({
         roomId: data.roomId,
@@ -48,27 +51,6 @@ export class ChatMessageHandler implements IMessageHandler<ChatMessageData> {
         userId: effectiveUserId,
         ts,
       });
-
-      const taskDetails = task
-        ? {
-            id: task.id,
-            name: task.name,
-            description: task.description,
-            columnId: task.columnId ?? null,
-            columnName: task.columnName ?? null,
-            agentId: task.agentId,
-            agent: task.agent ?? null,
-            model: task.model,
-            project: {
-              id: task.project.id,
-              name: task.project.name,
-              description: task.project.description,
-              defaultAgentId: task.project.defaultAgentId,
-              defaultModel: task.project.defaultModel,
-              kanbanColumns: [],
-            },
-          }
-        : null;
 
       const payload = {
         ...message,
