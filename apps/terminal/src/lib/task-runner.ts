@@ -41,6 +41,7 @@ export const taskRunner = ({
     kanbanColumnId: task.columnId,
     kanbanColumnName: task.column?.name,
     kanbanColumnInstructions: task.column?.instructions,
+    repository: task.project.repository ?? undefined,
     serverUrl: deps.serverUrl,
   };
 

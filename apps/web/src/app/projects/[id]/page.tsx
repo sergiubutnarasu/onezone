@@ -1,6 +1,7 @@
 "use client";
 
 import { CollapsibleDescription } from "@/components/CollapsibleDescription";
+import { CopyButton } from "@/components/CopyButton";
 import { CreateTaskButton } from "@/components/CreateTaskButton";
 import { EditProjectButton } from "@/components/EditProjectButton";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
@@ -20,7 +21,7 @@ import {
 } from "@/lib/api";
 import type { Agent, KanbanColumn, Task, Terminal } from "@onezone/shared";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Home } from "lucide-react";
+import { ChevronRight, Hash, Home } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
@@ -111,6 +112,14 @@ export default function ProjectPage() {
                 </>
               )}
             </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 mt-1">
+            <Hash className="size-3 text-muted-foreground/50" />
+            <span className="text-xs text-muted-foreground/60 font-mono">
+              {id}
+            </span>
+            <CopyButton value={id} />
           </div>
 
           {projectLoading ? (
