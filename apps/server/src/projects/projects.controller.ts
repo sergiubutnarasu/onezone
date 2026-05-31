@@ -28,6 +28,11 @@ export class ProjectsController {
     return this.projectsService.findAll(user.id);
   }
 
+  @Get('statistics')
+  getStatistics(@CurrentUser() user: AuthUser) {
+    return this.projectsService.getStatistics(user.id);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.projectsService.findOne(id, user.id);

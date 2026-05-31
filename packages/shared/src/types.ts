@@ -79,6 +79,26 @@ export interface ProjectInfo {
   kanbanColumns: KanbanColumn[];
 }
 
+export interface ProjectStatisticsSummary {
+  tasksDone: number;
+  totalTasks: number;
+  jobsSucceeded: number;
+  jobsFailed: number;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+}
+
+export interface ProjectStatisticsRow extends ProjectStatisticsSummary {
+  projectId: string;
+  projectName: string;
+}
+
+export interface ProjectStatistics {
+  totals: ProjectStatisticsSummary;
+  projects: ProjectStatisticsRow[];
+}
+
 export interface Agent {
   id: string;
   name: string;

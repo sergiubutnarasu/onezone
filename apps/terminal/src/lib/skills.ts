@@ -11,24 +11,53 @@ import {
 
 const execAsync = promisify(exec);
 
+// Dedupes concurrent install attempts for the same skill across tasks/terminals.
+const inFlightInstalls = new Map<string, Promise<void>>();
+
 export async function runSkillCommand(
   payload: RunSkillCommandPayload,
   log: (message: string) => void,
 ): Promise<void> {
   const { projectId, source, skillName } = payload;
   const configDir = getProjectConfigFolder(projectId);
+  const skillDir = path.join(configDir, ".claude", "skills", skillName);
+  const key = `${projectId}:${skillName}`;
+
+  // If another setup is already installing this skill, wait for it instead
+  // of launching a second `npx skills add`.
+  const pending = inFlightInstalls.get(key);
+  if (pending) {
+    log(`[skill] Awaiting in-progress install for "${skillName}"`);
+    await pending;
+    return;
+  }
+
+  // Re-check existence just before installing in case a previous call
+  // completed between the caller's check and this point.
+  if (fs.existsSync(skillDir)) {
+    return;
+  }
 
   const cmd = `npx --yes skills add ${JSON.stringify(source)} --skill ${JSON.stringify(skillName)} -a claude-code -y --copy`;
 
   log(`[skill] Installing "${skillName}" in ${configDir}`);
 
+  const installPromise = (async () => {
+    try {
+      await execAsync(cmd, { cwd: configDir });
+      log(`[skill] Installing "${skillName}" completed`);
+    } catch (err) {
+      const e = err as { message?: string; stderr?: string; stdout?: string };
+      const detail = e.stderr?.trim() || e.stdout?.trim() || e.message;
+      log(`[skill] Installing "${skillName}" failed: ${detail}`);
+    }
+  })();
+
+  inFlightInstalls.set(key, installPromise);
   try {
-    await execAsync(cmd, { cwd: configDir });
-    log(`[skill] Installing "${skillName}" completed`);
-  } catch (err) {
-    const e = err as { message?: string; stderr?: string; stdout?: string };
-    const detail = e.stderr?.trim() || e.stdout?.trim() || e.message;
-    log(`[skill] Installing "${skillName}" failed: ${detail}`);
+    await installPromise;
+  } finally {
+    inFlightInstalls.delete(key);
   }
 }
 

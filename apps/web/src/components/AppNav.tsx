@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FolderOpen, Bot, Zap, Sun, Moon, Menu, X, Monitor, Blocks, Bell, LogOut } from 'lucide-react';
+import { FolderOpen, Bot, Zap, Sun, Moon, Menu, X, Monitor, Blocks, Bell, LogOut, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme';
 import { useQuery } from '@tanstack/react-query';
@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/auth-context';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Projects', icon: FolderOpen, exact: true },
+  { href: '/statistics', label: 'Statistics', icon: BarChart3, exact: true },
   { href: '/agents', label: 'Agents', icon: Bot, exact: true },
   { href: '/terminals', label: 'Terminals', icon: Monitor, exact: true },
   { href: '/skills', label: 'Skills', icon: Blocks, exact: true },
@@ -49,7 +50,7 @@ export function AppNav() {
           <Icon className="size-4 shrink-0" />
           <span className="flex-1">{label}</span>
           {isNotifications && unreadCount > 0 && (
-            <span className="ml-auto flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold leading-none">
+            <span className="ml-auto flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}

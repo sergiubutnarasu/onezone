@@ -5,6 +5,7 @@ import {
   type KanbanColumn,
   type Notification,
   type Paginated,
+  type ProjectStatistics,
   ProjectInfo,
   type ProjectSkill,
   type RoomMessage,
@@ -75,6 +76,9 @@ export interface TaskOrderItem {
 }
 
 export const fetchProjects = () => httpClient.get<ProjectInfo[]>("/projects");
+
+export const fetchProjectStatistics = () =>
+  httpClient.get<ProjectStatistics>("/projects/statistics");
 
 export const createProject = (data: {
   name: string;

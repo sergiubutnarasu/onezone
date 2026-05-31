@@ -4,6 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
+import { ProjectStatistics, ProjectStatisticsRow } from "@onezone/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { TerminalRegistryService } from "../gateways/terminal-registry.service";
 import { KanbanColumnsService } from "./kanban-columns.service";
@@ -40,6 +41,85 @@ export class ProjectsService {
       orderBy: { createdAt: "desc" },
       include: { skills: true },
     });
+  }
+
+  async getStatistics(userId: string): Promise<ProjectStatistics> {
+    const projects = await this.prisma.project.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        tasks: { select: { id: true, completedAt: true } },
+      },
+    });
+
+    const rows = new Map<string, ProjectStatisticsRow>();
+    for (const project of projects) {
+      rows.set(project.id, {
+        projectId: project.id,
+        projectName: project.name,
+        tasksDone: project.tasks.filter((task) => task.completedAt !== null).length,
+        totalTasks: project.tasks.length,
+        jobsSucceeded: 0,
+        jobsFailed: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        costUsd: 0,
+      });
+    }
+
+    const commandExits = await this.prisma.message.findMany({
+      where: {
+        userId,
+        messageType: "COMMAND_EXIT",
+      },
+      select: {
+        exitCode: true,
+        inputTokens: true,
+        outputTokens: true,
+        totalCostUsd: true,
+        task: { select: { projectId: true } },
+      },
+    });
+
+    for (const message of commandExits) {
+      const row = rows.get(message.task.projectId);
+      if (!row || message.exitCode === null) continue;
+
+      if (message.exitCode === 0) {
+        row.jobsSucceeded += 1;
+      } else {
+        row.jobsFailed += 1;
+      }
+      row.inputTokens += message.inputTokens ?? 0;
+      row.outputTokens += message.outputTokens ?? 0;
+      row.costUsd += message.totalCostUsd ?? 0;
+    }
+
+    const projectsWithStats = Array.from(rows.values());
+    const totals = projectsWithStats.reduce(
+      (acc, row) => ({
+        tasksDone: acc.tasksDone + row.tasksDone,
+        totalTasks: acc.totalTasks + row.totalTasks,
+        jobsSucceeded: acc.jobsSucceeded + row.jobsSucceeded,
+        jobsFailed: acc.jobsFailed + row.jobsFailed,
+        inputTokens: acc.inputTokens + row.inputTokens,
+        outputTokens: acc.outputTokens + row.outputTokens,
+        costUsd: acc.costUsd + row.costUsd,
+      }),
+      {
+        tasksDone: 0,
+        totalTasks: 0,
+        jobsSucceeded: 0,
+        jobsFailed: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        costUsd: 0,
+      },
+    );
+
+    return { totals, projects: projectsWithStats };
   }
 
   async findOne(id: string, userId: string) {
