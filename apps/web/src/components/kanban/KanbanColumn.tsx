@@ -43,7 +43,8 @@ interface KanbanColumnProps {
   isCompleted?: boolean;
 }
 
-const CARD_ESTIMATE_PX = 110;
+const CARD_ESTIMATE_PX = 118;
+const CARD_GAP_PX = 8;
 
 export const KanbanColumn = memo(function KanbanColumn({
   columnId,
@@ -77,9 +78,18 @@ export const KanbanColumn = memo(function KanbanColumn({
     count: tasks.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => CARD_ESTIMATE_PX,
-    gap: 8,
     overscan: 5,
   });
+
+  const virtualRows = virtualizer.getVirtualItems();
+  const topSpacerHeight = virtualRows[0]?.start ?? 0;
+  const bottomSpacerHeight =
+    virtualRows.length > 0
+      ? Math.max(
+          0,
+          virtualizer.getTotalSize() - virtualRows[virtualRows.length - 1].end,
+        )
+      : 0;
 
   const colorClass = isBacklog
     ? "text-slate-400"
@@ -177,31 +187,31 @@ export const KanbanColumn = memo(function KanbanColumn({
                   Drop tasks here
                 </p>
               ) : (
-                <div
-                  style={{
-                    height: virtualizer.getTotalSize(),
-                    position: "relative",
-                  }}
-                >
-                  {virtualizer.getVirtualItems().map((virtualRow) => {
-                    const task = tasks[virtualRow.index];
-                    return (
-                      <div
-                        key={task.id}
-                        data-index={virtualRow.index}
-                        ref={virtualizer.measureElement}
-                        style={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          width: "100%",
-                          transform: `translateY(${virtualRow.start}px)`,
-                        }}
-                      >
-                        <KanbanCard task={task} projectId={projectId} />
-                      </div>
-                    );
-                  })}
+                <div>
+                  {topSpacerHeight > 0 && (
+                    <div style={{ height: topSpacerHeight }} />
+                  )}
+                  {virtualRows.map((virtualRow) => (
+                    <div
+                      key={tasks[virtualRow.index].id}
+                      data-index={virtualRow.index}
+                      ref={virtualizer.measureElement}
+                      style={{
+                        paddingBottom:
+                          virtualRow.index === tasks.length - 1
+                            ? 0
+                            : CARD_GAP_PX,
+                      }}
+                    >
+                      <KanbanCard
+                        task={tasks[virtualRow.index]}
+                        projectId={projectId}
+                      />
+                    </div>
+                  ))}
+                  {bottomSpacerHeight > 0 && (
+                    <div style={{ height: bottomSpacerHeight }} />
+                  )}
                 </div>
               )}
             </div>

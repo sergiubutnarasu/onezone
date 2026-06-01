@@ -4,7 +4,7 @@ import { memo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
-import { GripVertical, Bot, Clock, Loader2 } from "lucide-react";
+import { GripVertical, Bot, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type Task } from "@onezone/shared";
 
@@ -64,7 +64,7 @@ export const KanbanCard = memo(function KanbanCard({
         {/* Active progress bar / hover shimmer */}
         {isActive ? (
           <div className="absolute inset-x-0 top-0 h-0.5 overflow-hidden">
-            <div className="h-full w-1/2 bg-linear-to-r from-transparent via-primary to-transparent animate-[shimmer_1.4s_ease-in-out_infinite]" />
+            <div className="h-full w-1/2 bg-linear-to-r from-transparent via-primary to-transparent animate-shimmer" />
           </div>
         ) : (
           <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
