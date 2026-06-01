@@ -52,6 +52,39 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
     private readonly projectsService: ProjectsService,
   ) {}
 
+  private async applyTaskRunnerCompletion(
+    taskId: string,
+    data: CommandExitData,
+    userId: string,
+  ): Promise<void> {
+    if (!data.taskRunnerFinished) return;
+
+    if (data.nextColumnId !== undefined) {
+      try {
+        await this.tasksService.updateColumn(taskId, data.nextColumnId, userId);
+      } catch (e) {
+        this.logger.warn(`Column ${data.nextColumnId} not found, marking task ${taskId} as completed`);
+        await this.tasksService.setCompleted(taskId, true, userId);
+      }
+    } else {
+      await this.tasksService.setCompleted(taskId, true, userId);
+    }
+  }
+
+  private async repairDuplicateTaskRunnerCompletion(
+    taskId: string,
+    data: CommandExitData,
+    userId: string,
+  ): Promise<void> {
+    if (!data.taskRunnerFinished) return;
+    if (data.nextColumnId !== undefined) return;
+
+    const task = await this.tasksService.findOne(taskId, userId);
+    if (!task.completedAt) {
+      await this.tasksService.setCompleted(taskId, true, userId);
+    }
+  }
+
   async handle(
     data: CommandExitData,
     client: Socket,
@@ -63,70 +96,73 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
       const ts = data.ts ?? Date.now();
       const effectiveUserId = userId ?? (client.data as { userId?: string }).userId ?? '';
 
-      await this.messagesService.create({
-        roomId: data.roomId,
+      const alreadyHandled = await this.messagesService.hasCommandExit(
         taskId,
-        role: MessageRole.System,
-        terminalId: data.terminalId,
-        terminalName: data.terminalName,
-        messageType: MessageType.COMMAND_EXIT,
-        jobId: data.jobId,
-        command: data.command,
-        exitCode: data.exitCode,
-        content: `[${data.terminalId ?? 'terminal'}] exited with code ${data.exitCode}: ${data.command}`,
-        agentId: data.agentId,
-        model: data.model,
-        inputTokens: data.inputTokens,
-        outputTokens: data.outputTokens,
-        totalCostUsd: data.totalCostUsd,
-        userId: effectiveUserId,
-        ts,
-      });
+        data.jobId,
+        effectiveUserId,
+      );
 
-      server?.to(data.roomId).emit(EventCommands.TerminalCommandExit, {
-        terminalId: data.terminalId,
-        jobId: data.jobId,
-        command: data.command,
-        exitCode: data.exitCode,
-        inputTokens: data.inputTokens,
-        outputTokens: data.outputTokens,
-        totalCostUsd: data.totalCostUsd,
-        ts,
-      });
+      if (!alreadyHandled) {
+        await this.messagesService.create({
+          roomId: data.roomId,
+          taskId,
+          role: MessageRole.System,
+          terminalId: data.terminalId,
+          terminalName: data.terminalName,
+          messageType: MessageType.COMMAND_EXIT,
+          jobId: data.jobId,
+          command: data.command,
+          exitCode: data.exitCode,
+          content: `[${data.terminalId ?? 'terminal'}] exited with code ${data.exitCode}: ${data.command}`,
+          agentId: data.agentId,
+          model: data.model,
+          inputTokens: data.inputTokens,
+          outputTokens: data.outputTokens,
+          totalCostUsd: data.totalCostUsd,
+          userId: effectiveUserId,
+          ts,
+        });
 
-      if (taskId && data.taskRunnerFinished) {
-        if (data.nextColumnId !== undefined) {
-          try {
-            await this.tasksService.updateColumn(taskId, data.nextColumnId, effectiveUserId);
-          } catch (e) {
-            this.logger.warn(`Column ${data.nextColumnId} not found, marking task ${taskId} as completed`);
-            await this.tasksService.setCompleted(taskId, true, effectiveUserId);
-          }
-        } else {
-          await this.tasksService.setCompleted(taskId, true, effectiveUserId);
-        }
+        server?.to(data.roomId).emit(EventCommands.TerminalCommandExit, {
+          terminalId: data.terminalId,
+          jobId: data.jobId,
+          command: data.command,
+          exitCode: data.exitCode,
+          inputTokens: data.inputTokens,
+          outputTokens: data.outputTokens,
+          totalCostUsd: data.totalCostUsd,
+          ts,
+        });
+      }
+
+      if (taskId && data.taskRunnerFinished && !alreadyHandled) {
+        await this.applyTaskRunnerCompletion(taskId, data, effectiveUserId);
+      } else if (taskId && data.taskRunnerFinished) {
+        await this.repairDuplicateTaskRunnerCompletion(taskId, data, effectiveUserId);
       }
 
       if (taskId) {
         try {
           const task = await this.tasksService.findOne(taskId, effectiveUserId);
           const projectId = task.project!.id;
-          const notifType = data.exitCode === 0
-            ? NotificationType.COMMAND_EXIT_SUCCESS
-            : NotificationType.COMMAND_EXIT_FAILURE;
-          const runnerPayload = parseRunnerCommand(data.command);
-          const columnName = runnerPayload?.kanbanColumnName ?? data.command;
-          const taskName = runnerPayload?.taskName ?? task.name;
-          const message = data.exitCode === 0
-            ? `Command "${columnName}" for task "${taskName}" finished.`
-            : `Command "${columnName}" for task "${taskName}" failed (exit code: ${data.exitCode}).`;
-          const notif = await this.notificationsService.create({
-            type: notifType,
-            taskId,
-            projectId,
-            message,
-          });
-          server?.emit(EventCommands.NotificationCreated, notif);
+          if (!alreadyHandled) {
+            const notifType = data.exitCode === 0
+              ? NotificationType.COMMAND_EXIT_SUCCESS
+              : NotificationType.COMMAND_EXIT_FAILURE;
+            const runnerPayload = parseRunnerCommand(data.command);
+            const columnName = runnerPayload?.kanbanColumnName ?? data.command;
+            const taskName = runnerPayload?.taskName ?? task.name;
+            const message = data.exitCode === 0
+              ? `Command "${columnName}" for task "${taskName}" finished.`
+              : `Command "${columnName}" for task "${taskName}" failed (exit code: ${data.exitCode}).`;
+            const notif = await this.notificationsService.create({
+              type: notifType,
+              taskId,
+              projectId,
+              message,
+            });
+            server?.emit(EventCommands.NotificationCreated, notif);
+          }
 
           if (server) {
             try {

@@ -124,6 +124,21 @@ export class TerminalRegistryService {
     );
   }
 
+  notifyCommandExit(
+    taskId: string,
+    payload: {
+      roomId: string;
+      terminalId: string;
+      jobId: string;
+      command: string;
+      exitCode: number;
+      ts: number;
+    },
+  ): void {
+    if (!this.server) return;
+    this.server.to(createTaskRoomId(taskId)).emit(EventCommands.TerminalCommandExit, payload);
+  }
+
   /**
    * Sends a saved user chat message as a command-run request to the terminal
    * socket assigned to this task. Returns false when no terminal is live.

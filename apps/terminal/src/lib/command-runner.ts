@@ -9,6 +9,9 @@ import { shellQuote, stripAnsi } from "../lib/helper.js";
 import { runProcess, terminateTree } from "../lib/process-runner.js";
 import { setupProject } from "../lib/setup.js";
 
+const COMMAND_EXIT_ACK_TIMEOUT_MS = 5_000;
+const COMMAND_EXIT_MAX_ATTEMPTS = 3;
+
 export interface CommandRunnerDeps {
   socket: Socket;
   roomId: string;
@@ -29,6 +32,63 @@ export interface SpawnCommandProps {
   activeProcesses: Map<string, ActiveProcessEntry>;
   /** When true, parses [[ONEZONE_NEXT_COLUMN:...]] and emits taskRunnerFinished. Defaults to false. */
   isTaskRunner?: boolean;
+}
+
+function waitForSocketConnect(socket: Socket, timeoutMs: number): Promise<boolean> {
+  if (socket.connected) return Promise.resolve(true);
+
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      socket.off("connect", onConnect);
+      resolve(false);
+    }, timeoutMs);
+    timer.unref();
+
+    const onConnect = () => {
+      clearTimeout(timer);
+      resolve(true);
+    };
+
+    socket.once("connect", onConnect);
+  });
+}
+
+async function emitCommandExitWithAck({
+  socket,
+  payload,
+  log,
+  terminalName,
+  roomId,
+}: {
+  socket: Socket;
+  payload: Record<string, unknown>;
+  log: (message: string, ...args: unknown[]) => void;
+  terminalName: string;
+  roomId: string;
+}): Promise<void> {
+  for (let attempt = 1; attempt <= COMMAND_EXIT_MAX_ATTEMPTS; attempt++) {
+    const connected = await waitForSocketConnect(
+      socket,
+      COMMAND_EXIT_ACK_TIMEOUT_MS,
+    );
+    if (!connected) continue;
+
+    const acknowledged = await new Promise<boolean>((resolve) => {
+      socket.timeout(COMMAND_EXIT_ACK_TIMEOUT_MS).emit(
+        EventCommands.TerminalCommandExit,
+        payload,
+        (err: Error | null, response?: { status?: string }) => {
+          resolve(!err && response?.status === "ok");
+        },
+      );
+    });
+
+    if (acknowledged) return;
+  }
+
+  log(
+    `[${terminalName}] [${roomId}] Command exit acknowledgement was not received for job ${String(payload.jobId)}`,
+  );
 }
 
 /**
@@ -100,10 +160,16 @@ export async function spawnCommand({
   );
   if (!setupResult) {
     activeProcesses.delete(jobId);
-    socket.emit(EventCommands.TerminalCommandExit, {
-      ...basePayload,
-      exitCode: cancelled ? 130 : 1,
-      ts: Date.now(),
+    void emitCommandExitWithAck({
+      socket,
+      log,
+      terminalName,
+      roomId,
+      payload: {
+        ...basePayload,
+        exitCode: cancelled ? 130 : 1,
+        ts: Date.now(),
+      },
     });
     log(
       `[${terminalName}] [${roomId}] Failed to setup project environment, skipping command execution.`,
@@ -199,13 +265,19 @@ export async function spawnCommand({
         }
       }
 
-      socket.emit(EventCommands.TerminalCommandExit, {
-        ...basePayload,
-        exitCode: effectiveCode,
-        ts: Date.now(),
-        taskRunnerFinished: taskRunnerFinished && !cancelled,
-        ...(taskRunnerFinished && !cancelled ? { nextColumnId } : {}),
-        ...(resultUsage ?? {}),
+      void emitCommandExitWithAck({
+        socket,
+        log,
+        terminalName,
+        roomId,
+        payload: {
+          ...basePayload,
+          exitCode: effectiveCode,
+          ts: Date.now(),
+          taskRunnerFinished: taskRunnerFinished && !cancelled,
+          ...(taskRunnerFinished && !cancelled ? { nextColumnId } : {}),
+          ...(resultUsage ?? {}),
+        },
       });
 
       const badge =

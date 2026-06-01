@@ -6,7 +6,7 @@ import {
   MessageRole,
   TaskDetails,
 } from "@onezone/shared";
-import { NotificationType } from "@prisma/client";
+import { MessageType, NotificationType } from "@prisma/client";
 import { TerminalRegistryService } from "../gateways/terminal-registry.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
@@ -199,6 +199,94 @@ export class TasksService {
     };
   }
 
+  private async closeOpenCommandsForCompletedTask(
+    taskId: string,
+    userId: string,
+  ): Promise<void> {
+    const lifecycleMessages = await this.prisma.message.findMany({
+      where: {
+        taskId,
+        userId,
+        jobId: { not: null },
+        OR: [
+          { messageType: MessageType.COMMAND_START },
+          { messageType: MessageType.COMMAND_EXIT },
+          { exitCode: { not: null } },
+        ],
+      },
+      orderBy: { ts: "asc" },
+      select: {
+        roomId: true,
+        terminalId: true,
+        terminalName: true,
+        messageType: true,
+        jobId: true,
+        command: true,
+        exitCode: true,
+        agentId: true,
+        model: true,
+      },
+    });
+
+    const openStarts = new Map<
+      string,
+      (typeof lifecycleMessages)[number] & { jobId: string }
+    >();
+
+    for (const message of lifecycleMessages) {
+      if (!message.jobId) continue;
+      if (
+        message.messageType === MessageType.COMMAND_EXIT ||
+        message.exitCode !== null
+      ) {
+        openStarts.delete(message.jobId);
+        continue;
+      }
+      if (message.messageType === MessageType.COMMAND_START) {
+        openStarts.set(message.jobId, { ...message, jobId: message.jobId });
+      }
+    }
+
+    let ts = Date.now();
+    for (const start of openStarts.values()) {
+      const exitTs = ts++;
+      const terminalLabel = start.terminalName ?? start.terminalId ?? "terminal";
+      const command = start.command ?? "";
+      await this.prisma.message.create({
+        data: {
+          roomId: start.roomId,
+          taskId,
+          role: MessageRole.System,
+          terminalId: start.terminalId,
+          terminalName: start.terminalName,
+          messageType: MessageType.COMMAND_EXIT,
+          jobId: start.jobId,
+          command,
+          exitCode: 130,
+          content: `[${terminalLabel}] cancelled because task was completed: ${command}`,
+          agentId: start.agentId,
+          model: start.model,
+          userId,
+          ts: BigInt(exitTs),
+        },
+      });
+      this.terminalRegistry.notifyCommandExit(taskId, {
+        roomId: start.roomId,
+        terminalId: start.terminalId ?? "",
+        jobId: start.jobId,
+        command,
+        exitCode: 130,
+        ts: exitTs,
+      });
+    }
+
+    if (openStarts.size > 0) {
+      this.logger.log(
+        `Closed ${openStarts.size} open command(s) for completed task ${taskId}`,
+      );
+    }
+  }
+
   async create(
     projectId: string,
     data: {
@@ -371,6 +459,9 @@ export class TasksService {
     });
     this.logger.log(`Set task ${id} completedAt to ${completed ? 'now' : 'null'}`);
     const updated = await this.findOne(id, userId);
+    if (completed) {
+      await this.closeOpenCommandsForCompletedTask(id, userId);
+    }
     this.terminalRegistry.notifyTaskColumnUpdated(
       id,
       await this.toChatMessage(updated),

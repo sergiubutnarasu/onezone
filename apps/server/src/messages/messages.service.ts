@@ -42,6 +42,21 @@ export class MessagesService {
     });
   }
 
+  async hasCommandExit(taskId: string, jobId: string, userId: string) {
+    const count = await this.prisma.message.count({
+      where: {
+        taskId,
+        jobId,
+        userId,
+        OR: [
+          { messageType: MessageType.COMMAND_EXIT },
+          { exitCode: { not: null } },
+        ],
+      },
+    });
+    return count > 0;
+  }
+
   async findByTask(taskId: string, userId: string) {
     const messages = await this.prisma.message.findMany({
       where: { taskId, userId },
