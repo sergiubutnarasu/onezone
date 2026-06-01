@@ -26,7 +26,12 @@ export function ConnectTerminalStep({ onNext }: ConnectTerminalStepProps) {
   const dockerCommand = [
     "ANTHROPIC_API_KEY=<your-api-key> \\",
     '  TERMINAL_NAME="My Terminal" \\',
-    "  docker compose run --rm terminal",
+    "  docker compose run --rm \\",
+    "  --volume terminal_ssh:/home/agent/.ssh \\",
+    "  --volume terminal_workdir:/home/agent/.onezone \\",
+    "  --volume terminal_local:/home/agent/.local \\",
+    "  --volume terminal_local:/home/agent/.claude \\",
+    "  terminal",
   ].join("\n");
 
   return (

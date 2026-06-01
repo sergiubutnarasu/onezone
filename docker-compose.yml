@@ -62,6 +62,7 @@ services:
       - terminal_ssh:/home/agent/.ssh
       - terminal_workdir:/home/agent/.onezone
       - terminal_local:/home/agent/.local
+      - terminal_claude:/home/agent/.claude
     depends_on:
       server:
         condition: service_healthy
@@ -71,3 +72,4 @@ volumes:
   terminal_ssh:
   terminal_workdir:
   terminal_local:
+  terminal_claude:

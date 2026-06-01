@@ -17,8 +17,11 @@ fi
 if ! command -v rtk >/dev/null 2>&1; then
   echo "Installing RTK..."
   curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh
-  rtk init -g --auto-patch
 fi
+
+# Ensure RTK's Claude hook config exists in the persisted /home/agent/.claude volume.
+mkdir -p /home/agent/.claude
+rtk init -g --auto-patch
 
 # Ensure .ssh dir exists with correct permissions
 mkdir -p /home/agent/.ssh
