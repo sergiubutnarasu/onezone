@@ -19,6 +19,7 @@ import {
   type ScheduleInput,
   updateSchedule,
 } from "@/lib/api";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -80,6 +81,7 @@ export function SchedulesDialog({
   const qc = useQueryClient();
   const [editing, setEditing] = useState<TaskSchedule | null>(null);
   const [mode, setMode] = useState<"list" | "form">("list");
+  const [deleting, setDeleting] = useState<TaskSchedule | null>(null);
 
   const { data: schedules = [], isLoading } = useQuery<TaskSchedule[]>({
     queryKey: ["schedules", projectId],
@@ -91,6 +93,7 @@ export function SchedulesDialog({
     if (!open) {
       setEditing(null);
       setMode("list");
+      setDeleting(null);
     }
   }, [open]);
 
@@ -114,127 +117,141 @@ export function SchedulesDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>
-            {mode === "list" ? "Task schedules" : editing ? "Edit schedule" : "New schedule"}
-          </DialogTitle>
-        </DialogHeader>
-        <DialogBody>
-          {mode === "list" ? (
-            <div className="flex flex-col gap-2">
-              {isLoading ? (
-                <p className="text-sm text-muted-foreground">Loading…</p>
-              ) : schedules.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No schedules yet.</p>
-              ) : (
-                <ul className="flex flex-col divide-y divide-border/60 rounded-md border border-border/60">
-                  {schedules.map((s) => (
-                    <li key={s.id} className="flex items-center gap-3 px-3 py-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium truncate">{s.name}</span>
-                          {s.runOnce && (
-                            <span className="text-[10px] uppercase rounded bg-muted px-1.5 py-0.5">
-                              once
-                            </span>
-                          )}
-                          {!s.enabled && (
-                            <span className="text-[10px] uppercase rounded bg-muted px-1.5 py-0.5 text-muted-foreground">
-                              paused
-                            </span>
-                          )}
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>
+              {mode === "list" ? "Task schedules" : editing ? "Edit schedule" : "New schedule"}
+            </DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            {mode === "list" ? (
+              <div className="flex flex-col gap-2">
+                {isLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading…</p>
+                ) : schedules.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No schedules yet.</p>
+                ) : (
+                  <ul className="flex flex-col divide-y divide-border/60 rounded-md border border-border/60">
+                    {schedules.map((s) => (
+                      <li key={s.id} className="flex items-center gap-3 px-3 py-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium truncate">{s.name}</span>
+                            {s.runOnce && (
+                              <span className="text-[10px] uppercase rounded bg-muted px-1.5 py-0.5">
+                                once
+                              </span>
+                            )}
+                            {!s.enabled && (
+                              <span className="text-[10px] uppercase rounded bg-muted px-1.5 py-0.5 text-muted-foreground">
+                                paused
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground font-mono truncate">
+                            {s.cronExpression}
+                            {s.timezone ? ` (${s.timezone})` : ""}
+                            {" · "}
+                            {s.startColumn?.name ?? s.startColumnId}
+                            {" · runs: "}
+                            {s.runCount}
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground font-mono truncate">
-                          {s.cronExpression}
-                          {s.timezone ? ` (${s.timezone})` : ""}
-                          {" · "}
-                          {s.startColumn?.name ?? s.startColumnId}
-                          {" · runs: "}
-                          {s.runCount}
-                        </div>
-                      </div>
-                      <Switch
-                        checked={s.enabled}
-                        onCheckedChange={(v) =>
-                          toggleMut.mutate({ id: s.id, enabled: v })
-                        }
-                      />
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        title="Run now"
-                        disabled={runMut.isPending}
-                        onClick={() => runMut.mutate(s.id)}
-                      >
-                        <Play className="size-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        title="Edit"
-                        onClick={() => {
-                          setEditing(s);
-                          setMode("form");
-                        }}
-                      >
-                        <Pencil className="size-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        title="Delete"
-                        onClick={() => {
-                          if (confirm(`Delete schedule "${s.name}"?`)) {
-                            removeMut.mutate(s.id);
+                        <Switch
+                          checked={s.enabled}
+                          onCheckedChange={(v) =>
+                            toggleMut.mutate({ id: s.id, enabled: v })
                           }
-                        }}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ) : (
-            <ScheduleForm
-              key={editing?.id ?? "new"}
-              projectId={projectId}
-              project={project}
-              terminals={terminals}
-              agents={agents}
-              columns={columns}
-              initial={editing}
-              onDone={() => {
-                setEditing(null);
-                setMode("list");
-                qc.invalidateQueries({ queryKey: ["schedules", projectId] });
-              }}
-              onCancel={() => {
-                setEditing(null);
-                setMode("list");
-              }}
-            />
+                        />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Run now"
+                          disabled={runMut.isPending}
+                          onClick={() => runMut.mutate(s.id)}
+                        >
+                          <Play className="size-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Edit"
+                          onClick={() => {
+                            setEditing(s);
+                            setMode("form");
+                          }}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Delete"
+                          onClick={() => setDeleting(s)}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : (
+              <ScheduleForm
+                key={editing?.id ?? "new"}
+                projectId={projectId}
+                project={project}
+                terminals={terminals}
+                agents={agents}
+                columns={columns}
+                initial={editing}
+                onDone={() => {
+                  setEditing(null);
+                  setMode("list");
+                  qc.invalidateQueries({ queryKey: ["schedules", projectId] });
+                }}
+                onCancel={() => {
+                  setEditing(null);
+                  setMode("list");
+                }}
+              />
+            )}
+          </DialogBody>
+          {mode === "list" && (
+            <DialogFooter>
+              <Button
+                onClick={() => {
+                  setEditing(null);
+                  setMode("form");
+                }}
+                disabled={columns.length === 0 || terminals.length === 0}
+              >
+                <Plus className="size-4 mr-1" />
+                New schedule
+              </Button>
+            </DialogFooter>
           )}
-        </DialogBody>
-        {mode === "list" && (
-          <DialogFooter>
-            <Button
-              onClick={() => {
-                setEditing(null);
-                setMode("form");
-              }}
-              disabled={columns.length === 0 || terminals.length === 0}
-            >
-              <Plus className="size-4 mr-1" />
-              New schedule
-            </Button>
-          </DialogFooter>
-        )}
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            setDeleting(null);
+          }
+        }}
+        title="Delete schedule"
+        description={`Delete schedule "${deleting?.name ?? ""}"? This cannot be undone.`}
+        onConfirm={() => {
+          if (deleting) {
+            removeMut.mutate(deleting.id);
+          }
+        }}
+      />
+    </>
   );
 }
 
