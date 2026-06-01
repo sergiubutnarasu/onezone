@@ -20,6 +20,7 @@ interface TaskMainContentProps {
   chatItems: ChatItem[];
   connectedTerminals: ConnectedTerminal[];
   isConnected: boolean;
+  isTerminalConnected: boolean;
   onStop: (jobId: string) => void;
   onSend: (content: string) => void;
   onToggleSidebar: () => void;
@@ -35,6 +36,7 @@ export function TaskMainContent({
   chatItems,
   connectedTerminals,
   isConnected,
+  isTerminalConnected,
   onStop,
   onSend,
   onToggleSidebar,
@@ -92,7 +94,15 @@ export function TaskMainContent({
 
       <TaskChatArea chatItems={chatItems} onStop={onStop} />
 
-      {!isCompleted && <MessageInput onSend={onSend} disabled={!isConnected} />}
+      {!isCompleted && (
+        <MessageInput
+          onSend={onSend}
+          disabled={!isConnected || !isTerminalConnected}
+          disabledPlaceholder={
+            isConnected ? 'Terminal disconnected' : 'Connecting…'
+          }
+        />
+      )}
     </div>
   );
 }

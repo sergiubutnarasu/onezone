@@ -8,9 +8,11 @@ import { Input } from '@/components/ui/input';
 export function MessageInput({
   onSend,
   disabled,
+  disabledPlaceholder = 'Connecting…',
 }: {
   onSend: (content: string) => void | boolean | Promise<boolean>;
   disabled?: boolean;
+  disabledPlaceholder?: string;
 }) {
   const [value, setValue] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -18,7 +20,7 @@ export function MessageInput({
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const trimmed = value.trim();
-    if (!trimmed || isSending) return;
+    if (!trimmed || disabled || isSending) return;
 
     setIsSending(true);
     let sent: void | boolean = false;
@@ -41,7 +43,7 @@ export function MessageInput({
     >
       <Input
         className="flex-1 font-mono text-sm bg-muted/30 border-border/50 focus-visible:border-primary/50"
-        placeholder={disabled ? 'Connecting…' : '$ Enter message or command…'}
+        placeholder={disabled ? disabledPlaceholder : '$ Enter message or command…'}
         value={value}
         disabled={disabled || isSending}
         onChange={(e) => setValue(e.target.value)}

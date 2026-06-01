@@ -234,6 +234,7 @@ export class ChatGateway
 
       this.terminalRegistry.registerTaskSocket(taskId, client.id);
       await this.terminalsService.markConnected(terminalId, userId);
+      this.emitTerminalStatus(terminalId, terminalName ?? terminalId, true);
 
       this.server.to(roomId).emit(EventCommands.TerminalConnected, {
         terminalId,
@@ -316,6 +317,7 @@ export class ChatGateway
 
       this.terminalRegistry.register(terminalId, client.id);
       await this.terminalsService.markConnected(terminalId, userId);
+      this.emitTerminalStatus(terminalId, terminalName ?? terminalId, true);
       this.logger.log(`Terminal ${terminalId} (${terminalName}) joined system lobby`);
 
       const assignedTasks = await this.tasksService.findByTerminal(terminalId);
@@ -344,6 +346,7 @@ export class ChatGateway
           this.disconnectTimers.delete(terminalId);
           if (!this.hasTerminalAnyConnection(terminalId, client.id)) {
             await this.terminalsService.markDisconnected(terminalId, meta.userId);
+            this.emitTerminalStatus(terminalId, meta.terminalName, false);
           }
         }, 2000);
         this.disconnectTimers.set(terminalId, timer);
@@ -361,6 +364,7 @@ export class ChatGateway
         this.disconnectTimers.delete(terminalId);
         if (!this.hasTerminalAnyConnection(terminalId, disconnectedSocketId)) {
           await this.terminalsService.markDisconnected(terminalId, meta.userId);
+          this.emitTerminalStatus(terminalId, meta.terminalName, false);
           if (taskId) {
             this.server.to(createTaskRoomId(taskId)).emit(EventCommands.TerminalDisconnected, {
               terminalId,
@@ -375,6 +379,17 @@ export class ChatGateway
     }
 
     this.socketMeta.delete(client.id);
+  }
+
+  private emitTerminalStatus(terminalId: string, terminalName: string, isConnected: boolean): void {
+    this.server.to(SYSTEM_TERMINALS_ROOM).emit(
+      isConnected ? EventCommands.TerminalConnected : EventCommands.TerminalDisconnected,
+      {
+        terminalId,
+        terminalName,
+        ts: Date.now(),
+      },
+    );
   }
 
   /**

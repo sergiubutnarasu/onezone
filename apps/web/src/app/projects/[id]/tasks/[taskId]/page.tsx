@@ -71,6 +71,13 @@ export default function TaskChatPage() {
 
   const chatItems = useMemo(() => buildChatItems(messages), [messages]);
 
+  const assignedTerminalId = task?.terminal?.id;
+  const isAssignedTerminalConnected = assignedTerminalId
+    ? connectedTerminals.some(
+        (terminal) => terminal.terminalId === assignedTerminalId,
+      ) || task.terminal?.isConnected === true
+    : false;
+
   const isTerminalActive = useMemo(
     () =>
       chatItems.some(
@@ -122,6 +129,7 @@ export default function TaskChatPage() {
           chatItems={chatItems}
           connectedTerminals={connectedTerminals}
           isConnected={isConnected}
+          isTerminalConnected={isAssignedTerminalConnected}
           onStop={stopCommand}
           onSend={sendMessage}
           onToggleSidebar={() => setSidebarOpen((s) => !s)}
@@ -132,7 +140,7 @@ export default function TaskChatPage() {
           <TaskInfoPanel
             task={task}
             projectId={projectId}
-            isConnected={isConnected}
+            isTerminalConnected={isAssignedTerminalConnected}
             isTerminalActive={isTerminalActive}
             agents={agents}
             terminals={terminals}

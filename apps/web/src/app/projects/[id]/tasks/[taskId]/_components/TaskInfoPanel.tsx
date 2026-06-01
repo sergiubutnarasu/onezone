@@ -42,7 +42,7 @@ import {
 interface TaskInfoPanelProps {
   task: Task;
   projectId: string;
-  isConnected: boolean;
+  isTerminalConnected: boolean;
   isTerminalActive: boolean;
   agents: Agent[];
   terminals: Terminal[];
@@ -63,7 +63,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 export function TaskInfoPanel({
   task,
   projectId,
-  isConnected,
+  isTerminalConnected,
   isTerminalActive,
   agents,
   terminals,
@@ -96,18 +96,18 @@ export function TaskInfoPanel({
             <div
               className={cn(
                 "flex items-center gap-2 rounded-md px-2.5 py-1.5 ring-1",
-                isConnected
+                isTerminalConnected
                   ? "text-emerald-400 ring-emerald-500/15 bg-emerald-500/5"
                   : "text-muted-foreground ring-foreground/5",
               )}
             >
-              {isConnected ? (
+              {isTerminalConnected ? (
                 <Wifi className="size-3.5" />
               ) : (
                 <WifiOff className="size-3.5" />
               )}
               <span className="text-xs font-medium">
-                {isConnected ? "Connected" : "Disconnected"}
+                {isTerminalConnected ? "Connected" : "Disconnected"}
               </span>
             </div>
           </div>
@@ -124,7 +124,7 @@ export function TaskInfoPanel({
                 onClick={() => {
                   if (nextColumn) columnMutation.mutate(nextColumn.id);
                 }}
-                disabled={!nextColumn || columnMutation.isPending}
+                disabled={!nextColumn || !isTerminalConnected || columnMutation.isPending}
               >
                 {columnMutation.isPending ? (
                   <Loader2 className="size-3 mr-2 animate-spin" />
