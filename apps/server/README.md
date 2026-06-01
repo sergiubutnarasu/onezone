@@ -1,82 +1,116 @@
 # @onezone/server
 
-The NestJS backend for OneZone. Provides a REST API and a Socket.io WebSocket gateway backed by Redis for real-time communication with web clients and terminal agents.
+The Onezone backend is a NestJS service that owns authentication, REST resources, Prisma persistence, scheduled task execution, notifications, and the Socket.io gateway used by the web app and terminal workers.
 
 ## Stack
 
-- **NestJS** — framework
-- **Prisma** — ORM with PostgreSQL
-- **Socket.io** — real-time events (Redis adapter for horizontal scaling)
-- **class-validator / class-transformer** — request validation
+- NestJS 10 with global validation pipes and a global JWT guard.
+- Prisma 5 with PostgreSQL.
+- Socket.io 4 with a Redis adapter for multi-instance real-time delivery.
+- Nest Schedule and `cron` for recurring task schedules.
+- HTTP-only auth cookies, bearer-token CLI auth, refresh tokens, and device-code login.
+- `class-validator`, `class-transformer`, and shared Zod contracts for payload validation.
 
-## Modules
+## Runtime Responsibilities
 
-| Module | Responsibility |
+| Area | What it does |
 |---|---|
-| `ProjectsModule` | CRUD for projects and kanban columns |
-| `TasksModule` | CRUD for tasks; task lifecycle management |
-| `MessagesModule` | Persisting and querying chat/command messages |
-| `GatewaysModule` | Socket.io gateway — routes events between terminals and the web UI |
-| `TerminalsModule` | Terminal registration and tracking |
-| `AgentsModule` | Agent registry (Claude Code, Copilot CLI) |
-| `PrismaModule` | Global database client |
-| `TerminalRegistryModule` | In-memory registry of connected terminal sockets |
+| Auth | Signup, login, refresh, logout, current user, CLI device-code activation, admin email lookup |
+| Projects | Project CRUD, import/export, skills, kanban columns, project statistics, project cost stats |
+| Tasks | Task CRUD, reorder, complete, move between columns, assign terminal, task details |
+| Messages | Chat history, command start/exit records, streamed terminal output |
+| Terminals | Register workers, track connection status, assign tasks, disconnect/delete terminals |
+| Agents | Agent registry and per-user/global model settings |
+| Schedules | Create, update, enable, run, and delete cron-based task schedules |
+| Notifications | List, count, mark read, and create task/command notifications |
+| Gateway | Authenticated Socket.io rooms for task chat, project events, terminal heartbeats, and command lifecycle events |
 
 ## Development
 
+From the repository root:
+
 ```bash
-# From repo root — start postgres + redis
 docker compose up postgres redis -d
-
-# Install deps (from repo root)
 pnpm install
-
-# Run migrations
-pnpm prisma migrate deploy
-pnpm prisma db seed
-
-# Start in watch mode
-pnpm dev
+pnpm --filter @onezone/server exec prisma migrate deploy
+pnpm --filter @onezone/server exec prisma db seed
+pnpm --filter @onezone/server dev
 ```
 
-The server listens on **port 5026** by default.
+The server listens on port `5026` by default. The health endpoint is `GET /health`.
+
+## Scripts
+
+| Command | Description |
+|---|---|
+| `pnpm --filter @onezone/server dev` | Start Nest in watch mode |
+| `pnpm --filter @onezone/server build` | Compile to `dist` |
+| `pnpm --filter @onezone/server start` | Run `dist/main.js` |
+| `pnpm --filter @onezone/server lint` | Lint server source |
+| `pnpm --filter @onezone/server typecheck` | Type-check without emitting |
+| `pnpm --filter @onezone/server clean` | Remove `dist` |
 
 ## Environment Variables
 
-| Variable | Default | Description |
-|---|---|---|
-| `DATABASE_URL` | — | PostgreSQL connection string (required) |
-| `REDIS_URL` | `redis://localhost:6379` | Redis URL for Socket.io adapter |
-| `CORS_ORIGIN` | `http://localhost:5025` | Allowed CORS origin for the web UI |
-| `PORT` | `5026` | HTTP/WebSocket port |
+| Variable | Default | Required | Description |
+|---|---|---|---|
+| `DATABASE_URL` | none | Yes | PostgreSQL connection string used by Prisma |
+| `REDIS_URL` | `redis://localhost:6379` | Yes | Redis URL used by the Socket.io adapter |
+| `WEB_ORIGIN` | `http://localhost:5025` | Yes | Allowed browser origin and base URL for device-code activation links |
+| `PORT` | `5026` | No | HTTP and WebSocket port |
+| `JWT_SECRET` | none | Yes | Access-token signing secret |
+| `JWT_EXPIRES_IN` | `15m` in Compose | Yes | Access-token cookie lifetime, for example `15m` or `1h` |
+| `REFRESH_TOKEN_EXPIRES_IN` | `30d` in Compose | Yes | Refresh-token lifetime in days, for example `30d` |
+| `ADMIN_EMAILS` | empty | No | Comma-separated list of emails treated as admins |
+
+## API Surface
+
+All routes except explicitly public auth routes are protected by the global JWT guard.
+
+| Resource | Routes |
+|---|---|
+| Auth | `POST /auth/signup`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/me`, `POST /auth/device`, `POST /auth/token`, `POST /auth/activate` |
+| Projects | `GET /projects`, `POST /projects`, `GET /projects/statistics`, `GET /projects/:id`, `PATCH /projects/:id`, `DELETE /projects/:id`, `GET /projects/:id/export`, `POST /projects/import` |
+| Project skills | `GET /skills`, `POST /skills`, `DELETE /skills/:skillId`, plus project-scoped skill routes under `/projects/:id/skills` |
+| Kanban columns | `GET/POST /projects/:projectId/kanban-columns`, `GET/PATCH/DELETE /projects/:projectId/kanban-columns/:columnId`, `PUT /projects/:projectId/kanban-columns/reorder` |
+| Tasks | `GET /tasks/:taskId`, `PATCH /tasks/:taskId`, `PATCH /tasks/:taskId/column`, `PATCH /tasks/:taskId/complete`, `PATCH /tasks/:taskId/terminal`, `DELETE /tasks/:taskId` |
+| Project tasks | `GET/POST /projects/:projectId/tasks`, `GET /projects/:projectId/tasks/:taskId`, `PUT /projects/:projectId/tasks/reorder` |
+| Messages | `GET /tasks/:taskId/messages` |
+| Terminals | `GET /terminals`, `POST /terminals/register`, `POST /terminals/:terminalId/disconnect`, `POST /terminals/:terminalId/assign-task`, `DELETE /terminals/:terminalId` |
+| Agents | `GET /agents`, `GET /agents/:id`, `PATCH /agents/:id`, `PATCH /agents/:id/global` |
+| Schedules | `GET/POST /projects/:projectId/schedules`, `GET/PATCH/DELETE /schedules/:id`, `POST /schedules/:id/run` |
+| Notifications | `GET /notifications`, `GET /notifications/unread-count`, `PATCH /notifications/read-all`, `PATCH /notifications/:id/read` |
+
+## WebSocket Events
+
+Socket contracts are defined in `@onezone/shared`. Important events include:
+
+- `chat:message` for task chat messages.
+- `output:line` for terminal stdout/stderr streaming.
+- `terminal:connected` and `terminal:disconnected` for terminal presence.
+- `terminal:command:start`, `terminal:command:exit`, `terminal:command:run`, and `terminal:command:stop` for command lifecycle.
+- `terminal:heartbeat` for worker liveness.
+- `terminal:assign-task` for dispatching work to a connected worker.
+- `task:deleted`, `task:column-updated`, `notification:created`, and `project:cost-updated` for live UI updates.
 
 ## Database
 
-Prisma schema is located at `prisma/schema.prisma`. Key models:
-
-- **Agent** — registered AI agents (Claude Code, Copilot CLI) with their model names
-- **Project** — top-level workspace; owns tasks, kanban columns, and skills
-- **KanbanColumn** — ordered board columns with AI instructions per column
-- **Task** — unit of work assigned to a terminal and agent
-- **Message** — chat messages and command output attached to a task
-- **Terminal** — registered CLI terminal sessions
-
-### Migration commands
+The Prisma schema is in `prisma/schema.prisma`, and migrations are in `prisma/migrations`.
 
 ```bash
-# Create a new migration
-pnpm prisma migrate dev --name <migration-name>
-
-# Apply all pending migrations
-pnpm prisma migrate deploy
-
-# Open Prisma Studio
-pnpm prisma studio
+pnpm --filter @onezone/server exec prisma migrate dev --name <migration-name>
+pnpm --filter @onezone/server exec prisma migrate deploy
+pnpm --filter @onezone/server exec prisma db seed
+pnpm --filter @onezone/server exec prisma studio
 ```
 
-## Build & Production
+Use `migrate deploy` outside local migration authoring. The seed script registers the default agents and any baseline data required by the app.
 
-```bash
-pnpm build          # compiles TypeScript via nest build
-pnpm start          # runs dist/main.js
-```
+## Production Notes
+
+- Set `JWT_SECRET`, `DATABASE_URL`, `REDIS_URL`, `WEB_ORIGIN`, `JWT_EXPIRES_IN`, and `REFRESH_TOKEN_EXPIRES_IN` explicitly.
+- Put the server behind HTTPS and a reverse proxy that supports WebSocket upgrades.
+- Run all server instances against the same PostgreSQL database, Redis instance, and JWT settings.
+- Keep Redis private to the application network and enable provider authentication/TLS where available.
+- Run Prisma migrations before deploying new server code.
+- Monitor `/health`, database connectivity, Redis connectivity, terminal heartbeats, schedule execution, and command failure notifications.

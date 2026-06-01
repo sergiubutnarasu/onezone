@@ -1,59 +1,100 @@
 # @onezone/shared
 
-Shared TypeScript types, Zod validation schemas, and Socket.io event constants used by all OneZone packages. Published as both ESM and CommonJS so it works in the NestJS server (CJS) and Next.js web app (ESM) without configuration.
+Shared TypeScript contracts for the Onezone server, web app, and terminal CLI. The package publishes both ESM and CommonJS outputs so it can be consumed by Next.js, NestJS, and Node-based CLI code without app-specific shims.
 
-## Contents
+## What It Contains
 
-### Types (`src/types.ts`)
+| File | Purpose |
+|---|---|
+| `src/types.ts` | Domain interfaces, enums, Socket.io event maps, task schedule types, notification types, pagination, and room message unions |
+| `src/schemas.ts` | Zod schemas for shared input and Socket.io auth validation |
+| `src/constants.ts` | Heartbeat constants and task/project room helper functions |
+| `src/index.ts` | Public package exports |
 
-- **`EventCommands`** — Socket.io event name enum (`chat:message`, `output:line`, `terminal:connected`, etc.)
-- **`MessageRole`** — `user | terminal | system`
-- **`MessageStream`** — `stdout | stderr`
-- **`MessageType`** — `CHAT | COMMAND_START | COMMAND_EXIT`
-- **`AgentTag`** — `claude-code | copilot-cli`
-- **`ProjectInfo`**, **`Task`**, **`Agent`**, **`KanbanColumn`**, **`ProjectSkill`** — shared domain interfaces
+## Core Types And Enums
 
-### Schemas (`src/schemas.ts`)
+- `AuthUser` for authenticated user identity and admin status.
+- `EventCommands` for Socket.io event names, including chat, terminal command lifecycle, heartbeats, assignment, notifications, and project cost updates.
+- `MessageRole`, `MessageStream`, and `MessageType` for chat and command output records.
+- `AgentTag` for supported runner tags: `claude-code` and `copilot-cli`.
+- `Agent`, `ProjectInfo`, `KanbanColumn`, `ProjectSkill`, `Task`, `TaskDetails`, and `Terminal` for the main app resources.
+- `TaskSchedule` and `CRON_PRESETS` for recurring task automation.
+- `Notification` and `NotificationType` for notification inbox data.
+- `ProjectStatistics` and related summary/row types for usage reporting.
+- `RoomMessage` discriminated union for web task chat rendering.
 
-Zod schemas used for request/input validation across the stack:
+## Socket Contracts
+
+The package defines typed event maps for Socket.io clients and servers:
+
+- `ServerToClientEvents`
+- `ClientToServerEvents`
+
+Important payloads include `AssignTaskPayload`, `CommandStartPayload`, `OutputLinePayload`, `CommandExitPayload`, and `ChatMessage`.
+
+Room helpers in `src/constants.ts` keep room IDs consistent:
+
+```ts
+import { createProjectRoomId, createTaskRoomId, extractTaskId } from "@onezone/shared";
+
+const taskRoom = createTaskRoomId(taskId);
+const projectRoom = createProjectRoomId(projectId);
+const parsedTaskId = extractTaskId(taskRoom);
+```
+
+## Schemas
 
 | Schema | Purpose |
 |---|---|
-| `CreateProjectSchema` | Validates project creation payloads |
-| `CreateTaskSchema` | Validates task creation payloads |
-| `SocketAuthSchema` | Validates WebSocket handshake auth objects |
+| `CreateProjectSchema` | Validates project creation input |
+| `CreateTaskSchema` | Validates task creation input |
+| `SocketAuthSchema` | Validates Socket.io handshake auth for user and terminal clients |
 
-### Constants (`src/constants.ts`)
+## Constants
 
-- `BACKLOG_COLUMN_ID` — sentinel ID for the virtual "Backlog" column
-- `COMPLETED_COLUMN_ID` — sentinel ID for the virtual "Completed" column
-
-## Development
-
-```bash
-# Watch mode (ESM output)
-pnpm dev
-
-# Build ESM + CJS
-pnpm build
-
-# Type-check only
-pnpm typecheck
-```
-
-## Publishing
-
-This package must be published before `@onezone/terminal`.
-
-```bash
-# From repo root
-pnpm build
-npm login
-pnpm publish --filter @onezone/shared
-```
+| Constant | Description |
+|---|---|
+| `BACKLOG_COLUMN_ID` | Sentinel ID for the virtual Backlog column |
+| `COMPLETED_COLUMN_ID` | Sentinel ID for the virtual Completed column |
+| `HEARTBEAT_INTERVAL_MS` | Terminal heartbeat interval, currently `5000` ms |
+| `STALE_THRESHOLD_MS` | Staleness threshold for disconnected terminals, currently `10000` ms |
 
 ## Usage
 
 ```ts
-import { EventCommands, AgentTag, CreateProjectSchema } from "@onezone/shared";
+import {
+  AgentTag,
+  CreateProjectSchema,
+  EventCommands,
+  createTaskRoomId,
+  type TaskDetails,
+} from "@onezone/shared";
 ```
+
+## Development
+
+```bash
+pnpm --filter @onezone/shared dev
+pnpm --filter @onezone/shared build
+pnpm --filter @onezone/shared typecheck
+pnpm --filter @onezone/shared clean
+```
+
+The build emits ESM to `dist/esm` and CommonJS to `dist/cjs`, with package metadata written into each output folder.
+
+## Publishing
+
+Publish this package before publishing `@onezone/terminal` because the CLI depends on the shared contracts.
+
+```bash
+pnpm --filter @onezone/shared build
+npm login
+pnpm publish --filter @onezone/shared
+```
+
+## Contract Guidelines
+
+- Treat exported event names and payload shapes as cross-package API contracts.
+- Update server, web, terminal, and this README together when changing shared event payloads.
+- Prefer adding explicit types or Zod schemas here when more than one package needs the same contract.
+- Avoid importing app-specific code into this package; it should stay framework-neutral.

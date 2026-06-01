@@ -22,6 +22,8 @@ export class TerminalRegistryService {
   private readonly terminalSocketIds = new Map<string, string>();
   /** taskId → socketId of the terminal currently assigned to that task */
   private readonly taskTerminalSockets = new Map<string, string>();
+  /** taskId → jobIds requested to stop while the task terminal socket reconnects */
+  private readonly pendingStopCommands = new Map<string, Set<string>>();
   private server: Server | undefined;
 
   setServer(server: Server): void {
@@ -56,6 +58,7 @@ export class TerminalRegistryService {
       this.server.to(existing).disconnectSockets(true);
     }
     this.taskTerminalSockets.set(taskId, socketId);
+    this.flushPendingStopCommands(taskId, socketId);
   }
 
   evictTaskTerminal(taskId: string): void {
@@ -91,6 +94,7 @@ export class TerminalRegistryService {
     this.server.to(roomId).emit(EventCommands.TaskDeleted, { taskId });
     this.server.in(roomId).disconnectSockets(true);
     this.taskTerminalSockets.delete(taskId);
+    this.pendingStopCommands.delete(taskId);
     this.logger.log(`Cleaned up room for deleted task ${taskId}`);
   }
 
@@ -157,8 +161,41 @@ export class TerminalRegistryService {
 
   forwardStopCommandToTerminal(taskId: string, jobId: string): boolean {
     const socketId = this.taskTerminalSockets.get(taskId);
-    if (!socketId || !this.server) return false;
+    if (!socketId || !this.server || !this.isSocketConnected(socketId)) {
+      this.queueStopCommand(taskId, jobId);
+      this.logger.warn(
+        `forwardStopCommandToTerminal: queued stop for job ${jobId} on task ${taskId}; no task terminal socket is connected`,
+      );
+      return false;
+    }
     this.server.to(socketId).emit(EventCommands.TerminalCommandStop, { jobId });
     return true;
+  }
+
+  private queueStopCommand(taskId: string, jobId: string): void {
+    const pending = this.pendingStopCommands.get(taskId) ?? new Set<string>();
+    pending.add(jobId);
+    this.pendingStopCommands.set(taskId, pending);
+  }
+
+  private flushPendingStopCommands(taskId: string, socketId: string): void {
+    if (!this.server) return;
+    const pending = this.pendingStopCommands.get(taskId);
+    if (!pending || pending.size === 0) return;
+
+    for (const jobId of pending) {
+      this.server.to(socketId).emit(EventCommands.TerminalCommandStop, { jobId });
+    }
+    this.pendingStopCommands.delete(taskId);
+    this.logger.log(
+      `Forwarded ${pending.size} queued stop command(s) to task ${taskId}`,
+    );
+  }
+
+  private isSocketConnected(socketId: string): boolean {
+    const adapter = (
+      this.server as { adapter?: { rooms?: Map<string, Set<string>> } } | undefined
+    )?.adapter;
+    return adapter?.rooms?.has(socketId) ?? false;
   }
 }
