@@ -36,16 +36,23 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const activeProcesses = new Map<string, ActiveProcessEntry>();
     const processedChatMessageIds = new Set<string>();
-    let closedByCompletion = false;
+    let closedIntentionally = false;
 
-    const { socket, cleanup: cleanupSocket } = createTaskSocket(
+    const cleanupActiveProcesses = () => {
+      for (const entry of activeProcesses.values()) {
+        entry.cleanup();
+      }
+      activeProcesses.clear();
+    };
+
+    const { socket, cleanup: cleanupSocket, isClosed: isSocketClosed } = createTaskSocket(
       serverUrl,
       taskId,
       terminalId,
       terminalName,
       {
         onConnect: () => {
-          const deps = { socket, roomId, terminalId, terminalName, serverUrl, log };
+          const deps = { socket, roomId, terminalId, terminalName, serverUrl, log, isSocketClosed };
 
           // After a socket reconnect (e.g. token refresh), a process may still
           // be running from the previous connection. Skip re-launching the task
@@ -67,14 +74,18 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
           });
         },
         onMessage: (event, payload) => {
-          const deps = { socket, roomId, terminalId, terminalName, serverUrl, log };
+          const deps = { socket, roomId, terminalId, terminalName, serverUrl, log, isSocketClosed };
 
           switch (event) {
             case EventCommands.TaskDeleted: {
               log(
                 `[${terminalName}] [${roomId}] Task deleted, disconnecting...`,
               );
+              closedIntentionally = true;
+              cleanupActiveProcesses();
               activeTaskIds.delete(taskId);
+              cleanupSocket();
+              resolve();
               break;
             }
 
@@ -95,16 +106,13 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
               );
 
               // Terminate any running processes before handling the new status
-              for (const entry of activeProcesses.values()) {
-                entry.cleanup();
-              }
-              activeProcesses.clear();
+              cleanupActiveProcesses();
 
               if (message.task?.completedAt) {
                 log(
                   `[${terminalName}] [${roomId}] Task completed, disconnecting...`,
                 );
-                closedByCompletion = true;
+                closedIntentionally = true;
                 activeTaskIds.delete(taskId);
                 cleanupSocket();
                 resolve();
@@ -157,15 +165,12 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
           );
         },
         onDisconnect: (_, reason) => {
-          if (closedByCompletion) return;
+          if (closedIntentionally) return;
 
           if (reason === IO_SERVER_DISCONNECT) {
             // Kill any running processes — the connection is gone for good
             // (either the token refresh failed or the server kicked us).
-            for (const entry of activeProcesses.values()) {
-              entry.cleanup();
-            }
-            activeProcesses.clear();
+            cleanupActiveProcesses();
             cleanupSocket();
 
             if (!activeTaskIds.has(taskId)) {
@@ -176,6 +181,13 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
               reject(new Error(`[${roomId}] Disconnected: ${reason}`));
             }
           } else {
+            if (activeProcesses.size === 0) {
+              activeTaskIds.delete(taskId);
+              cleanupSocket();
+              reject(new Error(`[${roomId}] Disconnected: ${reason}`));
+              return;
+            }
+
             log(
               `[${terminalName}] [${roomId}] Disconnected (${reason}), reconnecting...`,
             );

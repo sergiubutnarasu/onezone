@@ -9,16 +9,18 @@ import { DEFAULT_KANBAN_COLUMNS } from "./constants";
 export class KanbanColumnsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAllByProject(projectId: string) {
+  async findAllByProject(projectId: string, userId?: string) {
     return this.prisma.kanbanColumn.findMany({
-      where: { projectId },
+      where: userId ? { projectId, userId } : { projectId },
       orderBy: { index: "asc" },
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, projectId?: string, userId?: string) {
     const column = await this.prisma.kanbanColumn.findUnique({ where: { id } });
-    if (!column) throw new NotFoundException(`KanbanColumn ${id} not found`);
+    if (!column || (projectId && column.projectId !== projectId) || (userId && column.userId !== userId)) {
+      throw new NotFoundException(`KanbanColumn ${id} not found`);
+    }
     return column;
   }
 
@@ -55,14 +57,16 @@ export class KanbanColumnsService {
         ...col,
       })),
     });
-    return this.findAllByProject(projectId);
+    return this.findAllByProject(projectId, userId);
   }
 
-  async update(id: string, data: { name?: string; instructions?: string; agentId?: string | null; model?: string | null }) {
-    const existing = await this.prisma.kanbanColumn.findUnique({
-      where: { id },
-    });
-    if (!existing) throw new NotFoundException(`KanbanColumn ${id} not found`);
+  async update(
+    id: string,
+    data: { name?: string; instructions?: string; agentId?: string | null; model?: string | null },
+    projectId?: string,
+    userId?: string,
+  ) {
+    await this.findOne(id, projectId, userId);
     const updateData: {
       name?: string;
       instructions?: string;
@@ -76,11 +80,8 @@ export class KanbanColumnsService {
     return this.prisma.kanbanColumn.update({ where: { id }, data: updateData });
   }
 
-  async remove(id: string) {
-    const existing = await this.prisma.kanbanColumn.findUnique({
-      where: { id },
-    });
-    if (!existing) throw new NotFoundException(`KanbanColumn ${id} not found`);
+  async remove(id: string, projectId?: string, userId?: string) {
+    await this.findOne(id, projectId, userId);
     // When a column is deleted, task_columns cascade-delete, moving tasks to backlog.
     await this.prisma.kanbanColumn.delete({ where: { id } });
   }

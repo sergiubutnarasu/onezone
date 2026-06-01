@@ -10,7 +10,7 @@ import { runProcess, terminateTree } from "../lib/process-runner.js";
 import { setupProject } from "../lib/setup.js";
 
 const COMMAND_EXIT_ACK_TIMEOUT_MS = 5_000;
-const COMMAND_EXIT_MAX_ATTEMPTS = 3;
+const COMMAND_EXIT_WARN_ATTEMPTS = 3;
 
 export interface CommandRunnerDeps {
   socket: Socket;
@@ -19,6 +19,7 @@ export interface CommandRunnerDeps {
   terminalName: string;
   serverUrl: string;
   log: (message: string, ...args: unknown[]) => void;
+  isSocketClosed: () => boolean;
 }
 
 export interface ActiveProcessEntry {
@@ -53,25 +54,30 @@ function waitForSocketConnect(socket: Socket, timeoutMs: number): Promise<boolea
   });
 }
 
-async function emitCommandExitWithAck({
+async function emitCommandExitUntilAck({
   socket,
   payload,
   log,
   terminalName,
   roomId,
+  isSocketClosed,
 }: {
   socket: Socket;
   payload: Record<string, unknown>;
   log: (message: string, ...args: unknown[]) => void;
   terminalName: string;
   roomId: string;
+  isSocketClosed: () => boolean;
 }): Promise<void> {
-  for (let attempt = 1; attempt <= COMMAND_EXIT_MAX_ATTEMPTS; attempt++) {
+  let attempt = 0;
+
+  while (!isSocketClosed()) {
+    attempt++;
     const connected = await waitForSocketConnect(
       socket,
       COMMAND_EXIT_ACK_TIMEOUT_MS,
     );
-    if (!connected) continue;
+    if (!connected || isSocketClosed()) continue;
 
     const acknowledged = await new Promise<boolean>((resolve) => {
       socket.timeout(COMMAND_EXIT_ACK_TIMEOUT_MS).emit(
@@ -84,11 +90,13 @@ async function emitCommandExitWithAck({
     });
 
     if (acknowledged) return;
-  }
 
-  log(
-    `[${terminalName}] [${roomId}] Command exit acknowledgement was not received for job ${String(payload.jobId)}`,
-  );
+    if (attempt === COMMAND_EXIT_WARN_ATTEMPTS) {
+      log(
+        `[${terminalName}] [${roomId}] Command exit acknowledgement was not received for job ${String(payload.jobId)}, retrying until the socket closes...`,
+      );
+    }
+  }
 }
 
 /**
@@ -159,18 +167,18 @@ export async function spawnCommand({
     setupAbortController.signal,
   );
   if (!setupResult) {
-    activeProcesses.delete(jobId);
-    void emitCommandExitWithAck({
+    void emitCommandExitUntilAck({
       socket,
       log,
       terminalName,
       roomId,
+      isSocketClosed: deps.isSocketClosed,
       payload: {
         ...basePayload,
         exitCode: cancelled ? 130 : 1,
         ts: Date.now(),
       },
-    });
+    }).finally(() => activeProcesses.delete(jobId));
     log(
       `[${terminalName}] [${roomId}] Failed to setup project environment, skipping command execution.`,
     );
@@ -247,8 +255,6 @@ export async function spawnCommand({
       });
     },
     onExit: (exitCode) => {
-      activeProcesses.delete(jobId);
-
       // If we already received the result line and killed the process ourselves,
       // treat it as a clean exit regardless of the signal exit code.
       const effectiveCode = resultReceived ? 0 : exitCode;
@@ -265,11 +271,12 @@ export async function spawnCommand({
         }
       }
 
-      void emitCommandExitWithAck({
+      void emitCommandExitUntilAck({
         socket,
         log,
         terminalName,
         roomId,
+        isSocketClosed: deps.isSocketClosed,
         payload: {
           ...basePayload,
           exitCode: effectiveCode,
@@ -278,7 +285,7 @@ export async function spawnCommand({
           ...(taskRunnerFinished && !cancelled ? { nextColumnId } : {}),
           ...(resultUsage ?? {}),
         },
-      });
+      }).finally(() => activeProcesses.delete(jobId));
 
       const badge =
         effectiveCode === 0 ? "✔ done" : `✖ error (${effectiveCode})`;

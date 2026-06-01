@@ -3,6 +3,8 @@
 export interface AuthUser {
   id: string;
   email: string;
+  name?: string;
+  isAdmin?: boolean;
 }
 
 export enum EventCommands {
@@ -105,6 +107,8 @@ export interface Agent {
   name: string;
   tag: AgentTag;
   model: string;
+  defaultModel?: string;
+  userModel?: string | null;
   createdAt: string;
 }
 

@@ -123,7 +123,18 @@ export class SchedulesService implements OnModuleInit {
     }
   }
 
+  private async ensureProjectOwned(projectId: string, userId: string): Promise<void> {
+    const project = await this.prisma.project.findUnique({ where: { id: projectId, userId } });
+    if (!project) throw new NotFoundException(`Project ${projectId} not found`);
+  }
+
+  private async ensureTerminalOwned(terminalId: string, userId: string): Promise<void> {
+    const terminal = await this.prisma.terminal.findUnique({ where: { id: terminalId, userId } });
+    if (!terminal) throw new NotFoundException(`Terminal ${terminalId} not found`);
+  }
+
   async findAllByProject(projectId: string, userId: string) {
+    await this.ensureProjectOwned(projectId, userId);
     return this.prisma.taskSchedule.findMany({
       where: { projectId, userId },
       include: {
@@ -151,12 +162,14 @@ export class SchedulesService implements OnModuleInit {
   }
 
   async create(projectId: string, data: CreateScheduleDto, userId: string) {
+    await this.ensureProjectOwned(projectId, userId);
+    await this.ensureTerminalOwned(data.terminalId, userId);
     this.validateCron(data.cronExpression, data.timezone);
     const column = await this.prisma.kanbanColumn.findUnique({
       where: { id: data.startColumnId },
-      select: { projectId: true },
+      select: { projectId: true, userId: true },
     });
-    if (!column || column.projectId !== projectId) {
+    if (!column || column.projectId !== projectId || column.userId !== userId) {
       throw new BadRequestException('startColumnId does not belong to project');
     }
     const schedule = await this.prisma.taskSchedule.create({
@@ -198,13 +211,16 @@ export class SchedulesService implements OnModuleInit {
     if (data.startColumnId && data.startColumnId !== existing.startColumnId) {
       const column = await this.prisma.kanbanColumn.findUnique({
         where: { id: data.startColumnId },
-        select: { projectId: true },
+        select: { projectId: true, userId: true },
       });
-      if (!column || column.projectId !== existing.projectId) {
+      if (!column || column.projectId !== existing.projectId || column.userId !== userId) {
         throw new BadRequestException(
           'startColumnId does not belong to project',
         );
       }
+    }
+    if (data.terminalId !== undefined) {
+      await this.ensureTerminalOwned(data.terminalId, userId);
     }
     const updated = await this.prisma.taskSchedule.update({
       where: { id },

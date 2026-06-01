@@ -82,8 +82,8 @@ export function runProcess({
   cmd: string;
   cwd: string;
   args: string[];
-  onLine: (stream: MessageStream, line: string) => void;
-  onExit: (code: number) => void;
+  onLine?: (stream: MessageStream, line: string) => void;
+  onExit?: (code: number) => void;
   shell?: boolean;
 }): ChildProcess {
   // detached: true puts the child in its own process group so process.kill(-pid)
@@ -98,12 +98,12 @@ export function runProcess({
 
   // Use readline to read the child's stdout and stderr line by line.
   createInterface({ input: proc.stdout }).on("line", (line) =>
-    onLine(MessageStream.Stdout, line),
+    onLine?.(MessageStream.Stdout, line),
   );
 
   // Buffer stderr and only emit it on exit, to avoid interleaving with stdout lines.
   createInterface({ input: proc.stderr }).on("line", (line) =>
-    onLine(MessageStream.Stderr, line),
+    onLine?.(MessageStream.Stderr, line),
   );
 
   // Node always emits 'close' after 'error', so guard against double-calling onExit.
@@ -117,12 +117,12 @@ export function runProcess({
     if (proc.pid) {
       terminateTree(proc.pid);
     }
-    onExit(code);
+    onExit?.(code);
   };
 
   proc.on("close", (code) => finish(code ?? -1));
   proc.on("error", (err) => {
-    onLine(MessageStream.Stderr, `Process error: ${err.message}`);
+    onLine?.(MessageStream.Stderr, `Process error: ${err.message}`);
     finish(-1);
   });
 

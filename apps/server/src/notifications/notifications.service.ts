@@ -7,6 +7,7 @@ export interface CreateNotificationDto {
   taskId: string;
   projectId: string;
   message: string;
+  userId: string;
 }
 
 @Injectable()
@@ -17,8 +18,8 @@ export class NotificationsService {
     return this.prisma.notification.create({ data: dto });
   }
 
-  async findAll(includeRead: boolean, page: number, limit: number) {
-    const where = includeRead ? undefined : { readAt: null };
+  async findAll(userId: string, includeRead: boolean, page: number, limit: number) {
+    const where = includeRead ? { userId } : { userId, readAt: null };
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
       this.prisma.notification.findMany({
@@ -36,21 +37,21 @@ export class NotificationsService {
     return { data, total, page, limit, hasMore: skip + data.length < total };
   }
 
-  async markRead(id: string) {
+  async markRead(id: string, userId: string) {
     return this.prisma.notification.update({
-      where: { id },
+      where: { id, userId },
       data: { readAt: new Date() },
     });
   }
 
-  async markAllRead() {
+  async markAllRead(userId: string) {
     return this.prisma.notification.updateMany({
-      where: { readAt: null },
+      where: { userId, readAt: null },
       data: { readAt: new Date() },
     });
   }
 
-  async countUnread() {
-    return this.prisma.notification.count({ where: { readAt: null } });
+  async countUnread(userId: string) {
+    return this.prisma.notification.count({ where: { userId, readAt: null } });
   }
 }

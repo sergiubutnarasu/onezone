@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import {
   AgentTag,
   ChatMessage,
@@ -125,7 +125,7 @@ export class TasksService {
   ): Promise<ChatMessage> {
     const project = task.project!;
     const globalSkills = await this.prisma.projectSkill.findMany({
-      where: { projectId: null },
+      where: { projectId: null, userId: task.userId },
     });
     const kanbanColumns = await this.prisma.kanbanColumn.findMany({
       where: { projectId: project.id },
@@ -140,20 +140,27 @@ export class TasksService {
         createdAt: c.createdAt.toISOString(),
       })),
     };
-    // Resolve column agent for the override when it has an agentId
+    const currentColumn =
+      columnOverride !== undefined
+        ? columnOverride
+        : task.columnId
+          ? (projectWithAllSkills.kanbanColumns.find((c) => c.id === task.columnId) ?? undefined)
+          : undefined;
+
+    // Resolve column agent for the current column when it has an agentId
     let resolvedColumnAgent: { id: string; name: string; tag: string } | null = null;
-    if (columnOverride?.agentId) {
+    if (currentColumn?.agentId) {
       resolvedColumnAgent = await this.prisma.agent.findUnique({
-        where: { id: columnOverride.agentId },
+        where: { id: currentColumn.agentId },
         select: { id: true, name: true, tag: true },
       });
     }
     const taskWithColumnOverride =
-      columnOverride !== undefined
+      currentColumn !== undefined
         ? {
             ...task,
-            columnAssignment: columnOverride
-              ? { column: { ...columnOverride, agent: resolvedColumnAgent } }
+            columnAssignment: currentColumn
+              ? { column: { ...currentColumn, agent: resolvedColumnAgent } }
               : null,
           }
         : task;
@@ -174,6 +181,27 @@ export class TasksService {
       terminalId,
       (await this.toChatMessage(task)).task!,
     );
+  }
+
+  private async ensureProjectOwned(projectId: string, userId: string): Promise<void> {
+    const project = await this.prisma.project.findUnique({ where: { id: projectId, userId } });
+    if (!project) throw new NotFoundException(`Project ${projectId} not found`);
+  }
+
+  private async ensureTerminalOwned(terminalId: string, userId: string): Promise<void> {
+    const terminal = await this.prisma.terminal.findUnique({ where: { id: terminalId, userId } });
+    if (!terminal) throw new NotFoundException(`Terminal ${terminalId} not found`);
+  }
+
+  private async findColumnInProject(columnId: string, projectId: string, userId: string) {
+    const column = await this.prisma.kanbanColumn.findUnique({
+      where: { id: columnId },
+      select: { id: true, name: true, index: true, projectId: true, userId: true, instructions: true, agentId: true, model: true, createdAt: true },
+    });
+    if (!column || column.projectId !== projectId || column.userId !== userId) {
+      throw new BadRequestException('columnId does not belong to project');
+    }
+    return column;
   }
 
   private flattenTask<
@@ -306,8 +334,13 @@ export class TasksService {
       columnId?: string;
     },
   ) {
+    await this.ensureProjectOwned(projectId, data.userId);
+    await this.ensureTerminalOwned(data.terminalId, data.userId);
+    if (data.columnId) {
+      await this.findColumnInProject(data.columnId, projectId, data.userId);
+    }
     const count = await this.prisma.task.count({
-      where: { projectId, columnAssignment: null },
+      where: { projectId, userId: data.userId, columnAssignment: null },
     });
     const task = await this.prisma.$transaction(async (tx) => {
       const created = await tx.task.create({
@@ -390,7 +423,7 @@ export class TasksService {
     });
     if (!task) throw new NotFoundException(`Task ${id} not found`);
     const globalSkills = await this.prisma.projectSkill.findMany({
-      where: { projectId: null },
+      where: { projectId: null, userId },
     });
     const project = task.project;
     const projectWithAllSkills = {
@@ -418,6 +451,7 @@ export class TasksService {
   }
 
   async updateColumn(id: string, columnId: string | null, userId: string) {
+    const task = await this.findOne(id, userId);
     let column: KanbanColumn | null = null;
 
     await this.prisma.$transaction(async (tx) => {
@@ -425,10 +459,7 @@ export class TasksService {
         await tx.taskColumn.deleteMany({ where: { taskId: id } });
         await tx.task.update({ where: { id }, data: { completedAt: null } });
       } else {
-        const col = await tx.kanbanColumn.findUniqueOrThrow({
-          where: { id: columnId },
-          select: { id: true, name: true, index: true, projectId: true, instructions: true, agentId: true, model: true, createdAt: true },
-        });
+        const col = await this.findColumnInProject(columnId, task.project!.id, userId);
         column = { ...col, createdAt: col.createdAt.toISOString() };
         await tx.taskColumn.upsert({
           where: { taskId: id },
@@ -473,6 +504,7 @@ export class TasksService {
           taskId: id,
           projectId: updated.project!.id,
           message: `Task "${updated.name}" was completed`,
+          userId,
         });
       } catch (e) {
         this.logger.warn(`Failed to create task completed notification for task ${id}`, e);
@@ -484,12 +516,23 @@ export class TasksService {
   }
 
   async reorder(projectId: string, items: TaskOrderItemDto[], userId: string) {
+    await this.ensureProjectOwned(projectId, userId);
     const existing = await this.prisma.task.findMany({
       where: { id: { in: items.map((i) => i.id) }, projectId, userId },
       include: { columnAssignment: true },
     });
     const existingMap = new Map(existing.map((t) => [t.id, t]));
     const validItems = items.filter((i) => existingMap.has(i.id));
+    const columnIds = [...new Set(validItems.map((i) => i.columnId).filter((id): id is string => Boolean(id)))];
+    if (columnIds.length > 0) {
+      const columns = await this.prisma.kanbanColumn.findMany({
+        where: { id: { in: columnIds }, projectId, userId },
+        select: { id: true },
+      });
+      if (columns.length !== columnIds.length) {
+        throw new BadRequestException('One or more columnId values do not belong to project');
+      }
+    }
 
     await this.prisma.$transaction(async (tx) => {
       for (const item of validItems) {
@@ -556,26 +599,27 @@ export class TasksService {
   }
 
   async findByTerminal(terminalId: string): Promise<TaskDetails[]> {
-    const [assignments, globalSkills] = await Promise.all([
-      this.prisma.taskTerminal.findMany({
-        where: { terminalId, task: { completedAt: null } },
-        include: {
-          task: {
-            include: {
-              columnAssignment: { include: { column: { include: { agent: true } } } },
-              project: {
-                include: {
-                  skills: true,
-                  kanbanColumns: { orderBy: { index: "asc" } },
-                },
+    const assignments = await this.prisma.taskTerminal.findMany({
+      where: { terminalId, task: { completedAt: null } },
+      include: {
+        task: {
+          include: {
+            columnAssignment: { include: { column: { include: { agent: true } } } },
+            project: {
+              include: {
+                skills: true,
+                kanbanColumns: { orderBy: { index: "asc" } },
               },
-              agent: true,
             },
+            agent: true,
           },
         },
-      }),
-      this.prisma.projectSkill.findMany({ where: { projectId: null } }),
-    ]);
+      },
+    });
+    const userId = assignments[0]?.task.userId;
+    const globalSkills = userId
+      ? await this.prisma.projectSkill.findMany({ where: { projectId: null, userId } })
+      : [];
     return assignments.map((a): TaskDetails => {
       const t = a.task;
       const projectWithAllSkills = {
@@ -605,6 +649,7 @@ export class TasksService {
 
   async assignTerminal(id: string, terminalId: string, userId: string) {
     await this.findOne(id, userId);
+    await this.ensureTerminalOwned(terminalId, userId);
     await this.prisma.taskTerminal.upsert({
       where: { taskId: id },
       create: { taskId: id, terminalId },

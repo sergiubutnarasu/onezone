@@ -8,8 +8,8 @@ export class GlobalSkillsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Get()
-  list() {
-    return this.projectsService.listGlobalSkills();
+  list(@CurrentUser() user: AuthUser) {
+    return this.projectsService.listGlobalSkills(user.id);
   }
 
   @Post()
@@ -20,7 +20,7 @@ export class GlobalSkillsController {
 
   @Delete(':skillId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('skillId') skillId: string) {
-    return this.projectsService.removeGlobalSkill(skillId);
+  remove(@Param('skillId') skillId: string, @CurrentUser() user: AuthUser) {
+    return this.projectsService.removeGlobalSkill(skillId, user.id);
   }
 }

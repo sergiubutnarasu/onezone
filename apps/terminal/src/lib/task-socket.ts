@@ -16,6 +16,7 @@ export interface TaskSocketCallbacks {
 export interface TaskSocketConnection {
   socket: Socket;
   cleanup: () => void;
+  isClosed: () => boolean;
 }
 
 /**
@@ -41,9 +42,11 @@ function attachUnauthorizedRefresh(
   serverUrl: string,
   roomId: string,
   callbacks: Pick<TaskSocketCallbacks, 'onDisconnect'>,
+  isClosed: () => boolean,
 ): {
   isUnauthorizedPending: () => boolean;
   refreshIfUnauthorized: (err: { message?: string }) => boolean;
+  cleanup: () => void;
 } {
   let unauthorizedPending = false;
 
@@ -54,6 +57,7 @@ function attachUnauthorizedRefresh(
     refreshAccessToken(serverUrl)
       .then((success) => {
         unauthorizedPending = false;
+        if (isClosed()) return;
         if (success) {
           // Reconnect with the freshly stored token.
           socket.connect();
@@ -64,11 +68,13 @@ function attachUnauthorizedRefresh(
       })
       .catch(() => {
         unauthorizedPending = false;
+        if (isClosed()) return;
         callbacks.onDisconnect(roomId, IO_SERVER_DISCONNECT);
       });
   };
 
   const refreshIfUnauthorized = (err: { message?: string }): boolean => {
+    if (isClosed()) return false;
     if (err?.message !== 'Unauthorized') return false;
     refreshAndReconnect();
     return true;
@@ -79,6 +85,7 @@ function attachUnauthorizedRefresh(
   return {
     isUnauthorizedPending: () => unauthorizedPending,
     refreshIfUnauthorized,
+    cleanup: () => socket.off('error', refreshIfUnauthorized),
   };
 }
 
@@ -98,10 +105,22 @@ export function createTaskSocket(
   const socket = createTerminalSocket({ serverUrl, taskId, terminalId, terminalName });
 
   let heartbeatTimer: NodeJS.Timeout | undefined;
+  let closed = false;
 
-  const { isUnauthorizedPending, refreshIfUnauthorized } = attachUnauthorizedRefresh(socket, serverUrl, roomId, callbacks);
+  const { isUnauthorizedPending, refreshIfUnauthorized, cleanup: cleanupUnauthorizedRefresh } = attachUnauthorizedRefresh(
+    socket,
+    serverUrl,
+    roomId,
+    callbacks,
+    () => closed,
+  );
 
   socket.on('connect', () => {
+    if (closed) {
+      socket.disconnect();
+      return;
+    }
+    clearInterval(heartbeatTimer);
     heartbeatTimer = setInterval(() => {
       socket.emit(EventCommands.TerminalHeartbeat);
     }, HEARTBEAT_INTERVAL_MS);
@@ -122,12 +141,14 @@ export function createTaskSocket(
   }
 
   socket.on('connect_error', (err) => {
+    if (closed) return;
     clearInterval(heartbeatTimer);
     if (refreshIfUnauthorized(err)) return;
     callbacks.onConnectError(roomId, err);
   });
 
   socket.on('disconnect', (reason) => {
+    if (closed) return;
     clearInterval(heartbeatTimer);
     // Suppress IO_SERVER_DISCONNECT while a token refresh is in flight.
     // The error handler will call onDisconnect if the refresh fails, or
@@ -137,11 +158,13 @@ export function createTaskSocket(
   });
 
   const cleanup = () => {
+    closed = true;
     clearInterval(heartbeatTimer);
+    cleanupUnauthorizedRefresh();
     socket.disconnect();
   };
 
-  return { socket, cleanup };
+  return { socket, cleanup, isClosed: () => closed };
 }
 
 /**
@@ -157,10 +180,22 @@ export function createLobbySocket(
   const socket = createTerminalSocket({ serverUrl, terminalId, terminalName });
 
   let heartbeatTimer: NodeJS.Timeout | undefined;
+  let closed = false;
 
-  const { isUnauthorizedPending, refreshIfUnauthorized } = attachUnauthorizedRefresh(socket, serverUrl, 'lobby', callbacks);
+  const { isUnauthorizedPending, refreshIfUnauthorized, cleanup: cleanupUnauthorizedRefresh } = attachUnauthorizedRefresh(
+    socket,
+    serverUrl,
+    'lobby',
+    callbacks,
+    () => closed,
+  );
 
   socket.on('connect', () => {
+    if (closed) {
+      socket.disconnect();
+      return;
+    }
+    clearInterval(heartbeatTimer);
     heartbeatTimer = setInterval(() => {
       socket.emit(EventCommands.TerminalHeartbeat);
     }, HEARTBEAT_INTERVAL_MS);
@@ -172,21 +207,25 @@ export function createLobbySocket(
   );
 
   socket.on('connect_error', (err) => {
+    if (closed) return;
     clearInterval(heartbeatTimer);
     if (refreshIfUnauthorized(err)) return;
     callbacks.onConnectError('lobby', err);
   });
 
   socket.on('disconnect', (reason) => {
+    if (closed) return;
     clearInterval(heartbeatTimer);
     if (reason === IO_SERVER_DISCONNECT && isUnauthorizedPending()) return;
     callbacks.onDisconnect('lobby', reason);
   });
 
   const cleanup = () => {
+    closed = true;
     clearInterval(heartbeatTimer);
+    cleanupUnauthorizedRefresh();
     socket.disconnect();
   };
 
-  return { socket, cleanup };
+  return { socket, cleanup, isClosed: () => closed };
 }

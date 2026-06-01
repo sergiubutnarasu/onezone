@@ -216,16 +216,16 @@ export class ProjectsService {
     );
   }
 
-  async listGlobalSkills() {
+  async listGlobalSkills(userId: string) {
     return this.prisma.projectSkill.findMany({
-      where: { projectId: null },
+      where: { projectId: null, userId },
       orderBy: { installedAt: "asc" },
     });
   }
 
   async installGlobalSkill(data: { source: string; skillName: string }, userId: string) {
     const existing = await this.prisma.projectSkill.findFirst({
-      where: { projectId: null, skillName: data.skillName },
+      where: { projectId: null, skillName: data.skillName, userId },
     });
     if (existing) {
       throw new ConflictException(
@@ -241,11 +241,11 @@ export class ProjectsService {
     return skill;
   }
 
-  async removeGlobalSkill(skillId: string) {
+  async removeGlobalSkill(skillId: string, userId: string) {
     const skill = await this.prisma.projectSkill.findUnique({
       where: { id: skillId },
     });
-    if (!skill || skill.projectId !== null) {
+    if (!skill || skill.projectId !== null || skill.userId !== userId) {
       throw new NotFoundException(`Global skill ${skillId} not found`);
     }
 

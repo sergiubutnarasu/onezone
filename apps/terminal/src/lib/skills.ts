@@ -154,7 +154,7 @@ function runAbortableShellCommand({
   cmd: string;
   cwd: string;
   signal?: AbortSignal;
-  onLine: (stream: MessageStream, line: string) => void;
+  onLine?: (stream: MessageStream, line: string) => void;
 }): Promise<number> {
   return new Promise((resolve) => {
     if (signal?.aborted) {

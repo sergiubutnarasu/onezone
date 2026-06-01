@@ -160,8 +160,9 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
               taskId,
               projectId,
               message,
+              userId: effectiveUserId,
             });
-            server?.emit(EventCommands.NotificationCreated, notif);
+            server?.to(createProjectRoomId(projectId)).emit(EventCommands.NotificationCreated, notif);
           }
 
           if (server) {

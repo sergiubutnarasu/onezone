@@ -25,7 +25,7 @@ export class KanbanColumnsController {
   @Get()
   async findAll(@Param('projectId') projectId: string, @CurrentUser() user: AuthUser) {
     await this.projectsService.findOne(projectId, user.id);
-    return this.kanbanColumnsService.findAllByProject(projectId);
+    return this.kanbanColumnsService.findAllByProject(projectId, user.id);
   }
 
   @Get(':columnId')
@@ -35,7 +35,7 @@ export class KanbanColumnsController {
     @CurrentUser() user: AuthUser,
   ) {
     await this.projectsService.findOne(projectId, user.id);
-    return this.kanbanColumnsService.findOne(columnId);
+    return this.kanbanColumnsService.findOne(columnId, projectId, user.id);
   }
 
   @Post()
@@ -57,7 +57,7 @@ export class KanbanColumnsController {
     @CurrentUser() user: AuthUser,
   ) {
     await this.projectsService.findOne(projectId, user.id);
-    return this.kanbanColumnsService.update(columnId, body);
+    return this.kanbanColumnsService.update(columnId, body, projectId, user.id);
   }
 
   @Delete(':columnId')
@@ -68,7 +68,7 @@ export class KanbanColumnsController {
     @CurrentUser() user: AuthUser,
   ) {
     await this.projectsService.findOne(projectId, user.id);
-    return this.kanbanColumnsService.remove(columnId);
+    return this.kanbanColumnsService.remove(columnId, projectId, user.id);
   }
 
   @Put('reorder')

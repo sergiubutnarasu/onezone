@@ -64,7 +64,9 @@ export class TerminalsService implements OnModuleInit {
    */
   async registerByName(input: RegisterTerminalInput) {
     const trimmedName = input.name.trim();
-    const existing = await this.prisma.terminal.findUnique({ where: { name: trimmedName } });
+    const existing = await this.prisma.terminal.findFirst({
+      where: { userId: input.userId, name: trimmedName },
+    });
 
     if (existing?.isConnected) {
       // Check if the existing connection is actually stale (no recent heartbeat)
@@ -99,11 +101,11 @@ export class TerminalsService implements OnModuleInit {
     return terminal;
   }
 
-  async updateHeartbeat(terminalId: string) {
+  async updateHeartbeat(terminalId: string, userId?: string) {
     // Use updateMany so a heartbeat for a terminal that was already deleted
     // (e.g. by the cleanup service) is a no-op instead of throwing P2025.
     await this.prisma.terminal.updateMany({
-      where: { id: terminalId },
+      where: userId ? { id: terminalId, userId } : { id: terminalId },
       data: { lastSeenAt: new Date() },
     });
   }
@@ -120,9 +122,9 @@ export class TerminalsService implements OnModuleInit {
     }
   }
 
-  async markConnected(terminalId: string) {
+  async markConnected(terminalId: string, userId?: string) {
     const result = await this.prisma.terminal.updateMany({
-      where: { id: terminalId },
+      where: userId ? { id: terminalId, userId } : { id: terminalId },
       data: { isConnected: true, lastSeenAt: new Date() },
     });
     if (result.count > 0) {
@@ -132,9 +134,9 @@ export class TerminalsService implements OnModuleInit {
     }
   }
 
-  async markDisconnected(terminalId: string) {
+  async markDisconnected(terminalId: string, userId?: string) {
     const result = await this.prisma.terminal.updateMany({
-      where: { id: terminalId },
+      where: userId ? { id: terminalId, userId } : { id: terminalId },
       data: { isConnected: false, lastSeenAt: new Date() },
     });
     if (result.count > 0) {

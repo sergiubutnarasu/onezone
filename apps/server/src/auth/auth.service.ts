@@ -6,6 +6,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { isAdminEmail } from './admin-emails';
 
 @Injectable()
 export class AuthService {
@@ -189,10 +190,12 @@ export class AuthService {
   }
 
   async getMe(userId: string) {
-    return this.prisma.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, email: true, name: true },
     });
+    if (!user) return null;
+    return { ...user, isAdmin: isAdminEmail(this.config, user.email) };
   }
 
   // ─── Internal ─────────────────────────────────────────────────────────────────

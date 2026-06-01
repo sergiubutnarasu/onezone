@@ -1,12 +1,13 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Bot, Pencil, Save, X } from "lucide-react";
-import { fetchAgents, updateAgent } from "@/lib/api";
+import { Bot, Pencil } from "lucide-react";
+import { fetchAgents, updateAgent, updateGlobalAgent } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/lib/auth-context";
 import {
   Tooltip,
   TooltipContent,
@@ -15,6 +16,11 @@ import {
 } from "@/components/ui/tooltip";
 import type { Agent } from "@/lib/api";
 import { useState } from "react";
+
+type AgentWithModels = Agent & {
+  defaultModel?: string;
+  userModel?: string | null;
+};
 
 function AgentSkeleton() {
   return (
@@ -30,18 +36,33 @@ function AgentSkeleton() {
   );
 }
 
-function AgentRow({ agent }: { agent: Agent }) {
+function AgentRow({ agent, isAdmin }: { agent: AgentWithModels; isAdmin: boolean }) {
   const qc = useQueryClient();
-  const [editing, setEditing] = useState(false);
-  const [model, setModel] = useState(agent.model);
+  const [editing, setEditing] = useState<"user" | "global" | null>(null);
+  const [userModel, setUserModel] = useState(agent.model);
+  const [globalModel, setGlobalModel] = useState(agent.defaultModel ?? agent.model);
 
-  const mutation = useMutation({
+  const userMutation = useMutation({
     mutationFn: (data: { model: string }) => updateAgent(agent.id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["agents"] });
-      setEditing(false);
+      setEditing(null);
     },
   });
+
+  const globalMutation = useMutation({
+    mutationFn: (data: { model: string }) => updateGlobalAgent(agent.id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agents"] });
+      setEditing(null);
+    },
+  });
+
+  const resetEditing = () => {
+    setEditing(null);
+    setUserModel(agent.model);
+    setGlobalModel(agent.defaultModel ?? agent.model);
+  };
 
   return (
     <Card className="border-border/60">
@@ -56,12 +77,12 @@ function AgentRow({ agent }: { agent: Agent }) {
               <p className="text-xs text-muted-foreground truncate">
                 {agent.tag}
               </p>
-              <div className="flex items-center gap-2 mt-2">
-                {editing ? (
-                  <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-2 mt-2">
+                {editing === "user" ? (
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Input
-                      value={model}
-                      onChange={(e) => setModel(e.target.value)}
+                      value={userModel}
+                      onChange={(e) => setUserModel(e.target.value)}
                       className="h-7 text-xs w-48"
                       autoFocus
                     />
@@ -70,18 +91,15 @@ function AgentRow({ agent }: { agent: Agent }) {
                       <Button
                         size="sm"
                         variant="default"
-                        onClick={() => mutation.mutate({ model })}
-                        disabled={mutation.isPending || !model}
+                        onClick={() => userMutation.mutate({ model: userModel })}
+                        disabled={userMutation.isPending || !userModel}
                       >
                         Save
                       </Button>
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => {
-                          setEditing(false);
-                          setModel(agent.model);
-                        }}
+                        onClick={resetEditing}
                       >
                         Cancel
                       </Button>
@@ -89,6 +107,7 @@ function AgentRow({ agent }: { agent: Agent }) {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Your model</span>
                     <code className="text-[11px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
                       {agent.model}
                     </code>
@@ -98,7 +117,7 @@ function AgentRow({ agent }: { agent: Agent }) {
                           <Button
                             size="icon-sm"
                             variant="ghost"
-                            onClick={() => setEditing(true)}
+                            onClick={() => setEditing("user")}
                             className="text-muted-foreground hover:text-foreground hover:bg-muted"
                           />
                         }
@@ -108,6 +127,53 @@ function AgentRow({ agent }: { agent: Agent }) {
                       <TooltipContent>Edit model</TooltipContent>
                     </Tooltip>
                   </div>
+                )}
+                {isAdmin && (
+                  editing === "global" ? (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Input
+                        value={globalModel}
+                        onChange={(e) => setGlobalModel(e.target.value)}
+                        className="h-7 text-xs w-48"
+                        autoFocus
+                      />
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => globalMutation.mutate({ model: globalModel })}
+                          disabled={globalMutation.isPending || !globalModel}
+                        >
+                          Save
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={resetEditing}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Global default</span>
+                      <code className="text-[11px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                        {agent.defaultModel ?? agent.model}
+                      </code>
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <Button
+                              size="icon-sm"
+                              variant="ghost"
+                              onClick={() => setEditing("global")}
+                              className="text-muted-foreground hover:text-foreground hover:bg-muted"
+                            />
+                          }
+                        >
+                          <Pencil className="size-3" />
+                        </TooltipTrigger>
+                        <TooltipContent>Edit global default</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  )
                 )}
               </div>
             </div>
@@ -119,7 +185,8 @@ function AgentRow({ agent }: { agent: Agent }) {
 }
 
 export default function AgentsPage() {
-  const { data: agents = [], isLoading } = useQuery<Agent[]>({
+  const { user } = useAuth();
+  const { data: agents = [], isLoading } = useQuery<AgentWithModels[]>({
     queryKey: ["agents"],
     queryFn: fetchAgents,
   });
@@ -150,7 +217,7 @@ export default function AgentsPage() {
               </div>
             </div>
           ) : (
-            agents.map((agent) => <AgentRow key={agent.id} agent={agent} />)
+            agents.map((agent) => <AgentRow key={agent.id} agent={agent} isAdmin={user?.isAdmin === true} />)
           )}
         </div>
       </div>

@@ -26,7 +26,7 @@ export class TerminalsController {
   @Post(':terminalId/disconnect')
   async disconnect(@Param('terminalId') terminalId: string, @CurrentUser() user: AuthUser) {
     await this.terminalsService.findOne(terminalId, user.id);
-    return this.terminalsService.markDisconnected(terminalId);
+    return this.terminalsService.markDisconnected(terminalId, user.id);
   }
 
   @Post(':terminalId/assign-task')

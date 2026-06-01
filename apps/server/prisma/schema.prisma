@@ -32,8 +32,24 @@ model Agent {
   kanbanColumns KanbanColumn[]
   messages      Message[]
   taskSchedules TaskSchedule[]
+  userSettings  UserAgentSetting[]
 
   @@map("agents")
+}
+
+model UserAgentSetting {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentId   String
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  model     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, agentId])
+  @@index([agentId])
+  @@map("user_agent_settings")
 }
 
 model Project {
@@ -176,7 +192,7 @@ model Message {
 
 model Terminal {
   id              String         @id
-  name            String         @unique
+  name            String
   hostname        String
   isConnected     Boolean        @default(false)
   lastSeenAt      DateTime?
@@ -186,6 +202,7 @@ model Terminal {
   taskAssignments TaskTerminal[]
   taskSchedules   TaskSchedule[]
 
+  @@unique([userId, name])
   @@index([userId])
   @@map("terminals")
 }
@@ -198,6 +215,8 @@ model Notification {
   projectId String
   project   Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   message   String
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Restrict)
   readAt    DateTime?
   createdAt DateTime         @default(now())
 
@@ -205,6 +224,7 @@ model Notification {
   @@index([createdAt])
   @@index([taskId])
   @@index([projectId])
+  @@index([userId])
   @@map("notifications")
 }
 
@@ -222,6 +242,8 @@ model User {
   skills        ProjectSkill[]
   terminals     Terminal[]
   messages      Message[]
+  notifications Notification[]
+  agentSettings UserAgentSetting[]
   taskSchedules TaskSchedule[]
 
   @@map("users")

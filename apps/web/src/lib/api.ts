@@ -1,7 +1,7 @@
 // apps/web/src/lib/api.ts
 
 import {
-  type Agent,
+  type Agent as SharedAgent,
   type KanbanColumn,
   type Notification,
   type Paginated,
@@ -15,10 +15,14 @@ import {
 } from "@onezone/shared";
 import { httpClient, API_BASE } from "./http-client";
 export type {
-  Agent,
   KanbanColumn,
   ProjectInfo as Project,
 } from "@onezone/shared";
+
+export interface Agent extends SharedAgent {
+  defaultModel?: string;
+  userModel?: string | null;
+}
 
 // ─── Auth types ───────────────────────────────────────────────────────────────
 
@@ -26,6 +30,7 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
+  isAdmin?: boolean;
 }
 
 export function safeReturnTo(value: string | null): string {
@@ -129,6 +134,9 @@ export const fetchAgents = () => httpClient.get<Agent[]>("/agents");
 
 export const updateAgent = (id: string, data: { model: string }) =>
   httpClient.patch<Agent>(`/agents/${id}`, data);
+
+export const updateGlobalAgent = (id: string, data: { model: string }) =>
+  httpClient.patch<Agent>(`/agents/${id}/global`, data);
 
 export const fetchTasks = (projectId: string) =>
   httpClient.get<Task[]>(`/projects/${projectId}/tasks`);
