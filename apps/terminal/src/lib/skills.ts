@@ -5,12 +5,12 @@ import {
 } from "@onezone/shared";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { runProcess, terminateTree } from "./process-runner.js";
 import {
   getAllInstalledSkills,
   getProjectConfigFolder,
   removeSkill,
 } from "./project-paths.js";
-import { runProcess, terminateTree } from "./process-runner.js";
 
 // Dedupes concurrent install attempts for the same skill across tasks/terminals.
 const inFlightInstalls = new Map<string, Promise<void>>();
@@ -54,10 +54,6 @@ export async function runSkillCommand(
         cmd,
         cwd: configDir,
         signal,
-        onLine: (stream, line) => {
-          const prefix = stream === MessageStream.Stderr ? "stderr" : "stdout";
-          log(`[skill] ${prefix}: ${line}`);
-        },
       });
       if (exitCode !== 0) {
         log(`[skill] Installing "${skillName}" exited with code ${exitCode}`);

@@ -33,8 +33,8 @@ export function useTaskMutations(
       }
       return updateTaskColumn(task.id, columnId);
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["task", task.id] });
+    onSuccess: (updatedTask) => {
+      qc.setQueryData(["task", task.id], updatedTask);
       qc.invalidateQueries({ queryKey: ["tasks", projectId] });
     },
   });

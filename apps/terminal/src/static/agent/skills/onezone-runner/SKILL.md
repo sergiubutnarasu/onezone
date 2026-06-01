@@ -57,9 +57,30 @@ You **MUST** follow the steps below in order:
    ```
    This commits all changes, pushes the branch, and removes the worktree.
 
-8. **Signal the next column.** At the very end of your response, on its own line, output:
+8. **Signal the next column.** If a next column exists, the final line of your entire response **MUST** be exactly one machine-readable tag in this format:
    ```
    [[ONEZONE_NEXT_COLUMN:<column-uuid>]]
+   ```
+
+   Replace `<column-uuid>` with the UUID of the next column. The tag must include both opening brackets `[[` and both closing brackets `]]`. Do not wrap the tag in backticks, quotes, bullets, or any explanatory text.
+
+   Correct final line example:
+   ```
+   [[ONEZONE_NEXT_COLUMN:24192ebd-2057-40fb-b977-3617b8d1e8b4]]
+   ```
+
+   Invalid final lines:
+   ```
+   ONEZONE_NEXT_COLUMN:24192ebd-2057-40fb-b977-3617b8d1e8b4
+   [ONEZONE_NEXT_COLUMN:24192ebd-2057-40fb-b977-3617b8d1e8b4]
+   [[ONEZONE_NEXT_COLUMN:24192ebd-2057-40fb-b977-3617b8d1e8b4]
+   `[[ONEZONE_NEXT_COLUMN:24192ebd-2057-40fb-b977-3617b8d1e8b4]]`
+   Next: [[ONEZONE_NEXT_COLUMN:24192ebd-2057-40fb-b977-3617b8d1e8b4]]
+   ```
+
+   Before sending your response, verify the final line matches this exact pattern:
+   ```
+   ^\[\[ONEZONE_NEXT_COLUMN:[0-9a-fA-F-]{36}\]\]$
    ```
 
    **Important**: If the current column is the last column, do not output the `[[ONEZONE_NEXT_COLUMN:...]]` line. Do NOT move the task back to the backlog under any circumstances.

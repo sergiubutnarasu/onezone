@@ -12,6 +12,7 @@ import {
   Circle,
   Loader2,
   Pencil,
+  Play,
   Trash2,
   X,
   ChevronDown,
@@ -76,6 +77,9 @@ export function TaskInfoPanel({
   const { assignMutation, columnMutation, agentMutation, deleteMutation } =
     useTaskMutations(task, projectId, onDeleted);
 
+  const nextColumn = [...columns].sort((a, b) => a.index - b.index)[0];
+  const isBacklogTask = task.columnId === null && !task.completedAt;
+
   const currentColumnName = task.completedAt
     ? "Completed"
     : task.columnId
@@ -113,6 +117,23 @@ export function TaskInfoPanel({
           {/* Status */}
           <div className="space-y-2">
             <SectionLabel>Status</SectionLabel>
+            {isBacklogTask && (
+              <Button
+                size="sm"
+                className="w-full justify-start text-xs"
+                onClick={() => {
+                  if (nextColumn) columnMutation.mutate(nextColumn.id);
+                }}
+                disabled={!nextColumn || columnMutation.isPending}
+              >
+                {columnMutation.isPending ? (
+                  <Loader2 className="size-3 mr-2 animate-spin" />
+                ) : (
+                  <Play className="size-3 mr-2" />
+                )}
+                Start
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 w-full rounded-md px-2.5 py-1.5 text-left hover:bg-muted/50 transition-colors group">
