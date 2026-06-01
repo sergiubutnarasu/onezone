@@ -42,7 +42,8 @@ WORKDIR /home/agent
 # Pre-create writable directories as agent user
 RUN mkdir -p /home/agent/.onezone/projects \
   && mkdir -p /home/agent/.local/bin \
-  && mkdir -p /home/agent/.local/share
+  && mkdir -p /home/agent/.local/share \
+  && mkdir -p /home/agent/.claude
 
 # Trust GitHub's host key
 RUN mkdir -p /home/agent/.ssh \
