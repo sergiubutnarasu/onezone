@@ -341,10 +341,9 @@ export class TasksService {
     });
     this.logger.log(`Created task ${task.id} for project ${projectId}`);
     const fullTask = await this.findOne(task.id, data.userId);
-    this.terminalRegistry.assignTask(
-      data.terminalId,
-      (await this.toChatMessage(fullTask)).task!,
-    );
+    const taskMessage = await this.toChatMessage(fullTask);
+    this.terminalRegistry.assignTask(data.terminalId, taskMessage.task!);
+    this.terminalRegistry.notifyTaskColumnUpdated(task.id, taskMessage);
     return this.flattenTask(task);
   }
 
