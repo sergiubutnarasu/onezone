@@ -51,7 +51,8 @@ services:
 
   terminal:
     build:
-      context: apps/terminal
+      context: .
+      dockerfile: apps/terminal/Dockerfile
     environment:
       TERMINAL_NAME: ${TERMINAL_NAME:-Onezone Docker Terminal}
       TERMINAL_SERVER_URL: ${TERMINAL_SERVER_URL:-http://server:5026}
