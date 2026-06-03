@@ -31,16 +31,6 @@ export const getProjectConfigFolder = (projectId: string): string => {
   );
 };
 
-export const getProjectMemoriesFolder = (projectId: string): string => {
-  return path.join(
-    os.homedir(),
-    ONEZONE_PROJECTS_LOCATION,
-    projectId,
-    "config",
-    "memories",
-  );
-};
-
 export const getProjectWorkDir = (projectId: string): string => {
   return path.join(
     os.homedir(),
@@ -152,7 +142,6 @@ export const createClaudeSettings = (projectId: string): boolean => {
   try {
     const workDir = getProjectWorkDir(projectId);
     const projectConfigFolder = getProjectConfigFolder(projectId);
-    const memoriesFolder = getProjectMemoriesFolder(projectId);
     const claudeDir = path.join(projectConfigFolder, ".claude");
     const settingsPath = path.join(claudeDir, "settings.json");
 
@@ -166,14 +155,12 @@ export const createClaudeSettings = (projectId: string): boolean => {
           `Bash(*)`,
           `Edit(/${workDir})`,
           `Read(/${workDir})`,
-          `Edit(/${memoriesFolder})`,
-          `Read(/${memoriesFolder})`,
         ],
       },
       sandbox: {
         filesystem: {
-          allowWrite: [`/${workDir}`, `/${memoriesFolder}`],
-          allowRead: [`/${workDir}`, `/${memoriesFolder}`],
+          allowWrite: [`/${workDir}`],
+          allowRead: [`/${workDir}`],
         },
       },
       ...(isRtkAvailable() && {

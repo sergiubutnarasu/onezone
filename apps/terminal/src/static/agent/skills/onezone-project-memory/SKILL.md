@@ -1,35 +1,30 @@
 ---
 name: onezone-project-memory
-description: "Maintain a living knowledge wiki for the project. Read at session start; write after completing tasks, discovering patterns, or fixing bugs. Uses a Karpathy-style wiki: raw/ for staged facts, wiki/ for compiled topic articles, INDEX.md as a navigable map."
+description: "Maintain a living knowledge wiki for the project. Read at session start; write after completing tasks, discovering patterns, or fixing bugs. Uses a Karpathy-style wiki: raw/ for staged facts, wiki/ for compiled topic articles, INDEX.md as a navigable map. Stored remotely via the onezone-terminal memory command."
 argument-hint: "Optional context hint, e.g. 'just ran migration', 'fixed auth bug', 'read' (read-only mode)"
 ---
 
 # Project Memory Wiki
 
-Maintain a living knowledge base for the project inside `config/memories/`. Inspired by Karpathy's LLM Knowledge Base workflow: raw facts are staged, then compiled by the LLM into a structured wiki of topic articles with cross-links.
+Maintain a living knowledge base for the project. Inspired by Karpathy's LLM Knowledge Base workflow: raw facts are staged, then compiled by the LLM into a structured wiki of topic articles with cross-links.
 
-**IMPORTANT — File locations:**
-`config/` is a sibling of `workdir/`, NOT inside it. Never write to `workdir/config/...`.
+**All memory files are stored remotely via the `onezone-terminal memory` command.**
+There are no local memory files. Use the CLI commands below to read and write.
 
 ```
-<workspace-root>/
-  config/
-    memories/
-      INDEX.md          ← navigable map of all wiki articles (auto-maintained)
-      raw/              ← staging area: unprocessed facts dumped here first
-        YYYY-MM-DD-<slug>.md
-      wiki/             ← compiled knowledge articles (organized by topic)
-        architecture.md
-        commands.md
-        environment.md
-        issues.md
-        decisions.md
-        changelog.md
-        <topic>.md      ← create new articles as the project grows
-  workdir/
+memories/
+  INDEX.md          ← navigable map of all wiki articles (auto-maintained)
+  raw/              ← staging area: unprocessed facts dumped here first
+    YYYY-MM-DD-<slug>.md
+  wiki/             ← compiled knowledge articles (organized by topic)
+    architecture.md
+    commands.md
+    environment.md
+    issues.md
+    decisions.md
+    changelog.md
+    <topic>.md      ← create new articles as the project grows
 ```
-
-If `config/memories/` does not exist, create the full structure at the workspace root level.
 
 ---
 
@@ -49,13 +44,42 @@ Skip writing if the session produced no new information.
 
 ---
 
+## CLI Commands
+
+Use `onezone-terminal memory` to interact with project memory:
+
+```sh
+# List memory files
+onezone-terminal memory list --project <project-id> [--prefix wiki/]
+
+# Read a memory file
+onezone-terminal memory read --project <project-id> --key <key>
+
+# Write a memory file (inline content)
+onezone-terminal memory write --project <project-id> --key <key> --content '<content>'
+
+# Write a memory file from a local file
+onezone-terminal memory write --project <project-id> --key <key> --file <path>
+
+# Delete a memory file
+onezone-terminal memory delete --project <project-id> --key <key>
+```
+
+The `--server` flag can be added to any command if the server is not at the default URL.
+
+---
+
 ## Procedure
 
 ### READ — Loading Context at Session Start
 
-1. Read `config/memories/INDEX.md`. If it does not exist, the wiki is empty — proceed with an empty context.
+1. Read `INDEX.md`:
+   ```sh
+   onezone-terminal memory read --project <project-id> --key INDEX.md
+   ```
+   If it does not exist, the wiki is empty — proceed with an empty context.
 2. From the index, identify which wiki articles are relevant to the current task (e.g., if the task touches auth, load `wiki/architecture.md` and `wiki/decisions.md`).
-3. Load only those articles. Do NOT load the entire wiki upfront — it wastes context. Load additional articles on demand as needed.
+3. Load only those articles using `memory read`. Do NOT load the entire wiki upfront — it wastes context. Load additional articles on demand as needed.
 
 ### WRITE — After Completing Work
 
@@ -63,7 +87,7 @@ Follow these four steps in order.
 
 #### Step 1 — Stage raw facts
 
-Create a new file in `config/memories/raw/` named `YYYY-MM-DD-<slug>.md` where `<slug>` is a 2–5 word kebab-case description of what was learned (e.g., `2026-05-23-auth-jwt-flow.md`).
+Create a new file in `raw/` named `YYYY-MM-DD-<slug>.md` where `<slug>` is a 2–5 word kebab-case description of what was learned (e.g., `2026-05-23-auth-jwt-flow.md`).
 
 Dump every new fact from the session as bullet points. No formatting required — this is a staging area. Include:
 - Commands that worked (exact invocations)
@@ -73,6 +97,11 @@ Dump every new fact from the session as bullet points. No formatting required �
 - Decisions and rationale
 
 Skip facts already present in an existing wiki article.
+
+Use `memory write` to upload the file:
+```sh
+onezone-terminal memory write --project <project-id> --key raw/YYYY-MM-DD-<slug>.md --content '<content>'
+```
 
 #### Step 2 — Compile raw into wiki
 
@@ -89,14 +118,14 @@ For each fact in the new raw file, decide which wiki article it belongs to:
 | A new cohesive topic with 3+ facts | `wiki/<topic>.md` (create new) |
 
 For each target article:
-- **Exists**: Read it. Make surgical additions only — do not rewrite unchanged sections.
-- **Does not exist**: Create it with the structure shown below.
+- **Exists**: Read it with `memory read`. Make surgical additions only — do not rewrite unchanged sections.
+- **Does not exist**: Create it with `memory write` using the structure shown below.
 
 Add **backlinks** at the bottom of each article pointing to related articles (e.g., `See also: [architecture.md](architecture.md)`).
 
 #### Step 3 — Update INDEX.md
 
-Rewrite `config/memories/INDEX.md` to reflect the current state of the wiki. Format:
+Rewrite `INDEX.md` to reflect the current state of the wiki. Format:
 
 ```markdown
 # Project Wiki Index
@@ -117,6 +146,11 @@ List any raw/ files not yet merged into the wiki, if any.
 ```
 
 Keep descriptions to one line. The index is a navigation aid, not a summary.
+
+Upload with:
+```sh
+onezone-terminal memory write --project <project-id> --key INDEX.md --content '<content>'
+```
 
 #### Step 4 — Lint (opportunistic, not mandatory every session)
 

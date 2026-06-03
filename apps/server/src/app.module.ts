@@ -15,6 +15,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { AuthModule } from './auth/auth.module';
 import { GlobalJwtGuard } from './auth/global-jwt.guard';
 import { SchedulesModule } from './schedules/schedules.module';
+import { MemoryModule } from './memory/memory.module';
 
 @Module({
   controllers: [HealthController],
@@ -32,6 +33,7 @@ import { SchedulesModule } from './schedules/schedules.module';
     GatewaysModule,
     NotificationsModule,
     SchedulesModule,
+    MemoryModule,
   ],
   providers: [
     {
