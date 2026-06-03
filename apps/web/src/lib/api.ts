@@ -262,6 +262,21 @@ export const markAllNotificationsRead = () =>
 export const removeGlobalSkill = (skillId: string) =>
   httpClient.delete<void>(`/skills/${skillId}`);
 
+// Project memory
+export const fetchMemoryFiles = (projectId: string, prefix?: string) => {
+  const params = prefix ? `?prefix=${encodeURIComponent(prefix)}` : '';
+  return httpClient.get<{ keys: string[] }>(`/projects/${projectId}/memory${params}`);
+};
+
+export const fetchMemoryFile = (projectId: string, key: string) =>
+  httpClient.get<{ content: string | null }>(`/projects/${projectId}/memory/${encodeURIComponent(key)}`);
+
+export const writeMemoryFile = (projectId: string, key: string, content: string) =>
+  httpClient.post<void>(`/projects/${projectId}/memory/${encodeURIComponent(key)}`, { content });
+
+export const deleteMemoryFile = (projectId: string, key: string) =>
+  httpClient.delete<void>(`/projects/${projectId}/memory/${encodeURIComponent(key)}`);
+
 // Task schedules
 export const fetchSchedules = (projectId: string) =>
   httpClient.get<TaskSchedule[]>(`/projects/${projectId}/schedules`);

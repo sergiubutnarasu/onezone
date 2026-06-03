@@ -12,9 +12,10 @@ interface CreateTaskButtonProps {
   project: ProjectInfo | null;
   terminals: Terminal[];
   agents: Agent[];
+  iconOnly?: boolean;
 }
 
-export function CreateTaskButton({ projectId, project, terminals, agents }: CreateTaskButtonProps) {
+export function CreateTaskButton({ projectId, project, terminals, agents, iconOnly }: CreateTaskButtonProps) {
   const [open, setOpen] = useState(false);
   const noTerminals = terminals.length === 0;
 
@@ -25,9 +26,11 @@ export function CreateTaskButton({ projectId, project, terminals, agents }: Crea
           <Button
             disabled={noTerminals}
             onClick={() => setOpen(true)}
+            size={iconOnly ? 'icon' : 'default'}
+            variant={iconOnly ? 'ghost' : 'default'}
           >
-            <Plus data-icon="inline-start" />
-            New Task
+            <Plus className={iconOnly ? 'size-4' : undefined} data-icon={iconOnly ? undefined : 'inline-start'} />
+            {!iconOnly && 'New Task'}
           </Button>
         </TooltipTrigger>
         {noTerminals && (

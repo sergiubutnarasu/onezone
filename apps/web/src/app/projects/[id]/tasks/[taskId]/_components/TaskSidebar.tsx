@@ -11,14 +11,18 @@ import {
 } from "lucide-react";
 import { fetchTasks } from "@/lib/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { CreateTaskButton } from "@/components/CreateTaskButton";
 import { cn } from "@/lib/utils";
-import type { Task } from "@onezone/shared";
+import type { Task, ProjectInfo, Terminal, Agent } from "@onezone/shared";
 
 interface TaskSidebarProps {
   projectId: string;
+  project: ProjectInfo | null;
   currentTaskId: string;
   mobileOpen: boolean;
   onMobileClose: () => void;
+  terminals: Terminal[];
+  agents: Agent[];
 }
 
 function TaskItem({ task, isActive }: { task: Task; isActive: boolean }) {
@@ -48,12 +52,18 @@ function TaskItem({ task, isActive }: { task: Task; isActive: boolean }) {
 
 function SidebarContent({
   projectId,
+  project,
   currentTaskId,
   onClose,
+  terminals,
+  agents,
 }: {
   projectId: string;
+  project: ProjectInfo | null;
   currentTaskId: string;
   onClose?: () => void;
+  terminals: Terminal[];
+  agents: Agent[];
 }) {
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["tasks", projectId],
@@ -83,10 +93,17 @@ function SidebarContent({
         )}
       </div>
 
-      <div className="px-4 py-2">
+      <div className="px-4 py-2 flex items-center justify-between">
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Tasks ({tasks.length})
         </h2>
+        <CreateTaskButton
+          projectId={projectId}
+          project={project}
+          terminals={terminals}
+          agents={agents}
+          iconOnly
+        />
       </div>
 
       <ScrollArea className="flex-1 h-full min-h-0">
@@ -114,9 +131,12 @@ function SidebarContent({
 
 export function TaskSidebar({
   projectId,
+  project,
   currentTaskId,
   mobileOpen,
   onMobileClose,
+  terminals,
+  agents,
 }: TaskSidebarProps) {
   return (
     <>
@@ -124,7 +144,10 @@ export function TaskSidebar({
       <aside className="hidden lg:flex flex-col w-60 shrink-0 border-r border-border bg-card/30 overflow-hidden">
         <SidebarContent
           projectId={projectId}
+          project={project}
           currentTaskId={currentTaskId}
+          terminals={terminals}
+          agents={agents}
         />
       </aside>
 
@@ -138,8 +161,11 @@ export function TaskSidebar({
           <aside className="fixed top-0 left-0 h-full w-60 bg-sidebar border-r border-border z-50 flex flex-col lg:hidden overflow-hidden">
             <SidebarContent
               projectId={projectId}
+              project={project}
               currentTaskId={currentTaskId}
               onClose={onMobileClose}
+              terminals={terminals}
+              agents={agents}
             />
           </aside>
         </>

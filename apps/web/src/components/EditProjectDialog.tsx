@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { updateProject, deleteProject, fetchProjectSkills, installProjectSkill, removeProjectSkill, exportProject } from "@/lib/api";
+import { MemoryManager } from "@/components/MemoryManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
@@ -165,6 +166,7 @@ export function EditProjectDialog({
           <TabsList className="w-full">
             <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
             <TabsTrigger value="skills" className="flex-1">Skills</TabsTrigger>
+            <TabsTrigger value="memory" className="flex-1">Memory</TabsTrigger>
           </TabsList>
 
           <TabsContent value="details" className="mt-3">
@@ -293,6 +295,10 @@ export function EditProjectDialog({
               onRemove={(id) => removeMutation.mutate(id)}
               removePending={removeMutation.isPending}
             />
+          </TabsContent>
+
+          <TabsContent value="memory" className="mt-3">
+            <MemoryManager projectId={project.id} />
           </TabsContent>
         </Tabs>
         </DialogBody>

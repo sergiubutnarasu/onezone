@@ -7,6 +7,7 @@ import {
   fetchAgents,
   fetchKanbanColumns,
   fetchMessages,
+  fetchProject,
   fetchTask,
   fetchTerminals,
 } from "@/lib/api";
@@ -28,6 +29,11 @@ export default function TaskChatPage() {
   const { data: task } = useQuery({
     queryKey: ["task", taskId],
     queryFn: () => fetchTask(taskId),
+  });
+
+  const { data: project } = useQuery({
+    queryKey: ["project", projectId],
+    queryFn: () => fetchProject(projectId),
   });
 
   const { data: terminals = [] } = useQuery<Terminal[]>({
@@ -115,9 +121,12 @@ export default function TaskChatPage() {
       <div className="flex h-[calc(100dvh-3rem)] md:h-dvh bg-background overflow-hidden">
         <TaskSidebar
           projectId={projectId}
+          project={project ?? null}
           currentTaskId={taskId}
           mobileOpen={sidebarOpen}
           onMobileClose={() => setSidebarOpen(false)}
+          terminals={terminals}
+          agents={agents}
         />
 
         <TaskMainContent
