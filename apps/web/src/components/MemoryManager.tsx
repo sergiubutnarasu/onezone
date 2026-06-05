@@ -1,19 +1,21 @@
-'use client';
+"use client";
 
-import { useState, useCallback } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileText, Trash2, Plus, Save, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { useCallback, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FileText, Trash2, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { AddMemoryButton } from "@/components/AddMemoryButton";
+import { cn } from "@/lib/utils";
 import {
   fetchMemoryFiles,
   fetchMemoryFile,
   writeMemoryFile,
   deleteMemoryFile,
-} from '@/lib/api';
+} from "@/lib/api";
 
 interface MemoryManagerProps {
   projectId: string;
@@ -22,197 +24,276 @@ interface MemoryManagerProps {
 export function MemoryManager({ projectId }: MemoryManagerProps) {
   const qc = useQueryClient();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [newKey, setNewKey] = useState('');
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState("");
   const [isDirty, setIsDirty] = useState(false);
+  const [editorKey, setEditorKey] = useState(0);
+  const [hasFocusedEditor, setHasFocusedEditor] = useState(false);
+  const [pendingSelectKey, setPendingSelectKey] = useState<string | null>(null);
+  const [deleteKey, setDeleteKey] = useState<string | null>(null);
 
   const { data: filesData, isLoading: filesLoading } = useQuery({
-    queryKey: ['project-memory', projectId],
+    queryKey: ["project-memory", projectId],
     queryFn: () => fetchMemoryFiles(projectId),
   });
 
+  const keys = useMemo(() => filesData?.keys ?? [], [filesData?.keys]);
+  const activeKey = selectedKey ?? keys[0] ?? null;
+
   const { data: fileData, isLoading: fileLoading } = useQuery({
-    queryKey: ['project-memory-file', projectId, selectedKey],
-    queryFn: () => fetchMemoryFile(projectId, selectedKey!),
-    enabled: !!selectedKey,
+    queryKey: ["project-memory-file", projectId, activeKey],
+    queryFn: () => fetchMemoryFile(projectId, activeKey!),
+    enabled: !!activeKey,
   });
 
   const writeMutation = useMutation({
     mutationFn: ({ key, content }: { key: string; content: string }) =>
       writeMemoryFile(projectId, key, content),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['project-memory', projectId] });
-      qc.invalidateQueries({ queryKey: ['project-memory-file', projectId, selectedKey] });
+      qc.invalidateQueries({ queryKey: ["project-memory", projectId] });
+      qc.invalidateQueries({
+        queryKey: ["project-memory-file", projectId, activeKey],
+      });
       setIsDirty(false);
+      setHasFocusedEditor(false);
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (key: string) => deleteMemoryFile(projectId, key),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['project-memory', projectId] });
-      if (selectedKey) {
+    onSuccess: (_data, deletedKey) => {
+      qc.invalidateQueries({ queryKey: ["project-memory", projectId] });
+      if (activeKey === deletedKey) {
         setSelectedKey(null);
-        setContent('');
+        setContent("");
         setIsDirty(false);
+        setHasFocusedEditor(false);
       }
     },
   });
 
+  const selectFile = useCallback((key: string) => {
+    setSelectedKey(key);
+    setContent("");
+    setIsDirty(false);
+    setHasFocusedEditor(false);
+    setEditorKey((value) => value + 1);
+  }, []);
+
   const handleSelectFile = useCallback(
     (key: string) => {
-      if (isDirty && selectedKey && selectedKey !== key) {
-        if (!window.confirm('You have unsaved changes. Discard them?')) {
-          return;
-        }
+      if (isDirty && activeKey && activeKey !== key) {
+        setPendingSelectKey(key);
+        return;
       }
-      setSelectedKey(key);
-      setContent('');
-      setIsDirty(false);
+      selectFile(key);
     },
-    [isDirty, selectedKey],
+    [activeKey, isDirty, selectFile],
   );
 
-  const handleCreate = () => {
-    const key = newKey.trim();
-    if (!key) return;
-    writeMutation.mutate({ key, content: '' }, {
-      onSuccess: () => {
-        setNewKey('');
-        setSelectedKey(key);
-        setContent('');
-        setIsDirty(false);
-      },
-    });
+  const handleConfirmDiscard = () => {
+    if (!pendingSelectKey) return;
+    selectFile(pendingSelectKey);
+    setPendingSelectKey(null);
   };
 
   const handleSave = () => {
-    if (!selectedKey) return;
-    writeMutation.mutate({ key: selectedKey, content });
+    if (!activeKey) return;
+    writeMutation.mutate({ key: activeKey, content });
   };
 
   const handleDelete = (key: string) => {
-    if (!window.confirm(`Delete "${key}"?`)) return;
-    deleteMutation.mutate(key);
+    setDeleteKey(key);
   };
 
-  // Sync content when file data loads
-  const currentFileContent = fileData?.content ?? '';
-  const isLoadingFile = fileLoading && !!selectedKey;
+  const handleConfirmDelete = () => {
+    if (!deleteKey) return;
+    deleteMutation.mutate(deleteKey);
+    setDeleteKey(null);
+  };
 
-  // Only auto-set content from query when not dirty and not actively loading
-  // We use a ref-like pattern: if selectedKey changes, reset content
-  // But we can't use useEffect easily without causing loops. Instead, we'll
-  // show content from query directly when not dirty.
+  const handleMemoryCreated = (key: string, createdContent: string) => {
+    setSelectedKey(key);
+    setContent(createdContent);
+    setIsDirty(false);
+    setHasFocusedEditor(false);
+    setEditorKey((value) => value + 1);
+  };
+
+  const currentFileContent = fileData?.content ?? "";
+  const isLoadingFile = fileLoading && !!activeKey;
   const displayContent = isDirty ? content : currentFileContent;
 
-  const keys = filesData?.keys ?? [];
-
   return (
-    <div className="flex flex-col gap-3">
-      {/* Create new file */}
-      <div className="flex gap-2">
-        <Input
-          value={newKey}
-          onChange={(e) => setNewKey(e.target.value)}
-          placeholder="New memory file key (e.g. notes.md)"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleCreate();
-          }}
-        />
-        <Button
-          size="icon"
-          onClick={handleCreate}
-          disabled={!newKey.trim() || writeMutation.isPending}
-        >
-          <Plus className="size-4" />
-        </Button>
-      </div>
-
-      {/* File list */}
-      {filesLoading ? (
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
-        </div>
-      ) : keys.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-4">
-          No memory files yet
-        </p>
-      ) : (
-        <ScrollArea className="max-h-40 border rounded-md">
-          <div className="flex flex-col">
-            {keys.map((key) => (
-              <div
-                key={key}
-                className={`flex items-center justify-between gap-2 px-3 py-2 cursor-pointer hover:bg-accent ${
-                  selectedKey === key ? 'bg-accent' : ''
-                }`}
-                onClick={() => handleSelectFile(key)}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <FileText className="size-4 text-muted-foreground shrink-0" />
-                  <span className="text-sm truncate">{key}</span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0 text-muted-foreground hover:text-destructive size-7"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(key);
-                  }}
-                  disabled={deleteMutation.isPending}
-                >
-                  <Trash2 className="size-3.5" />
-                </Button>
-              </div>
-            ))}
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background md:flex-row">
+      <aside className="flex min-h-48 shrink-0 flex-col border-b border-border bg-card/30 md:min-h-0 md:w-60 md:border-b-0 md:border-r">
+        <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2">
+          <div className="min-w-0">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Memory ({keys.length})
+            </h2>
           </div>
-        </ScrollArea>
-      )}
-
-      {/* Editor */}
-      {selectedKey && (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium truncate">{selectedKey}</p>
-            <div className="flex gap-1">
-              {isDirty && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setIsDirty(false);
-                    setContent(currentFileContent);
-                  }}
-                >
-                  <X className="size-3.5 mr-1" />
-                  Reset
-                </Button>
-              )}
-              <Button
-                size="sm"
-                onClick={handleSave}
-                disabled={!isDirty || writeMutation.isPending}
-              >
-                <Save className="size-3.5 mr-1" />
-                {writeMutation.isPending ? 'Saving…' : 'Save'}
-              </Button>
-            </div>
-          </div>
-          <Textarea
-            value={displayContent}
-            onChange={(e) => {
-              setContent(e.target.value);
-              setIsDirty(true);
-            }}
-            placeholder="File content..."
-            className="min-h-45 font-mono text-sm"
-            disabled={isLoadingFile}
+          <AddMemoryButton
+            projectId={projectId}
+            onCreated={handleMemoryCreated}
           />
         </div>
-      )}
+
+        {filesLoading ? (
+          <div className="flex flex-col gap-2 p-3">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-3/4" />
+          </div>
+        ) : keys.length === 0 ? (
+          <div className="flex flex-1 items-center justify-center p-4 text-center text-sm text-muted-foreground">
+            No memory files yet
+          </div>
+        ) : (
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="flex flex-col gap-0.5 p-2">
+              {keys.map((key) => (
+                <div
+                  key={key}
+                  role="button"
+                  tabIndex={0}
+                  className={cn(
+                    "group flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+                    activeKey === key
+                      ? "bg-accent text-accent-foreground font-medium"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                  onClick={() => handleSelectFile(key)}
+                  onKeyDown={(event) => {
+                    if (event.target !== event.currentTarget) return;
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      handleSelectFile(key);
+                    }
+                  }}
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <FileText className="shrink-0" />
+                    <span className="truncate">{key}</span>
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    className="shrink-0 text-muted-foreground opacity-100 hover:text-destructive md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleDelete(key);
+                    }}
+                    disabled={deleteMutation.isPending}
+                    title={`Delete ${key}`}
+                  >
+                    <Trash2 />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        )}
+      </aside>
+
+      <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="border-b border-border/60 bg-card/50 backdrop-blur-sm">
+          <div className="flex min-h-16 items-center justify-between gap-3 px-5 py-4">
+            <div className="min-w-0">
+              <h1 className="truncate text-sm font-semibold tracking-tight">
+                {activeKey ?? "Select a memory file"}
+              </h1>
+              {isDirty && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Unsaved changes
+                </p>
+              )}
+            </div>
+            {activeKey && (
+              <div className="flex shrink-0 items-center gap-2">
+                {isDirty && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setIsDirty(false);
+                      setHasFocusedEditor(false);
+                      setContent(currentFileContent);
+                      setEditorKey((key) => key + 1);
+                    }}
+                  >
+                    <X data-icon="inline-start" />
+                    Reset
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={
+                    !isDirty || writeMutation.isPending || isLoadingFile
+                  }
+                >
+                  {writeMutation.isPending ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 p-5">
+          {activeKey ? (
+            isLoadingFile ? (
+              <Skeleton className="h-full min-h-80 w-full" />
+            ) : (
+              <div
+                className="h-full"
+                onFocusCapture={() => setHasFocusedEditor(true)}
+              >
+                <RichTextEditor
+                  key={`${activeKey}-${currentFileContent}-${editorKey}`}
+                  value={displayContent}
+                  onChange={(value) => {
+                    setContent(value);
+                    if (hasFocusedEditor) {
+                      setIsDirty(value !== currentFileContent);
+                    }
+                  }}
+                  placeholder="Memory content..."
+                  className="h-full"
+                  minHeight="100%"
+                />
+              </div>
+            )
+          ) : (
+            <div className="flex h-full min-h-80 items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+              Select a memory file or add a new one
+            </div>
+          )}
+        </div>
+      </section>
+
+      <ConfirmDialog
+        open={!!pendingSelectKey}
+        onOpenChange={(open) => {
+          if (!open) setPendingSelectKey(null);
+        }}
+        title="Discard changes?"
+        description="You have unsaved changes in this memory file. Switching files will discard them."
+        confirmLabel="Discard"
+        onConfirm={handleConfirmDiscard}
+      />
+
+      <ConfirmDialog
+        open={!!deleteKey}
+        onOpenChange={(open) => {
+          if (!open) setDeleteKey(null);
+        }}
+        title="Delete memory file?"
+        description={
+          deleteKey ? `Delete "${deleteKey}"? This cannot be undone.` : ""
+        }
+        confirmLabel="Delete"
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }

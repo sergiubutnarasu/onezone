@@ -175,6 +175,9 @@ importers:
       '@lexical/history':
         specifier: ^0.43.0
         version: 0.43.0
+      '@lexical/link':
+        specifier: 0.43.0
+        version: 0.43.0
       '@lexical/list':
         specifier: ^0.43.0
         version: 0.43.0

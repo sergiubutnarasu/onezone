@@ -14,6 +14,7 @@ import {
   $convertToMarkdownString,
   TRANSFORMERS,
 } from "@lexical/markdown";
+import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -189,7 +190,7 @@ export function RichTextEditor({
     namespace: "RichTextEditor",
     theme: editorTheme,
     onError: (error: Error) => console.error(error),
-    nodes: [ListNode, ListItemNode, HeadingNode, QuoteNode],
+    nodes: [ListNode, ListItemNode, HeadingNode, QuoteNode, LinkNode, AutoLinkNode],
     editorState: () =>
       $convertFromMarkdownString(value ?? "", TRANSFORMERS),
   };
@@ -198,17 +199,17 @@ export function RichTextEditor({
     <LexicalComposer initialConfig={initialConfig}>
       <div
         className={cn(
-          "border border-input rounded-md overflow-hidden text-sm focus-within:ring-1 focus-within:ring-ring",
+          "flex flex-col border border-input rounded-md overflow-hidden text-sm focus-within:ring-1 focus-within:ring-ring",
           className,
         )}
       >
         <ToolbarPlugin />
-        <div className="relative">
+        <div className="relative flex-1 min-h-0">
           <RichTextPlugin
             contentEditable={
               <ContentEditable
                 autoFocus={autoFocus}
-                className="outline-none p-3 text-sm"
+                className="h-full overflow-y-auto outline-none p-3 text-sm"
                 style={{ minHeight }}
               />
             }

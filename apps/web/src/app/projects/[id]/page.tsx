@@ -3,7 +3,6 @@
 import { CollapsibleDescription } from "@/components/CollapsibleDescription";
 import { CopyButton } from "@/components/CopyButton";
 import { CreateTaskButton } from "@/components/CreateTaskButton";
-import { EditProjectButton } from "@/components/EditProjectButton";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { ProjectCostStats } from "@/components/ProjectCostStats";
 import { SchedulesButton } from "@/components/SchedulesButton";
@@ -22,7 +21,7 @@ import {
 } from "@/lib/api";
 import type { Agent, KanbanColumn, Task, Terminal } from "@onezone/shared";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Hash, Home } from "lucide-react";
+import { ChevronRight, Hash, Home, Settings } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
@@ -116,7 +115,13 @@ export default function ProjectPage() {
                   />
 
                   {project && (
-                    <EditProjectButton project={project} agents={agents} />
+                    <Link
+                      href={`/projects/${id}/settings/details`}
+                      className="inline-flex shrink-0 items-center justify-center rounded-lg border border-border bg-background hover:bg-muted hover:text-foreground size-8"
+                      aria-label="Project settings"
+                    >
+                      <Settings className="size-4" />
+                    </Link>
                   )}
                 </>
               )}
