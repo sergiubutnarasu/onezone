@@ -141,6 +141,15 @@ export function useTaskRoom(
     [taskId, isConnected],
   );
 
+  const pingCommand = useCallback(
+    (jobId: string, input: string) => {
+      const socket = socketRef.current;
+      if (!socket || !isConnected) return;
+      socket.emit(EventCommands.TerminalCommandPing, { jobId, taskId, input });
+    },
+    [taskId, isConnected],
+  );
+
   const prependMessages = useCallback((msgs: RoomMessage[]) => {
     dispatch({ type: "SET_MESSAGES", messages: msgs });
   }, []);
@@ -152,6 +161,7 @@ export function useTaskRoom(
     isConnected,
     sendMessage,
     stopCommand,
+    pingCommand,
     prependMessages,
   };
 }

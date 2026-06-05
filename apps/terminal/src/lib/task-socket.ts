@@ -134,6 +134,7 @@ export function createTaskSocket(
     EventCommands.TaskDeleted,
     EventCommands.TaskColumnUpdated,
     EventCommands.TerminalCommandStop,
+    EventCommands.TerminalCommandPing,
   ] as const;
 
   for (const event of forwardedEvents) {

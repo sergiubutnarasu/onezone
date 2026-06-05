@@ -172,6 +172,18 @@ export class TerminalRegistryService {
     return true;
   }
 
+  forwardPingCommandToTerminal(taskId: string, jobId: string, input: string): boolean {
+    const socketId = this.taskTerminalSockets.get(taskId);
+    if (!socketId || !this.server || !this.isSocketConnected(socketId)) {
+      this.logger.warn(
+        `forwardPingCommandToTerminal: no task terminal socket for ${taskId}`,
+      );
+      return false;
+    }
+    this.server.to(socketId).emit(EventCommands.TerminalCommandPing, { jobId, input });
+    return true;
+  }
+
   private queueStopCommand(taskId: string, jobId: string): void {
     const pending = this.pendingStopCommands.get(taskId) ?? new Set<string>();
     pending.add(jobId);

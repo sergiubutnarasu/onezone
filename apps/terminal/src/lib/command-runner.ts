@@ -24,6 +24,7 @@ export interface CommandRunnerDeps {
 
 export interface ActiveProcessEntry {
   cleanup: () => void;
+  writeStdin?: (data: string) => void;
 }
 
 export interface SpawnCommandProps {
@@ -142,11 +143,21 @@ export async function spawnCommand({
   let cancelled = false;
   let proc: ChildProcess | undefined;
 
+  let writeStdin: ((data: string) => void) | undefined;
+
   activeProcesses.set(jobId, {
     cleanup: () => {
       cancelled = true;
       setupAbortController.abort();
       if (proc?.pid) terminateTree(proc.pid);
+    },
+    writeStdin: (data: string) => {
+      if (!writeStdin) {
+        log(`[${terminalName}] [${roomId}] writeStdin called but no stdin writer available for job ${jobId}`);
+        return;
+      }
+      log(`[${terminalName}] [${roomId}] Writing to job ${jobId} stdin: ${data.trim()}`);
+      writeStdin(data);
     },
   });
 
@@ -205,6 +216,9 @@ export async function spawnCommand({
     args: [],
     shell: true,
     cwd: projectWorkDir,
+    onStdinReady: (write) => {
+      writeStdin = write;
+    },
     onLine: (stream, line) => {
       const clean = stripAnsi(line);
       if (!clean) return;

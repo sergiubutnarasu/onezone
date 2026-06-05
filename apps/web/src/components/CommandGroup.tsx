@@ -2,7 +2,7 @@
 
 import type { RoomMessage } from "@/hooks/useTaskRoom";
 import { parseClaudeLine, type ContentBlock } from "@/lib/claude-content";
-import { ChevronDown, ChevronRight, Loader2, Square } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Square, Play } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -31,7 +31,7 @@ function getDisplayCommand(command: string): string {
   return command;
 }
 
-export function CommandGroup({ group, onStop }: { group: CommandGroupData; onStop?: (jobId: string) => void }) {
+export function CommandGroup({ group, onStop, onPing }: { group: CommandGroupData; onStop?: (jobId: string) => void; onPing?: (jobId: string) => void }) {
   const [open, setOpen] = useState(false);
 
   const isDone = group.exitCode !== undefined;
@@ -70,6 +70,16 @@ export function CommandGroup({ group, onStop }: { group: CommandGroupData; onSto
               <Loader2 className="size-3 animate-spin" />
               running
             </span>
+            {onPing && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onPing(group.jobId); }}
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+                title="Continue command"
+              >
+                <Play className="size-2.5 fill-current" />
+                continue
+              </button>
+            )}
             {onStop && (
               <button
                 onClick={(e) => { e.stopPropagation(); onStop(group.jobId); }}

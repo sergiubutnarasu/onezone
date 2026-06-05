@@ -99,6 +99,18 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
               break;
             }
 
+            case EventCommands.TerminalCommandPing: {
+              const { jobId, input } = payload as { jobId: string; input: string };
+              const entry = activeProcesses.get(jobId);
+              if (entry?.writeStdin) {
+                log(`[${terminalName}] [${roomId}] Pinging job ${jobId} with input: ${input}`);
+                entry.writeStdin(input + "\n");
+              } else {
+                log(`[${terminalName}] [${roomId}] Ping ignored — no active job ${jobId} (found=${!!entry}, hasWriteStdin=${!!entry?.writeStdin})`);
+              }
+              break;
+            }
+
             case EventCommands.TaskColumnUpdated: {
               const message = payload as ChatMessage;
               log(

@@ -78,6 +78,7 @@ export function runProcess({
   onLine,
   onExit,
   shell = false,
+  onStdinReady,
 }: {
   cmd: string;
   cwd: string;
@@ -85,24 +86,35 @@ export function runProcess({
   onLine?: (stream: MessageStream, line: string) => void;
   onExit?: (code: number) => void;
   shell?: boolean;
+  onStdinReady?: (write: (data: string) => void) => void;
 }): ChildProcess {
   // detached: true puts the child in its own process group so process.kill(-pid)
   // correctly targets only that child's group.
   const proc = spawn(cmd, args, {
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio: onStdinReady ? ["pipe", "pipe", "pipe"] : ["ignore", "pipe", "pipe"],
     shell,
     detached: true,
     cwd,
   });
   activeProcs.add(proc);
 
+  if (onStdinReady && proc.stdin) {
+    onStdinReady((data: string) => {
+      if (proc.stdin?.writable) {
+        proc.stdin.write(data);
+      } else {
+        console.warn(`[process-runner] stdin not writable, dropping input: ${data.trim()}`);
+      }
+    });
+  }
+
   // Use readline to read the child's stdout and stderr line by line.
-  createInterface({ input: proc.stdout }).on("line", (line) =>
+  createInterface({ input: proc.stdout! }).on("line", (line) =>
     onLine?.(MessageStream.Stdout, line),
   );
 
   // Buffer stderr and only emit it on exit, to avoid interleaving with stdout lines.
-  createInterface({ input: proc.stderr }).on("line", (line) =>
+  createInterface({ input: proc.stderr! }).on("line", (line) =>
     onLine?.(MessageStream.Stderr, line),
   );
 
