@@ -20,12 +20,13 @@ export function useSocketConnection(taskId: string): {
 
     socketRef.current = socket;
 
-    attachSocketAuthRefresh(socket);
+    const detachSocketAuthRefresh = attachSocketAuthRefresh(socket);
 
     socket.on('connect', () => setIsConnected(true));
     socket.on('disconnect', () => setIsConnected(false));
 
     return () => {
+      detachSocketAuthRefresh();
       socket.disconnect();
       socketRef.current = null;
     };

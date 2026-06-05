@@ -46,7 +46,7 @@ export function useGlobalSocket() {
       withCredentials: true,
     });
 
-    attachSocketAuthRefresh(socket);
+    const detachSocketAuthRefresh = attachSocketAuthRefresh(socket);
 
     socket.on(EventCommands.NotificationCreated, () => {
       qc.invalidateQueries({ queryKey: ['notifications'] });
@@ -68,6 +68,7 @@ export function useGlobalSocket() {
     );
 
     return () => {
+      detachSocketAuthRefresh();
       socket.disconnect();
     };
   }, [qc]);

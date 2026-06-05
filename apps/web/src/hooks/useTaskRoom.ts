@@ -39,7 +39,7 @@ export function useTaskRoom(
 
     socketRef.current = socket;
 
-    attachSocketAuthRefresh(socket);
+    const detachSocketAuthRefresh = attachSocketAuthRefresh(socket);
 
     socket.on("connect", () => setIsConnected(true));
     socket.on("disconnect", () => setIsConnected(false));
@@ -108,6 +108,7 @@ export function useTaskRoom(
     );
 
     return () => {
+      detachSocketAuthRefresh();
       socket.disconnect();
     };
   }, [taskId, setIsConnected, qc, projectId]);

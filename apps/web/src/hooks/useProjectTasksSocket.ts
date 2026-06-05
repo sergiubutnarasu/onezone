@@ -16,7 +16,7 @@ export function useProjectTasksSocket(projectId: string) {
       withCredentials: true,
     });
 
-    attachSocketAuthRefresh(socket);
+    const detachSocketAuthRefresh = attachSocketAuthRefresh(socket);
 
     socket.on(EventCommands.TaskColumnUpdated, () => {
       qc.invalidateQueries({ queryKey: ['tasks', projectId] });
@@ -27,6 +27,7 @@ export function useProjectTasksSocket(projectId: string) {
     });
 
     return () => {
+      detachSocketAuthRefresh();
       socket.disconnect();
     };
   }, [projectId, qc]);
