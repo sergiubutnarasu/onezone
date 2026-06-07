@@ -9,11 +9,13 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    restart: unless-stopped
 
   garage:
     image: dxflrs/garage:v2.3.0
@@ -61,6 +63,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+    restart: unless-stopped
 
   web:
     build:
@@ -72,6 +75,7 @@ services:
       - "5025:5025"
     depends_on:
       - server
+    restart: unless-stopped
 
   terminal:
     build:
@@ -91,6 +95,7 @@ services:
     depends_on:
       server:
         condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   postgres_data:
