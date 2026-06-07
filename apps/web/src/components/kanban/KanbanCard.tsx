@@ -39,9 +39,7 @@ export const KanbanCard = memo(function KanbanCard({
   } = useSortable({ id: task.id, data: { task } });
 
   const isActive =
-    !!task.terminal?.isConnected &&
-    task.columnId !== null &&
-    !task.completedAt;
+    !!task.terminal?.isConnected && task.columnId !== null && !task.completedAt;
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -56,9 +54,8 @@ export const KanbanCard = memo(function KanbanCard({
           "transition-[border-color,box-shadow,color,opacity] duration-200",
           isActive
             ? "border-primary/50 shadow-[0_0_0_1px_var(--primary),0_4px_20px_-4px_var(--primary)]"
-            : "border-border/70 hover:border-primary/40 hover:shadow-[0_0_0_1px_color-mix(in_oklab,var(--primary)_15%,transparent),0_4px_16px_-4px_color-mix(in_oklab,var(--primary)_25%,transparent)]",
-          isDragging &&
-            "opacity-50 shadow-[0_0_0_2px_color-mix(in_oklab,var(--primary)_50%,transparent),0_8px_24px_-4px_color-mix(in_oklab,var(--primary)_40%,transparent)]",
+            : "border-border/70 hover:border-primary/40",
+          isDragging && "opacity-50",
         )}
       >
         {/* Active progress bar / hover shimmer */}
