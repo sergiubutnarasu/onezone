@@ -1,4 +1,4 @@
-import type { ProjectInfo } from "@onezone/shared";
+import type { ProjectInfo, TaskDetails } from "@onezone/shared";
 import {
   cloneProjectRepo,
   createClaudeSettings,
@@ -99,7 +99,7 @@ export const setupProject = async (
 
   if (signal?.aborted) return null;
 
-  await setupSkills({ project, emit, signal });
+  await setupSkills({ task: task as TaskDetails, project, emit, signal });
 
   if (signal?.aborted) return null;
 

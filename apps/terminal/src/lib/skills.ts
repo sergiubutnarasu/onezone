@@ -2,6 +2,7 @@ import {
   MessageStream,
   type ProjectInfo,
   type RunSkillCommandPayload,
+  type TaskDetails,
 } from "@onezone/shared";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -20,7 +21,7 @@ export async function runSkillCommand(
   log: (message: string) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const { projectId, source, skillName } = payload;
+  const { projectId, source, skillName, agentCode } = payload;
   const configDir = getProjectConfigFolder(projectId);
   const skillDir = path.join(configDir, ".claude", "skills", skillName);
   const key = `${projectId}:${skillName}`;
@@ -44,7 +45,7 @@ export async function runSkillCommand(
     return;
   }
 
-  const cmd = `npx --yes skills add ${JSON.stringify(source)} --skill ${JSON.stringify(skillName)} -a claude-code -y --copy`;
+  const cmd = `npx --yes skills add ${JSON.stringify(source)} --skill ${JSON.stringify(skillName)} -a ${JSON.stringify(agentCode)} -y --copy`;
 
   log(`[skill] Installing "${skillName}" in ${configDir}`);
 
@@ -76,10 +77,12 @@ export async function runSkillCommand(
 }
 
 export const setupSkills = async ({
+  task,
   project,
   emit,
   signal,
 }: {
+  task?: TaskDetails;
   project: ProjectInfo;
   emit?: (message: string) => void;
   signal?: AbortSignal;
@@ -88,6 +91,12 @@ export const setupSkills = async ({
 
   const skills = project?.skills ?? [];
   const configDir = getProjectConfigFolder(project.id);
+  const agentCode = getSkillInstallAgentCode(task, project);
+
+  if (!agentCode) {
+    emit?.("Skipping skill install: no agent configured.");
+    return;
+  }
 
   // remove extra skills
   const installedSkills = getAllInstalledSkills(project.id);
@@ -115,6 +124,7 @@ export const setupSkills = async ({
           projectId: project.id,
           source: skill.source,
           skillName: skill.skillName,
+          agentCode,
         },
         (msg) => emit?.(msg),
         signal,
@@ -125,6 +135,21 @@ export const setupSkills = async ({
     emit?.("✔ Skills ready.");
   }
 };
+
+function getSkillInstallAgentCode(
+  task: TaskDetails | undefined,
+  project: ProjectInfo,
+): RunSkillCommandPayload["agentCode"] | null {
+  if (task && !task.useTaskAgentAndModel && task.column?.agent?.tag) {
+    return task.column.agent.tag;
+  }
+
+  if (task?.agent?.tag) {
+    return task.agent.tag;
+  }
+
+  return project.defaultAgent?.tag ?? null;
+}
 
 function waitForInstall(
   pending: Promise<void>,

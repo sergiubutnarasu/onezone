@@ -77,6 +77,7 @@ export interface ProjectInfo {
   description?: string | null;
   repository?: string | null;
   defaultAgentId: string;
+  defaultAgent?: Pick<Agent, "id" | "name" | "tag"> | null;
   defaultModel: string;
   skills: ProjectSkill[];
   createdAt: string;
@@ -140,6 +141,7 @@ export interface RunSkillCommandPayload {
   projectId: string;
   source: string;
   skillName: string;
+  agentCode: AgentTag;
 }
 
 export interface Terminal {

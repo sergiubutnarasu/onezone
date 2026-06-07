@@ -52,6 +52,7 @@ export class TasksService {
       description?: string | null;
       repository?: string | null;
       defaultAgentId: string;
+      defaultAgent?: { id: string; name: string; tag: string } | null;
       createdAt: string;
       defaultModel: string;
       skills?: { id: string; source: string; skillName: string }[];
@@ -106,6 +107,13 @@ export class TasksService {
         description: project.description,
         repository: project.repository,
         defaultAgentId: project.defaultAgentId,
+        defaultAgent: project.defaultAgent
+          ? {
+              id: project.defaultAgent.id,
+              name: project.defaultAgent.name,
+              tag: project.defaultAgent.tag as unknown as AgentTag,
+            }
+          : null,
         defaultModel: project.defaultModel,
         createdAt: project.createdAt,
         skills:
@@ -399,7 +407,7 @@ export class TasksService {
       include: {
         terminalAssignment: { include: { terminal: true } },
         columnAssignment: { include: { column: { include: { agent: true } } } },
-        project: { include: { skills: true } },
+        project: { include: { defaultAgent: true, skills: true } },
         agent: true,
       },
     });
@@ -414,6 +422,7 @@ export class TasksService {
         columnAssignment: { include: { column: { include: { agent: true } } } },
         project: {
           include: {
+            defaultAgent: true,
             skills: true,
             kanbanColumns: { orderBy: { index: "asc" } },
           },
@@ -607,6 +616,7 @@ export class TasksService {
             columnAssignment: { include: { column: { include: { agent: true } } } },
             project: {
               include: {
+                defaultAgent: true,
                 skills: true,
                 kanbanColumns: { orderBy: { index: "asc" } },
               },
