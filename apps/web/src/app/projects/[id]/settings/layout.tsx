@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/CopyButton";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
@@ -112,7 +113,7 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
         {/* Title row */}
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-xl font-semibold tracking-tight truncate">
+            <h1 className="text-display text-balance truncate">
               {isLoading ? (
                 <Skeleton className="h-7 w-48" />
               ) : (
@@ -130,57 +131,33 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
 
           {/* More actions dropdown */}
           <div className="flex items-center gap-2 shrink-0">
-            {confirmDelete ? (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-destructive font-medium">
-                  Delete project?
-                </span>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => deleteMutation.mutate()}
-                  disabled={deleteMutation.isPending}
-                >
-                  {deleteMutation.isPending ? "Deleting…" : "Confirm"}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <MoreHorizontal className="size-4" />
+                  More
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setConfirmDelete(false)}
-                  disabled={deleteMutation.isPending}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={handleExport}
+                  disabled={exporting || isLoading}
+                  className="gap-2"
                 >
-                  Cancel
-                </Button>
-              </div>
-            ) : (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-1.5">
-                    <MoreHorizontal className="size-4" />
-                    More
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={handleExport}
-                    disabled={exporting || isLoading}
-                    className="gap-2"
-                  >
-                    <Download className="size-4" />
-                    {exporting ? "Exporting…" : "Export configuration"}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => setConfirmDelete(true)}
-                    disabled={deleteMutation.isPending}
-                    className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
-                  >
-                    <Trash2 className="size-4" />
-                    Delete project
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+                  <Download className="size-4" />
+                  {exporting ? "Exporting…" : "Export configuration"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setConfirmDelete(true)}
+                  disabled={deleteMutation.isPending}
+                  className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+                >
+                  <Trash2 className="size-4" />
+                  Delete project
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
@@ -205,6 +182,16 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
       </div>
 
       <Separator />
+
+      {/* Delete confirmation */}
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Delete project"
+        description={`This will permanently delete “${project?.name ?? "this project"}” and all of its data. This action cannot be undone.`}
+        confirmLabel="Delete"
+        onConfirm={() => deleteMutation.mutate()}
+      />
 
       {/* Content */}
       <div

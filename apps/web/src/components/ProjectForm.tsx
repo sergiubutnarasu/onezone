@@ -31,7 +31,7 @@ interface ProjectFormProps {
   resetSignal?: unknown;
   onSuccess?: (project: Project) => void;
   /** Renders the submit button. Placed by the caller (DialogFooter, step footer, …). */
-  renderFooter: (state: { isSubmitting: boolean }) => ReactNode;
+  renderFooter?: (state: { isSubmitting: boolean }) => ReactNode;
 }
 
 export function ProjectForm({
@@ -170,7 +170,7 @@ export function ProjectForm({
           )}
         />
       </form>
-      {renderFooter({ isSubmitting: submitting })}
+      {renderFooter?.({ isSubmitting: submitting })}
     </>
   );
 }

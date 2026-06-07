@@ -37,15 +37,13 @@ export function CreateProjectDialog({
             formId={FORM_ID}
             resetSignal={open}
             onSuccess={() => onOpenChange(false)}
-            renderFooter={({ isSubmitting }) => (
-              <DialogFooter>
-                <Button type="submit" form={FORM_ID} disabled={isSubmitting}>
-                  {isSubmitting ? "Creating…" : "Create project"}
-                </Button>
-              </DialogFooter>
-            )}
           />
         </DialogBody>
+        <DialogFooter>
+          <Button type="submit" form={FORM_ID}>
+            Create project
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

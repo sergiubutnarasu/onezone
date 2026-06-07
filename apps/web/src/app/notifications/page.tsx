@@ -10,7 +10,11 @@ import {
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { Notification } from "@onezone/shared";
-import { useMutation, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useInfiniteQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   Bell,
   CheckCheck,
@@ -35,9 +39,9 @@ function timeAgo(iso: string) {
 
 function NotificationIcon({ type }: { type: Notification["type"] }) {
   if (type === "TASK_COMPLETED")
-    return <CheckCircle className="size-4 text-green-500 shrink-0 mt-0.5" />;
+    return <CheckCircle className="size-4 text-success shrink-0 mt-0.5" />;
   if (type === "COMMAND_EXIT_SUCCESS")
-    return <CheckCircle className="size-4 text-blue-500 shrink-0 mt-0.5" />;
+    return <CheckCircle className="size-4 text-info shrink-0 mt-0.5" />;
   if (type === "COMMAND_START")
     return <Play className="size-4 text-muted-foreground shrink-0 mt-0.5" />;
   return <XCircle className="size-4 text-destructive shrink-0 mt-0.5" />;
@@ -111,19 +115,14 @@ export default function NotificationsPage() {
   const [showRead, setShowRead] = useState(false);
   const qc = useQueryClient();
 
-  const {
-    data,
-    isLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: ["notifications", showRead],
-    queryFn: ({ pageParam }) => fetchNotifications(showRead, pageParam),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) =>
-      lastPage.hasMore ? lastPage.page + 1 : undefined,
-  });
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useInfiniteQuery({
+      queryKey: ["notifications", showRead],
+      queryFn: ({ pageParam }) => fetchNotifications(showRead, pageParam),
+      initialPageParam: 1,
+      getNextPageParam: (lastPage) =>
+        lastPage.hasMore ? lastPage.page + 1 : undefined,
+    });
 
   const notifications = data?.pages.flatMap((p) => p.data) ?? [];
 
@@ -148,12 +147,9 @@ export default function NotificationsPage() {
   return (
     <div className="p-8 max-w-2xl">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 gap-4">
         <div className="flex items-center gap-2.5">
-          <Bell className="size-5" />
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Notifications
-          </h1>
+          <h1 className="text-display">Notifications</h1>
           {!showRead && unreadCount > 0 && (
             <Badge variant="secondary">{unreadCount}</Badge>
           )}

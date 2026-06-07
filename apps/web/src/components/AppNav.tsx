@@ -11,13 +11,28 @@ import { fetchUnreadCount } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { Logo } from '@/components/Logo';
 
-const NAV_ITEMS = [
-  { href: '/', label: 'Projects', icon: FolderOpen, exact: true },
-  { href: '/statistics', label: 'Statistics', icon: BarChart3, exact: true },
-  { href: '/agents', label: 'Agents', icon: Bot, exact: true },
-  { href: '/terminals', label: 'Terminals', icon: Monitor, exact: true },
-  { href: '/skills', label: 'Skills', icon: Blocks, exact: true },
-  { href: '/notifications', label: 'Notifications', icon: Bell, exact: true },
+const NAV_GROUPS = [
+  {
+    label: 'Workspace',
+    items: [
+      { href: '/', label: 'Projects', icon: FolderOpen, exact: true },
+      { href: '/statistics', label: 'Statistics', icon: BarChart3, exact: true },
+    ],
+  },
+  {
+    label: 'Tools',
+    items: [
+      { href: '/agents', label: 'Agents', icon: Bot, exact: true },
+      { href: '/terminals', label: 'Terminals', icon: Monitor, exact: true },
+      { href: '/skills', label: 'Skills', icon: Blocks, exact: true },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      { href: '/notifications', label: 'Notifications', icon: Bell, exact: true },
+    ],
+  },
 ];
 
 export function AppNav() {
@@ -33,31 +48,38 @@ export function AppNav() {
   });
 
   const navLinks = (onNav?: () => void) =>
-    NAV_ITEMS.map(({ href, label, icon: Icon, exact }) => {
-      const active = exact ? pathname === href : pathname.startsWith(href);
-      const isNotifications = href === '/notifications';
-      return (
-        <Link
-          key={href}
-          href={href}
-          onClick={onNav}
-          className={cn(
-            'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar',
-            active
-              ? 'bg-accent text-accent-foreground font-medium'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-          )}
-        >
-          <Icon className="size-4 shrink-0" />
-          <span className="flex-1">{label}</span>
-          {isNotifications && unreadCount > 0 && (
-            <span className="ml-auto flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
-          )}
-        </Link>
-      );
-    });
+    NAV_GROUPS.map((group) => (
+      <div key={group.label} className="flex flex-col gap-1">
+        <p className="px-3 py-1.5 text-[0.75rem] font-semibold text-muted-foreground/50 uppercase tracking-wider">
+          {group.label}
+        </p>
+        {group.items.map(({ href, label, icon: Icon, exact }) => {
+          const active = exact ? pathname === href : pathname.startsWith(href);
+          const isNotifications = href === '/notifications';
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={onNav}
+              className={cn(
+                'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar',
+                active
+                  ? 'bg-accent text-accent-foreground font-medium'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              )}
+            >
+              <Icon className="size-4 shrink-0" />
+              <span className="flex-1">{label}</span>
+              {isNotifications && unreadCount > 0 && (
+                <span className="ml-auto flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Link>
+          );
+        })}
+      </div>
+    ));
 
   return (
     <>
@@ -66,7 +88,7 @@ export function AppNav() {
         <div className="flex items-center gap-2.5 px-4 py-4 border-b border-border">
           <Logo withWordmark />
         </div>
-        <nav className="flex flex-col gap-1 p-2 flex-1">{navLinks()}</nav>
+        <nav className="flex flex-col gap-4 p-2 flex-1">{navLinks()}</nav>
         <div className="px-4 py-3 border-t border-border flex items-center justify-between">
           <p className="text-xs text-muted-foreground">One zone for agents</p>
           <div className="flex items-center gap-1">
@@ -120,7 +142,7 @@ export function AppNav() {
                 <X className="size-4" />
               </button>
             </div>
-            <nav className="flex flex-col gap-1 p-2 flex-1">
+            <nav className="flex flex-col gap-4 p-2 flex-1">
               {navLinks(() => setMobileOpen(false))}
             </nav>
             <div className="px-4 py-3 border-t border-border flex items-center justify-between">

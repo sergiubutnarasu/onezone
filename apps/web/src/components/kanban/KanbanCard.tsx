@@ -55,10 +55,10 @@ export const KanbanCard = memo(function KanbanCard({
           "relative rounded-lg border bg-card overflow-hidden select-none",
           "transition-[border-color,box-shadow,color,opacity] duration-200",
           isActive
-            ? "border-primary/50 shadow-[0_0_0_1px_hsl(var(--primary)/0.2),0_4px_20px_-4px_hsl(var(--primary)/0.35)]"
-            : "border-border/70 hover:border-primary/40 hover:shadow-[0_0_0_1px_hsl(var(--primary)/0.15),0_4px_16px_-4px_hsl(var(--primary)/0.25)]",
+            ? "border-primary/50 shadow-[0_0_0_1px_var(--primary),0_4px_20px_-4px_var(--primary)]"
+            : "border-border/70 hover:border-primary/40 hover:shadow-[0_0_0_1px_color-mix(in_oklab,var(--primary)_15%,transparent),0_4px_16px_-4px_color-mix(in_oklab,var(--primary)_25%,transparent)]",
           isDragging &&
-            "opacity-50 shadow-[0_0_0_2px_hsl(var(--primary)/0.5),0_8px_24px_-4px_hsl(var(--primary)/0.4)]",
+            "opacity-50 shadow-[0_0_0_2px_color-mix(in_oklab,var(--primary)_50%,transparent),0_8px_24px_-4px_color-mix(in_oklab,var(--primary)_40%,transparent)]",
         )}
       >
         {/* Active progress bar / hover shimmer */}

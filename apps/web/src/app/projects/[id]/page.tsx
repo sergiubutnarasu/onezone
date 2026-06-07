@@ -86,7 +86,7 @@ export default function ProjectPage() {
             {projectLoading ? (
               <Skeleton className="h-7 w-48" />
             ) : (
-              <h1 className="text-xl font-semibold tracking-tight">
+              <h1 className="text-display text-balance">
                 {project?.name}
               </h1>
             )}

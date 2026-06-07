@@ -146,8 +146,8 @@ export default function StatisticsPage() {
   return (
     <div className="p-8 max-w-6xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Statistics</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="text-display text-balance">Statistics</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
           Global task, job, token, and cost totals by project
         </p>
       </div>

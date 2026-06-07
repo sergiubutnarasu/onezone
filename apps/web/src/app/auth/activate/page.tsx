@@ -5,7 +5,8 @@ import { activateDevice } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { CheckCircle, Terminal } from "lucide-react";
+import { CheckCircle } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 export default function ActivatePage() {
   const [userCode, setUserCode] = useState("");
@@ -46,8 +47,8 @@ export default function ActivatePage() {
       <div className="w-full max-w-sm px-4">
         <Card className="border-border/60">
           <CardContent className="p-8 flex flex-col items-center gap-4 text-center">
-            <div className="flex items-center justify-center size-12 rounded-full bg-green-500/10">
-              <CheckCircle className="size-6 text-green-500" />
+            <div className="flex items-center justify-center size-12 rounded-full bg-success/10">
+              <CheckCircle className="size-6 text-success" />
             </div>
             <div>
               <p className="font-semibold">Device activated!</p>
@@ -64,11 +65,11 @@ export default function ActivatePage() {
   return (
     <div className="w-full max-w-sm px-4">
       <div className="flex flex-col items-center mb-8 gap-3">
-        <div className="flex items-center justify-center size-12 rounded-xl bg-primary/10">
-          <Terminal className="size-6 text-primary" />
+        <div className="flex items-center justify-center size-12 rounded-xl bg-primary/10 ring-1 ring-primary/15">
+          <Logo className="scale-150" />
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight">Activate device</h1>
-        <p className="text-sm text-muted-foreground text-center">
+        <h1 className="text-display">Activate device</h1>
+        <p className="text-sm text-muted-foreground text-center text-balance">
           Enter the code shown in your terminal.
         </p>
       </div>

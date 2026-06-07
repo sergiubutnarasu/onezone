@@ -26,8 +26,8 @@ export default function GlobalSkillsPage() {
   return (
     <div className="p-8 max-w-3xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Global Skills</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h1 className="text-display text-balance">Global Skills</h1>
+        <p className="text-sm text-muted-foreground mt-1.5">
           Skills available to all projects and their agents
         </p>
       </div>

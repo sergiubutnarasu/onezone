@@ -94,7 +94,7 @@ export const KanbanColumn = memo(function KanbanColumn({
   const colorClass = isBacklog
     ? "text-slate-400"
     : isCompleted
-      ? "text-emerald-500"
+      ? "text-success"
       : COLUMN_COLORS[columnIndex % COLUMN_COLORS.length];
 
   const deleteMutation = useMutation({
@@ -124,7 +124,7 @@ export const KanbanColumn = memo(function KanbanColumn({
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-1.5 min-w-0">
             {isCompleted && (
-              <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
+              <CheckCircle2 className="size-3.5 text-success shrink-0" />
             )}
             {!isBacklog && !isCompleted && (
               <button

@@ -59,7 +59,7 @@ export function TaskMainContent({
             >
               <PanelLeftOpen className="size-4" />
             </button>
-            <h1 className="text-lg font-semibold tracking-tight flex-1 min-w-0">
+            <h1 className="text-lg font-semibold tracking-tight text-balance flex-1 min-w-0">
               {task?.name ?? "Loading…"}
             </h1>
             <button

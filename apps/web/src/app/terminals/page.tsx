@@ -50,8 +50,8 @@ export default function TerminalsPage() {
       <div className="p-8 max-w-3xl">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">Terminals</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-display text-balance">Terminals</h1>
+          <p className="text-sm text-muted-foreground mt-1.5">
             Connected terminals that can execute tasks
           </p>
         </div>
@@ -85,9 +85,9 @@ export default function TerminalsPage() {
                   <div className="flex items-start justify-between gap-4">
                     {/* Left: terminal info */}
                     <div className="flex items-start gap-3 min-w-0">
-                      <div className={`mt-0.5 flex items-center justify-center size-8 rounded-md shrink-0 ${terminal.isConnected ? 'bg-emerald-500/10' : 'bg-muted'}`}>
+                      <div className={`mt-0.5 flex items-center justify-center size-8 rounded-md shrink-0 ${terminal.isConnected ? 'bg-success/10' : 'bg-muted'}`}>
                         {terminal.isConnected
-                          ? <Wifi className="size-4 text-emerald-500" />
+                          ? <Wifi className="size-4 text-success" />
                           : <WifiOff className="size-4 text-muted-foreground" />
                         }
                       </div>
@@ -113,9 +113,9 @@ export default function TerminalsPage() {
                     <div className="flex flex-col items-end gap-2 shrink-0">
                       <Badge
                         variant={terminal.isConnected ? 'default' : 'secondary'}
-                        className={terminal.isConnected ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' : ''}
+                        className={terminal.isConnected ? 'bg-success/15 text-success border-success/20' : ''}
                       >
-                        <span className={`size-1.5 rounded-full mr-1.5 ${terminal.isConnected ? 'bg-emerald-400' : 'bg-muted-foreground/50'}`} />
+                        <span className={`size-1.5 rounded-full mr-1.5 ${terminal.isConnected ? 'bg-success' : 'bg-muted-foreground/50'}`} />
                         {terminal.isConnected ? 'Connected' : 'Disconnected'}
                       </Badge>
 

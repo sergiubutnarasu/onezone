@@ -27,7 +27,7 @@ interface TaskSidebarProps {
 
 function TaskItem({ task, isActive }: { task: Task; isActive: boolean }) {
   const statusIcon = task.completedAt ? (
-    <CheckCircle2 className="size-3.5 text-emerald-400 shrink-0" />
+    <CheckCircle2 className="size-3.5 text-success shrink-0" />
   ) : task.columnId ? (
     <Circle className="size-3.5 text-sky-400 shrink-0" />
   ) : (

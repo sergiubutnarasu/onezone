@@ -97,7 +97,7 @@ export function TaskInfoPanel({
               className={cn(
                 "flex items-center gap-2 rounded-md px-2.5 py-1.5 ring-1",
                 isTerminalConnected
-                  ? "text-emerald-400 ring-emerald-500/15 bg-emerald-500/5"
+                  ? "text-success ring-success/20 bg-success/5"
                   : "text-muted-foreground ring-foreground/5",
               )}
             >
@@ -138,7 +138,7 @@ export function TaskInfoPanel({
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 w-full rounded-md px-2.5 py-1.5 text-left hover:bg-muted/50 transition-colors group">
                   {task.completedAt ? (
-                    <CheckCircle2 className="size-3.5 text-emerald-400 shrink-0" />
+                    <CheckCircle2 className="size-3.5 text-success shrink-0" />
                   ) : (
                     <Circle className="size-3.5 text-sky-400 shrink-0" />
                   )}
