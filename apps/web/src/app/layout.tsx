@@ -17,14 +17,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={cn('dark font-sans', geistSans.variable, geistMono.variable)}
+      className={cn('font-sans', geistSans.variable, geistMono.variable)}
       suppressHydrationWarning
     >
       <head>
-        {/* Apply theme before first paint to avoid flash */}
+        {/* Resolve theme before first paint to avoid flash.
+            Stored value wins; otherwise follow the OS preference. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var t=localStorage.getItem('theme');if(t==='light'){document.documentElement.classList.remove('dark')}else{document.documentElement.classList.add('dark')}})()`,
+            __html: `(function(){try{var t=localStorage.getItem('theme');var m=window.matchMedia('(prefers-color-scheme: dark)').matches;var dark=t==='dark'||(t!=='light'&&m);if(dark){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}}catch(e){}})()`,
           }}
         />
       </head>

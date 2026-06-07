@@ -2,9 +2,11 @@
 
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { usePathname } from 'next/navigation';
 import { io } from 'socket.io-client';
 import { EventCommands, type Task, type Terminal } from '@onezone/shared';
 import { API_BASE as SERVER_URL } from '../lib/http-client';
+import { useAuth } from '../lib/auth-context';
 import { attachSocketAuthRefresh } from '../lib/socket-auth';
 
 function updateTerminalConnectionState(
@@ -39,8 +41,18 @@ function updateTerminalConnectionState(
  */
 export function useGlobalSocket() {
   const qc = useQueryClient();
+  const { user, isLoading } = useAuth();
+  const pathname = usePathname();
+  const isPublicRoute =
+    pathname === '/auth/login' || pathname === '/auth/register';
 
   useEffect(() => {
+    // On public auth routes (or before we know the user) the server would
+    // reject the handshake as Unauthorized and socket-auth.ts would reload
+    // /auth/login — looping forever. Skip the connection until we have a
+    // session on a non-public route.
+    if (isLoading || !user || isPublicRoute) return;
+
     const socket = io(`${SERVER_URL}/chat`, {
       auth: { role: 'user' },
       withCredentials: true,
@@ -71,5 +83,5 @@ export function useGlobalSocket() {
       detachSocketAuthRefresh();
       socket.disconnect();
     };
-  }, [qc]);
+  }, [qc, user, isLoading, isPublicRoute]);
 }

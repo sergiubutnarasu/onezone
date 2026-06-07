@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Bot } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 export default function RegisterPage() {
   return (
@@ -50,12 +50,12 @@ function RegisterPageContent() {
   }
 
   return (
-    <div className="w-full max-w-87.5 px-4">
+    <div className="w-full max-w-[22.5rem] px-4">
       <div className="flex flex-col items-center mb-8 gap-3">
-        <div className="flex items-center justify-center size-12 rounded-xl bg-primary/10">
-          <Bot className="size-6 text-primary" />
+        <div className="flex items-center justify-center size-12 rounded-xl bg-primary/10 ring-1 ring-primary/15">
+          <Logo className="scale-150" />
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight">Onezone</h1>
+        <h1 className="text-display">Onezone</h1>
         <p className="text-sm text-muted-foreground">Create your account</p>
       </div>
 

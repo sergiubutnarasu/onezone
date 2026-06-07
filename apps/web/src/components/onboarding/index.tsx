@@ -25,10 +25,10 @@ export function OnboardingScreen({ agents }: OnboardingScreenProps) {
     <div className="min-h-[calc(100dvh-3rem)] md:min-h-dvh flex items-center justify-center p-6">
       <div className="w-full max-w-lg">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-display text-balance">
             Welcome to Onezone
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-2">
             Let&apos;s get you set up in three steps.
           </p>
         </div>

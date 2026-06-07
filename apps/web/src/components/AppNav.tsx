@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FolderOpen, Bot, Zap, Sun, Moon, Menu, X, Monitor, Blocks, Bell, LogOut, BarChart3 } from 'lucide-react';
+import { FolderOpen, Bot, Sun, Moon, Menu, X, Monitor, Blocks, Bell, LogOut, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme';
 import { useQuery } from '@tanstack/react-query';
 import { fetchUnreadCount } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { Logo } from '@/components/Logo';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Projects', icon: FolderOpen, exact: true },
@@ -41,7 +42,7 @@ export function AppNav() {
           href={href}
           onClick={onNav}
           className={cn(
-            'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors',
+            'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar',
             active
               ? 'bg-accent text-accent-foreground font-medium'
               : 'text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -63,25 +64,22 @@ export function AppNav() {
       {/* Desktop sidebar */}
       <aside className="hidden md:flex flex-col w-56 shrink-0 border-r border-border bg-sidebar h-screen sticky top-0">
         <div className="flex items-center gap-2.5 px-4 py-4 border-b border-border">
-          <div className="flex items-center justify-center size-7 rounded-md bg-primary/15 ring-1 ring-primary/30">
-            <Zap className="size-4 text-primary" />
-          </div>
-          <span className="font-semibold text-sm tracking-tight text-foreground">Onezone</span>
+          <Logo withWordmark />
         </div>
         <nav className="flex flex-col gap-1 p-2 flex-1">{navLinks()}</nav>
         <div className="px-4 py-3 border-t border-border flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">Terminal task runner</p>
-          <div className="flex items-center gap-2">
+          <p className="text-xs text-muted-foreground">One zone for agents</p>
+          <div className="flex items-center gap-1">
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="size-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
               aria-label="Toggle theme"
             >
               {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
             </button>
             <button
               onClick={logout}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="size-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
               aria-label="Log out"
             >
               <LogOut className="size-4" />
@@ -99,12 +97,7 @@ export function AppNav() {
         >
           <Menu className="size-5" />
         </button>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center justify-center size-6 rounded-md bg-primary/15 ring-1 ring-primary/30">
-            <Zap className="size-3.5 text-primary" />
-          </div>
-          <span className="font-semibold text-sm tracking-tight text-foreground">Onezone</span>
-        </div>
+        <Logo withWordmark />
       </div>
 
       {/* Mobile drawer */}
@@ -117,10 +110,7 @@ export function AppNav() {
           <aside className="fixed top-0 left-0 h-full w-56 bg-sidebar border-r border-border z-50 flex flex-col md:hidden">
             <div className="flex items-center justify-between px-4 py-4 border-b border-border">
               <div className="flex items-center gap-2.5">
-                <div className="flex items-center justify-center size-7 rounded-md bg-primary/15 ring-1 ring-primary/30">
-                  <Zap className="size-4 text-primary" />
-                </div>
-                <span className="font-semibold text-sm tracking-tight text-foreground">Onezone</span>
+                <Logo withWordmark />
               </div>
               <button
                 onClick={() => setMobileOpen(false)}
@@ -134,18 +124,18 @@ export function AppNav() {
               {navLinks(() => setMobileOpen(false))}
             </nav>
             <div className="px-4 py-3 border-t border-border flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">Terminal task runner</p>
-              <div className="flex items-center gap-2">
+              <p className="text-xs text-muted-foreground">One zone for agents</p>
+              <div className="flex items-center gap-1">
                 <button
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  className="size-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                   aria-label="Toggle theme"
                 >
                   {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
                 </button>
                 <button
                   onClick={logout}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  className="size-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                   aria-label="Log out"
                 >
                   <LogOut className="size-4" />

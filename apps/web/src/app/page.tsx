@@ -76,10 +76,10 @@ export default function ProjectsPage() {
     <TooltipProvider>
       <div className="p-8 max-w-3xl">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8 gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <h1 className="text-display text-balance">Projects</h1>
+            <p className="text-sm text-muted-foreground mt-1.5">
               Manage your terminal task projects
             </p>
           </div>
