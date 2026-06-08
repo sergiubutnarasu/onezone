@@ -124,7 +124,11 @@ export const cloneProjectRepo = (
         )
       : repository;
 
-    return execFileAsync("git", ["clone", repoUrl, workDir], { signal })
+    return execFileAsync(
+      "git",
+      ["clone", "--single-branch", "--depth", "1", repoUrl, workDir],
+      { signal },
+    )
       .then(() => true)
       .catch((err) => {
         if ((err as { name?: string }).name !== "AbortError") {
