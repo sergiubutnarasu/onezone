@@ -30,7 +30,8 @@ export function ConnectTerminalStep({ onNext }: ConnectTerminalStepProps) {
     "  --volume terminal_ssh:/home/agent/.ssh \\",
     "  --volume terminal_workdir:/home/agent/.onezone \\",
     "  --volume terminal_local:/home/agent/.local \\",
-    "  --volume terminal_local:/home/agent/.claude \\",
+    "  --volume terminal_claude:/home/agent/.claude \\",
+    "  --volume terminal_copilot:/home/agent/.copilot \\",
     "  terminal",
   ].join("\n");
 

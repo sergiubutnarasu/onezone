@@ -19,8 +19,8 @@ export const agentFactory = ({
   switch (agent.tag) {
     case AgentTag.ClaudeCode:
       return setupClaude({ projectId, model });
-    case AgentTag.CopilotCLI:
-      return setupCopilot({ model });
+    case AgentTag.GithubCopilotCLI:
+      return setupCopilot({ projectId, model });
     default:
       return null;
   }

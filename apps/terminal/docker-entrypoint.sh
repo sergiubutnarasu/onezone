@@ -7,6 +7,12 @@ if ! command -v claude >/dev/null 2>&1; then
   curl -fsSL https://claude.ai/install.sh | bash
 fi
 
+# Install GitHub Copilot CLI if not present (persisted in /home/agent/.local volume)
+if ! command -v copilot >/dev/null 2>&1; then
+  echo "Installing GitHub Copilot CLI..."
+  curl -fsSL https://gh.io/copilot-install | bash
+fi
+
 # Install uv if not present
 if ! command -v uv >/dev/null 2>&1; then
   echo "Installing uv..."
@@ -22,6 +28,9 @@ fi
 # Ensure RTK's Claude hook config exists in the persisted /home/agent/.claude volume.
 mkdir -p /home/agent/.claude
 rtk init -g --auto-patch
+
+# Ensure Copilot config directory exists in the persisted /home/agent/.copilot volume.
+mkdir -p /home/agent/.copilot
 
 # Ensure .ssh dir exists with correct permissions
 mkdir -p /home/agent/.ssh

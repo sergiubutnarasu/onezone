@@ -128,6 +128,10 @@ Root Docker Compose reads variables from `.env`. Individual apps can also read t
 | `ANTHROPIC_AUTH_TOKEN` | Terminal agent runtime | none | Depends on runner | Optional Claude-compatible auth token for agent execution. |
 | `ANTHROPIC_BASE_URL` | Terminal agent runtime | none | No | Optional Claude-compatible API base URL. |
 | `ANTHROPIC_API_KEY` | Terminal agent runtime | none | Depends on runner | Optional Claude-compatible API key. |
+| `COPILOT_GITHUB_TOKEN` | Terminal agent runtime | none | Depends on runner | Optional GitHub token for Copilot CLI authentication. |
+| `COPILOT_PROVIDER_BASE_URL` | Terminal agent runtime | none | No | Optional custom model provider base URL for Copilot CLI. |
+| `COPILOT_PROVIDER_API_KEY` | Terminal agent runtime | none | No | Optional custom model provider API key for Copilot CLI. |
+| `COPILOT_PROVIDER_TYPE` | Terminal agent runtime | none | No | Optional custom model provider type for Copilot CLI (`openai`, `azure`, `anthropic`). |
 
 Example local `.env`:
 

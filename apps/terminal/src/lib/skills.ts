@@ -1,4 +1,5 @@
 import {
+  AgentTag,
   MessageStream,
   type ProjectInfo,
   type RunSkillCommandPayload,
@@ -16,6 +17,11 @@ import {
 // Dedupes concurrent install attempts for the same skill across tasks/terminals.
 const inFlightInstalls = new Map<string, Promise<void>>();
 
+const AGENT_TAG_MAPPINGS: Record<AgentTag, string> = {
+  [AgentTag.GithubCopilotCLI]: "github-copilot",
+  [AgentTag.ClaudeCode]: "claude-code",
+}
+
 export async function runSkillCommand(
   payload: RunSkillCommandPayload,
   log: (message: string) => void,
@@ -23,7 +29,10 @@ export async function runSkillCommand(
 ): Promise<void> {
   const { projectId, source, skillName, agentCode } = payload;
   const configDir = getProjectConfigFolder(projectId);
-  const skillDir = path.join(configDir, ".claude", "skills", skillName);
+  const skillDir =
+    agentCode === "github-copilot-cli"
+      ? path.join(configDir, ".github", "skills", skillName)
+      : path.join(configDir, ".claude", "skills", skillName);
   const key = `${projectId}:${skillName}`;
 
   // If another setup is already installing this skill, wait for it instead
@@ -45,7 +54,7 @@ export async function runSkillCommand(
     return;
   }
 
-  const cmd = `npx --yes skills add ${JSON.stringify(source)} --skill ${JSON.stringify(skillName)} -a ${JSON.stringify(agentCode)} -y --copy`;
+  const cmd = `npx --yes skills add ${JSON.stringify(source)} --skill ${JSON.stringify(skillName)} -a ${JSON.stringify(AGENT_TAG_MAPPINGS[agentCode])} -y --copy`;
 
   log(`[skill] Installing "${skillName}" in ${configDir}`);
 
@@ -99,19 +108,22 @@ export const setupSkills = async ({
   }
 
   // remove extra skills
-  const installedSkills = getAllInstalledSkills(project.id);
+  const installedSkills = getAllInstalledSkills(project.id, agentCode);
   for (const skill of installedSkills) {
     if (
       !skill.startsWith("onezone") &&
       !skills.find((s) => s.skillName === skill)
     ) {
       // remove skill directory
-      removeSkill(project.id, skill);
+      removeSkill(project.id, skill, agentCode);
     }
   }
 
   const uninstalledSkills = skills.filter((s) => {
-    const skillDir = path.join(configDir, ".claude", "skills", s.skillName);
+    const skillDir =
+      agentCode === "github-copilot-cli"
+        ? path.join(configDir, ".github", "skills", s.skillName)
+        : path.join(configDir, ".claude", "skills", s.skillName);
     return !fs.existsSync(skillDir);
   });
 

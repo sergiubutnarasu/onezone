@@ -1,7 +1,8 @@
-import type { ProjectInfo, TaskDetails } from "@onezone/shared";
+import { AgentTag, type ProjectInfo, type TaskDetails } from "@onezone/shared";
 import {
   cloneProjectRepo,
   createClaudeSettings,
+  createCopilotSettings,
   createProjectConfigFolder,
   createProjectFolder,
   createProjectWorkDirFolder,
@@ -92,9 +93,17 @@ export const setupProject = async (
     lines.push("✔ Repository ready.");
   }
 
-  lines.push("Checking Claude configuration...");
-  createClaudeSettings(projectId);
-  lines.push("✔ Claude configuration ready.");
+  const agentTag = (task as { agent?: { tag?: string } }).agent?.tag;
+
+  if (agentTag === AgentTag.GithubCopilotCLI) {
+    lines.push("Checking Copilot configuration...");
+    createCopilotSettings(projectId);
+    lines.push("✔ Copilot configuration ready.");
+  } else {
+    lines.push("Checking Claude configuration...");
+    createClaudeSettings(projectId);
+    lines.push("✔ Claude configuration ready.");
+  }
   flush();
 
   if (signal?.aborted) return null;

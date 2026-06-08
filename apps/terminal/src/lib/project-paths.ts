@@ -51,6 +51,29 @@ export const getClaudeSettingsPath = (projectId: string): string => {
   );
 };
 
+export const getCopilotInstructionsPath = (projectId: string): string => {
+  return path.join(
+    os.homedir(),
+    ONEZONE_PROJECTS_LOCATION,
+    projectId,
+    "config",
+    ".github",
+    "copilot-instructions.md",
+  );
+};
+
+export const getCopilotSettingsPath = (projectId: string): string => {
+  return path.join(
+    os.homedir(),
+    ONEZONE_PROJECTS_LOCATION,
+    projectId,
+    "config",
+    ".github",
+    "copilot",
+    "settings.json",
+  );
+};
+
 export const createProjectFolder = (projectId: string): boolean => {
   try {
     const projectPath = getProjectFolder(projectId);
@@ -227,10 +250,111 @@ export const createClaudeSettings = (projectId: string): boolean => {
   }
 };
 
-export const getAllInstalledSkills = (projectId: string): string[] => {
+export const createCopilotSettings = (projectId: string): boolean => {
   try {
-    const configDir = getProjectConfigFolder(projectId);
-    const skillsDir = path.join(configDir, ".claude", "skills");
+    const workDir = getProjectWorkDir(projectId);
+    const projectConfigFolder = getProjectConfigFolder(projectId);
+    const githubDir = path.join(projectConfigFolder, ".github");
+    const copilotDir = path.join(githubDir, "copilot");
+    const instructionsPath = path.join(githubDir, "copilot-instructions.md");
+    const settingsPath = path.join(copilotDir, "settings.json");
+
+    if (!fs.existsSync(githubDir)) {
+      fs.mkdirSync(githubDir, { recursive: true });
+    }
+    if (!fs.existsSync(copilotDir)) {
+      fs.mkdirSync(copilotDir, { recursive: true });
+    }
+
+    const settings = {
+      permissions: {
+        allow: [
+          `Bash(*)`,
+          `Edit(/${workDir})`,
+          `Read(/${workDir})`,
+        ],
+      },
+      sandbox: {
+        filesystem: {
+          allowWrite: [`/${workDir}`],
+          allowRead: [`/${workDir}`],
+        },
+      },
+      ...(isRtkAvailable() && {
+        hooks: {
+          PreToolUse: [
+            {
+              matcher: "Bash",
+              hooks: [{ type: "command", command: "rtk hook claude" }],
+            },
+          ],
+        },
+      }),
+    };
+
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+
+    // copy rules.md to the copilot instructions file
+    const rulesSourcePath = path.join(
+      __dirname,
+      "..",
+      "static",
+      "agent",
+      "rules.md",
+    );
+
+    if (fs.existsSync(rulesSourcePath)) {
+      fs.copyFileSync(rulesSourcePath, instructionsPath);
+    } else {
+      console.warn(`Warning: rules.md not found at ${rulesSourcePath}`);
+    }
+
+    // copy skills folder to the copilot skills directory
+    const skillsSourcePath = path.join(
+      __dirname,
+      "..",
+      "static",
+      "agent",
+      "skills",
+    );
+    const skillsDestPath = path.join(githubDir, "skills");
+
+    if (fs.existsSync(skillsSourcePath)) {
+      const skillDirs = fs.readdirSync(skillsSourcePath);
+      for (const skillDir of skillDirs) {
+        fs.cpSync(
+          path.join(skillsSourcePath, skillDir),
+          path.join(skillsDestPath, skillDir),
+          { recursive: true },
+        );
+      }
+    } else {
+      console.warn(`Warning: skills folder not found at ${skillsSourcePath}`);
+    }
+
+    return true;
+  } catch (err) {
+    console.error(
+      `Error creating Copilot settings: ${(err as Error).message}`,
+    );
+    return false;
+  }
+};
+
+const getSkillsDir = (projectId: string, agentTag?: string): string => {
+  const configDir = getProjectConfigFolder(projectId);
+  if (agentTag === "github-copilot-cli") {
+    return path.join(configDir, ".github", "skills");
+  }
+  return path.join(configDir, ".claude", "skills");
+};
+
+export const getAllInstalledSkills = (
+  projectId: string,
+  agentTag?: string,
+): string[] => {
+  try {
+    const skillsDir = getSkillsDir(projectId, agentTag);
 
     if (!fs.existsSync(skillsDir)) {
       return [];
@@ -244,10 +368,13 @@ export const getAllInstalledSkills = (projectId: string): string[] => {
   }
 };
 
-export const removeSkill = (projectId: string, skillName: string): boolean => {
+export const removeSkill = (
+  projectId: string,
+  skillName: string,
+  agentTag?: string,
+): boolean => {
   try {
-    const configDir = getProjectConfigFolder(projectId);
-    const skillPath = path.join(configDir, ".claude", "skills", `${skillName}`);
+    const skillPath = path.join(getSkillsDir(projectId, agentTag), skillName);
 
     if (fs.existsSync(skillPath)) {
       fs.rmSync(skillPath, { recursive: true, force: true });

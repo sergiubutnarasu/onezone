@@ -87,11 +87,16 @@ services:
       ANTHROPIC_AUTH_TOKEN: ${ANTHROPIC_AUTH_TOKEN}
       ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      COPILOT_GITHUB_TOKEN: ${COPILOT_GITHUB_TOKEN}
+      COPILOT_PROVIDER_BASE_URL: ${COPILOT_PROVIDER_BASE_URL}
+      COPILOT_PROVIDER_API_KEY: ${COPILOT_PROVIDER_API_KEY}
+      COPILOT_PROVIDER_TYPE: ${COPILOT_PROVIDER_TYPE}
     volumes:
       - terminal_ssh:/home/agent/.ssh
       - terminal_workdir:/home/agent/.onezone
       - terminal_local:/home/agent/.local
       - terminal_claude:/home/agent/.claude
+      - terminal_copilot:/home/agent/.copilot
     depends_on:
       server:
         condition: service_healthy
@@ -105,3 +110,4 @@ volumes:
   terminal_workdir:
   terminal_local:
   terminal_claude:
+  terminal_copilot:

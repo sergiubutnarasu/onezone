@@ -80,7 +80,7 @@ When a task is assigned, the terminal selects a runner from the task agent tag.
 | `claude-code` | Claude Code CLI |
 | `github-copilot-cli` | GitHub Copilot CLI |
 
-The terminal host is responsible for installing and authenticating any agent CLI it is expected to run. In Docker, `docker-entrypoint.sh` installs Claude Code, `uv`, and RTK when missing, initializes RTK's Claude hook config, prepares SSH defaults, authenticates to Onezone if needed, and starts `onezone-terminal listen`.
+The terminal host is responsible for installing and authenticating any agent CLI it is expected to run. In Docker, `docker-entrypoint.sh` installs Claude Code, GitHub Copilot CLI, `uv`, and RTK when missing, initializes RTK's Claude hook config, prepares SSH defaults, authenticates to Onezone if needed, and starts `onezone-terminal listen`.
 
 Useful runtime variables for the Docker terminal include:
 
@@ -91,6 +91,10 @@ Useful runtime variables for the Docker terminal include:
 | `ANTHROPIC_AUTH_TOKEN` | none | Optional Claude-compatible auth token |
 | `ANTHROPIC_BASE_URL` | none | Optional Claude-compatible API base URL |
 | `ANTHROPIC_API_KEY` | none | Optional Claude-compatible API key |
+| `COPILOT_GITHUB_TOKEN` | none | Optional GitHub token for Copilot CLI authentication |
+| `COPILOT_PROVIDER_BASE_URL` | none | Optional custom model provider base URL for Copilot CLI |
+| `COPILOT_PROVIDER_API_KEY` | none | Optional custom model provider API key for Copilot CLI |
+| `COPILOT_PROVIDER_TYPE` | none | Optional custom model provider type for Copilot CLI (`openai`, `azure`, `anthropic`) |
 
 ## Development
 

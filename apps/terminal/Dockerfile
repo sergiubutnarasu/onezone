@@ -72,7 +72,8 @@ WORKDIR /home/agent
 RUN mkdir -p /home/agent/.onezone/projects \
   && mkdir -p /home/agent/.local/bin \
   && mkdir -p /home/agent/.local/share \
-  && mkdir -p /home/agent/.claude
+  && mkdir -p /home/agent/.claude \
+  && mkdir -p /home/agent/.copilot
 
 # Trust GitHub's host key
 RUN mkdir -p /home/agent/.ssh \

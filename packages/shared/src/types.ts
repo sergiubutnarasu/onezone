@@ -44,7 +44,7 @@ export enum MessageType {
 
 export enum AgentTag {
   ClaudeCode = "claude-code",
-  CopilotCLI = "github-copilot-cli",
+  GithubCopilotCLI = "github-copilot-cli",
 }
 
 /** Sentinel ID used in the UI to represent the virtual "Backlog" column (no DB entry). */
