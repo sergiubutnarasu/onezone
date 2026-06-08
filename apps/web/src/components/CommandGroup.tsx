@@ -3,7 +3,7 @@
 import type { RoomMessage } from "@/hooks/useTaskRoom";
 import { parseClaudeLine, type ContentBlock } from "@/lib/claude-content";
 import { ChevronDown, ChevronRight, Loader2, Square, Play } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -33,6 +33,8 @@ function getDisplayCommand(command: string): string {
 
 export function CommandGroup({ group, onStop, onPing }: { group: CommandGroupData; onStop?: (jobId: string) => void; onPing?: (jobId: string) => void }) {
   const [open, setOpen] = useState(false);
+  const [expandSignal, setExpandSignal] = useState(0);
+  const [expandDirection, setExpandDirection] = useState(false);
 
   const isDone = group.exitCode !== undefined;
   const failed = isDone && group.exitCode !== 0;
@@ -112,6 +114,20 @@ export function CommandGroup({ group, onStop, onPing }: { group: CommandGroupDat
       {/* Output lines */}
       {open && group.lines.length > 0 && (
         <div className="bg-background/80 py-2 px-3 space-y-1">
+          <div className="flex justify-end gap-2 pb-1 border-b border-border/30 mb-1">
+            <button
+              onClick={() => { setExpandDirection(true); setExpandSignal(s => s + 1); }}
+              className="text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+            >
+              Expand all
+            </button>
+            <button
+              onClick={() => { setExpandDirection(false); setExpandSignal(s => s + 1); }}
+              className="text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+            >
+              Collapse all
+            </button>
+          </div>
           {group.lines.map((msg, i) => {
             if (msg.stream === "stderr") {
               return (
@@ -123,7 +139,7 @@ export function CommandGroup({ group, onStop, onPing }: { group: CommandGroupDat
                 </div>
               );
             }
-            return <ClaudeOutputLine key={msg.id || i} content={msg.content} />;
+            return <ClaudeOutputLine key={msg.id || i} content={msg.content} expandSignal={expandSignal} expandDirection={expandDirection} />;
           })}
         </div>
       )}
@@ -145,7 +161,7 @@ function stripLineNumbers(text: string): string {
     .join('\n');
 }
 
-function ClaudeOutputLine({ content }: { content: string }) {
+function ClaudeOutputLine({ content, expandSignal, expandDirection }: { content: string; expandSignal: number; expandDirection: boolean }) {
   const blocks = parseClaudeLine(content);
 
   if (!blocks || blocks.length === 0) {
@@ -155,16 +171,22 @@ function ClaudeOutputLine({ content }: { content: string }) {
   return (
     <>
       {blocks.map((block, i) => (
-        <ContentBlockView key={i} block={block} />
+        <ContentBlockView key={i} block={block} expandSignal={expandSignal} expandDirection={expandDirection} />
       ))}
     </>
   );
 }
 
-function ContentBlockView({ block }: { block: ContentBlock }) {
+function ContentBlockView({ block, expandSignal, expandDirection }: { block: ContentBlock; expandSignal: number; expandDirection: boolean }) {
   const [thinkingOpen, setThinkingOpen] = useState(false);
   const [toolOpen, setToolOpen] = useState(false);
   const [resultOpen, setResultOpen] = useState(false);
+
+  useEffect(() => {
+    setThinkingOpen(expandDirection);
+    setToolOpen(expandDirection);
+    setResultOpen(expandDirection);
+  }, [expandSignal, expandDirection]);
 
   if (block.kind === "text") {
     return (
