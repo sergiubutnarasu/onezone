@@ -1,7 +1,7 @@
 import { MessageType } from "@onezone/shared";
 import type { RoomMessage } from "@/hooks/useTaskRoom";
-import type { CommandGroupData } from "@/components/CommandGroup";
-import { parseClaudeLine } from "@/lib/claude-content";
+import type { CommandGroupData } from "@/components/command-group";
+import { parseAgentLine } from "@/lib/agent-content";
 
 export type ChatItem =
   | { type: "message"; msg: RoomMessage }
@@ -37,7 +37,7 @@ function handleCommandGroup(
 }
 
 function extractRenderedText(content: string): string | null {
-  const blocks = parseClaudeLine(content);
+  const blocks = parseAgentLine(content);
   if (!blocks) return null;
   const text = blocks.filter((b) => b.kind === 'text').map((b) => b.text).join('');
   return text || null;

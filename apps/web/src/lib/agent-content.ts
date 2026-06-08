@@ -1,4 +1,4 @@
-// Parses a single line of Claude's --output-format stream-json output
+// Parses a single line of an agent's --output-format stream-json output
 // and extracts displayable content blocks.
 
 export type ContentBlock =
@@ -8,7 +8,7 @@ export type ContentBlock =
   | { kind: 'tool_result'; text: string }
   | { kind: 'raw'; text: string };
 
-export function parseClaudeLine(raw: string): ContentBlock[] | null {
+export function parseAgentLine(raw: string): ContentBlock[] | null {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);

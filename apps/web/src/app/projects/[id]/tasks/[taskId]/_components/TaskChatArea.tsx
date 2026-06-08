@@ -3,7 +3,7 @@
 import { useRef, useEffect } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { MessageLine } from "@/components/MessageLine";
-import { CommandGroup } from "@/components/CommandGroup";
+import { CommandGroup } from "@/components/command-group";
 import type { ChatItem } from "../_lib/chat-items";
 
 interface TaskChatAreaProps {
