@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 async function main() {
   const agents = [
     { id: randomUUID(), name: 'Claude Code', tag: 'claude-code', model: 'kimi-k2.6:cloud' },
-    { id: randomUUID(), name: 'Copilot CLI', tag: 'copilot-cli', model: 'kimi-k2.6:cloud' },
+    { id: randomUUID(), name: 'Github Copilot CLI', tag: 'github-copilot-cli', model: 'kimi-k2.6:cloud' },
   ];
 
   for (const agent of agents) {

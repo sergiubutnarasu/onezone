@@ -16,7 +16,7 @@ Shared TypeScript contracts for the Onezone server, web app, and terminal CLI. T
 - `AuthUser` for authenticated user identity and admin status.
 - `EventCommands` for Socket.io event names, including chat, terminal command lifecycle, heartbeats, assignment, notifications, and project cost updates.
 - `MessageRole`, `MessageStream`, and `MessageType` for chat and command output records.
-- `AgentTag` for supported runner tags: `claude-code` and `copilot-cli`.
+- `AgentTag` for supported runner tags: `claude-code` and `github-copilot-cli`.
 - `Agent`, `ProjectInfo`, `KanbanColumn`, `ProjectSkill`, `Task`, `TaskDetails`, and `Terminal` for the main app resources.
 - `TaskSchedule` and `CRON_PRESETS` for recurring task automation.
 - `Notification` and `NotificationType` for notification inbox data.

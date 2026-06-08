@@ -19,7 +19,7 @@ Onezone is a production-minded AI agent orchestration platform for running codin
 - **Real-time by default**: Socket.io events keep the board, task chat, terminal state, notifications, and command output live.
 - **Multi-user ready**: projects, tasks, terminals, messages, notifications, skills, schedules, and agent settings are scoped by user.
 - **Production-shaped stack**: PostgreSQL persistence, Redis-backed WebSockets, Prisma migrations, Docker images, health checks, and explicit environment configuration.
-- **Agent flexible**: Claude Code and Copilot CLI are first-class, and model values are configurable globally, per user, per task, per column, and per schedule where supported.
+- **Agent flexible**: Claude Code and Github Copilot CLI are first-class, and model values are configurable globally, per user, per task, per column, and per schedule where supported.
 - **Automation friendly**: recurring schedules and kanban column instructions let users turn repeated development workflows into repeatable agent runs.
 - **Type-safe contracts**: shared enums, payload types, room helpers, constants, and validation schemas reduce drift between packages.
 
