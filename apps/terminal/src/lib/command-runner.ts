@@ -5,6 +5,10 @@ import type { ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import type { Socket } from "socket.io-client";
 import { setupTerminalAgent } from "../agents/setup.js";
+import {
+  createAgentOutputParser,
+  type AgentOutputParser,
+} from "../lib/agent-output-parsers/index.js";
 import { shellQuote, stripAnsi } from "../lib/helper.js";
 import { runProcess, terminateTree } from "../lib/process-runner.js";
 import { setupProject } from "../lib/setup.js";
@@ -202,6 +206,10 @@ export async function spawnCommand({
     if (proc?.pid) terminateTree(proc.pid);
   };
 
+  const parseAgentLine: AgentOutputParser = createAgentOutputParser(
+    terminalAgent.config.tag,
+  );
+
   let resultReceived = false;
   let taskRunnerFinished = false;
   let resultUsage: {
@@ -228,34 +236,29 @@ export async function spawnCommand({
         return;
       }
 
-      let inputTokens: number | undefined;
-      let outputTokens: number | undefined;
+      const parsed = parseAgentLine(clean);
 
-      try {
-        const parsed = JSON.parse(clean);
-        if (parsed?.type === "assistant" && parsed?.message?.usage) {
-          inputTokens = parsed.message.usage.input_tokens ?? undefined;
-          outputTokens = parsed.message.usage.output_tokens ?? undefined;
-        } else if (parsed?.type === "result") {
-          resultUsage = {
-            totalCostUsd: parsed.total_cost_usd ?? undefined,
-            inputTokens: parsed.usage?.input_tokens ?? undefined,
-            outputTokens: parsed.usage?.output_tokens ?? undefined,
-          };
-          resultReceived = true;
-          if (isTaskRunner) {
-            const match = (parsed.result as string | undefined)?.match(
-              /\[\[ONEZONE_NEXT_COLUMN:(\S+)\]\]/,
-            );
-            if (match) {
-              nextColumnId = match[1] === "backlog" ? null : match[1];
-            }
-            taskRunnerFinished = true;
-          }
-          killRunningProcess();
+      if (parsed?.result) {
+        resultUsage = parsed.result.usage ?? null;
+        resultReceived = true;
+        if (isTaskRunner && parsed.result.finished) {
+          nextColumnId = parsed.result.nextColumnId;
+          taskRunnerFinished = true;
         }
-      } catch {
-        // Not JSON — ignore.
+        killRunningProcess();
+      }
+
+      if (parsed?.content) {
+        socket.emit(EventCommands.OutputLine, {
+          ...basePayload,
+          stream,
+          content: parsed.content,
+          ts: Date.now(),
+          ...(parsed.inputTokens !== undefined || parsed.outputTokens !== undefined
+            ? { inputTokens: parsed.inputTokens, outputTokens: parsed.outputTokens }
+            : {}),
+        });
+        return;
       }
 
       socket.emit(EventCommands.OutputLine, {
@@ -263,9 +266,6 @@ export async function spawnCommand({
         stream,
         content: clean,
         ts: Date.now(),
-        ...(inputTokens !== undefined || outputTokens !== undefined
-          ? { inputTokens, outputTokens }
-          : {}),
       });
     },
     onExit: (exitCode) => {

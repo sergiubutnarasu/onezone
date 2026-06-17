@@ -22,6 +22,30 @@ const AGENT_TAG_MAPPINGS: Record<AgentTag, string> = {
   [AgentTag.ClaudeCode]: "claude-code",
 }
 
+function getSkillDirs(
+  configDir: string,
+  agentCode: RunSkillCommandPayload["agentCode"],
+  skillName: string,
+): string[] {
+  if (agentCode === "github-copilot-cli") {
+    return [
+      path.join(configDir, ".github", "skills", skillName),
+      path.join(configDir, ".agents", "skills", skillName),
+    ];
+  }
+  return [path.join(configDir, ".claude", "skills", skillName)];
+}
+
+function skillExists(
+  configDir: string,
+  agentCode: RunSkillCommandPayload["agentCode"],
+  skillName: string,
+): boolean {
+  return getSkillDirs(configDir, agentCode, skillName).some((dir) =>
+    fs.existsSync(dir),
+  );
+}
+
 export async function runSkillCommand(
   payload: RunSkillCommandPayload,
   log: (message: string) => void,
@@ -29,10 +53,7 @@ export async function runSkillCommand(
 ): Promise<void> {
   const { projectId, source, skillName, agentCode } = payload;
   const configDir = getProjectConfigFolder(projectId);
-  const skillDir =
-    agentCode === "github-copilot-cli"
-      ? path.join(configDir, ".github", "skills", skillName)
-      : path.join(configDir, ".claude", "skills", skillName);
+  const skillDirs = getSkillDirs(configDir, agentCode, skillName);
   const key = `${projectId}:${skillName}`;
 
   // If another setup is already installing this skill, wait for it instead
@@ -50,7 +71,7 @@ export async function runSkillCommand(
 
   // Re-check existence just before installing in case a previous call
   // completed between the caller's check and this point.
-  if (fs.existsSync(skillDir)) {
+  if (skillDirs.some((dir) => fs.existsSync(dir))) {
     return;
   }
 
@@ -119,13 +140,9 @@ export const setupSkills = async ({
     }
   }
 
-  const uninstalledSkills = skills.filter((s) => {
-    const skillDir =
-      agentCode === "github-copilot-cli"
-        ? path.join(configDir, ".github", "skills", s.skillName)
-        : path.join(configDir, ".claude", "skills", s.skillName);
-    return !fs.existsSync(skillDir);
-  });
+  const uninstalledSkills = skills.filter(
+    (s) => !skillExists(configDir, agentCode, s.skillName),
+  );
 
   if (uninstalledSkills.length > 0) {
     emit?.(`Installing ${uninstalledSkills.length} skill(s)...`);

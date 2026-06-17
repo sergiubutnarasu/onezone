@@ -51,29 +51,6 @@ export const getClaudeSettingsPath = (projectId: string): string => {
   );
 };
 
-export const getCopilotInstructionsPath = (projectId: string): string => {
-  return path.join(
-    os.homedir(),
-    ONEZONE_PROJECTS_LOCATION,
-    projectId,
-    "config",
-    ".github",
-    "copilot-instructions.md",
-  );
-};
-
-export const getCopilotSettingsPath = (projectId: string): string => {
-  return path.join(
-    os.homedir(),
-    ONEZONE_PROJECTS_LOCATION,
-    projectId,
-    "config",
-    ".github",
-    "copilot",
-    "settings.json",
-  );
-};
-
 export const createProjectFolder = (projectId: string): boolean => {
   try {
     const projectPath = getProjectFolder(projectId);
@@ -309,7 +286,7 @@ export const createCopilotSettings = (projectId: string): boolean => {
       console.warn(`Warning: rules.md not found at ${rulesSourcePath}`);
     }
 
-    // copy skills folder to the copilot skills directory
+    // copy skills folder to the copilot skills directories
     const skillsSourcePath = path.join(
       __dirname,
       "..",
@@ -317,14 +294,24 @@ export const createCopilotSettings = (projectId: string): boolean => {
       "agent",
       "skills",
     );
-    const skillsDestPath = path.join(githubDir, "skills");
+    const githubSkillsDestPath = path.join(githubDir, "skills");
+    const agentsSkillsDestPath = path.join(
+      projectConfigFolder,
+      ".agents",
+      "skills",
+    );
 
     if (fs.existsSync(skillsSourcePath)) {
       const skillDirs = fs.readdirSync(skillsSourcePath);
       for (const skillDir of skillDirs) {
         fs.cpSync(
           path.join(skillsSourcePath, skillDir),
-          path.join(skillsDestPath, skillDir),
+          path.join(githubSkillsDestPath, skillDir),
+          { recursive: true },
+        );
+        fs.cpSync(
+          path.join(skillsSourcePath, skillDir),
+          path.join(agentsSkillsDestPath, skillDir),
           { recursive: true },
         );
       }
@@ -341,12 +328,15 @@ export const createCopilotSettings = (projectId: string): boolean => {
   }
 };
 
-const getSkillsDir = (projectId: string, agentTag?: string): string => {
+const getSkillsDirs = (projectId: string, agentTag?: string): string[] => {
   const configDir = getProjectConfigFolder(projectId);
   if (agentTag === "github-copilot-cli") {
-    return path.join(configDir, ".github", "skills");
+    return [
+      path.join(configDir, ".github", "skills"),
+      path.join(configDir, ".agents", "skills"),
+    ];
   }
-  return path.join(configDir, ".claude", "skills");
+  return [path.join(configDir, ".claude", "skills")];
 };
 
 export const getAllInstalledSkills = (
@@ -354,14 +344,21 @@ export const getAllInstalledSkills = (
   agentTag?: string,
 ): string[] => {
   try {
-    const skillsDir = getSkillsDir(projectId, agentTag);
+    const skillsDirs = getSkillsDirs(projectId, agentTag);
+    const skills = new Set<string>();
 
-    if (!fs.existsSync(skillsDir)) {
-      return [];
+    for (const skillsDir of skillsDirs) {
+      if (!fs.existsSync(skillsDir)) {
+        continue;
+      }
+
+      const skillFiles = fs.readdirSync(skillsDir);
+      for (const file of skillFiles) {
+        skills.add(path.parse(file).name);
+      }
     }
 
-    const skillFiles = fs.readdirSync(skillsDir);
-    return skillFiles.map((file) => path.parse(file).name);
+    return Array.from(skills);
   } catch (err) {
     console.error(`Error getting installed skills: ${(err as Error).message}`);
     return [];
@@ -374,15 +371,26 @@ export const removeSkill = (
   agentTag?: string,
 ): boolean => {
   try {
-    const skillPath = path.join(getSkillsDir(projectId, agentTag), skillName);
+    const skillsDirs = getSkillsDirs(projectId, agentTag);
+    let removed = false;
 
-    if (fs.existsSync(skillPath)) {
-      fs.rmSync(skillPath, { recursive: true, force: true });
-      return true;
-    } else {
-      console.warn(`Warning: skill "${skillName}" not found at ${skillPath}`);
+    for (const skillsDir of skillsDirs) {
+      const skillPath = path.join(skillsDir, skillName);
+
+      if (fs.existsSync(skillPath)) {
+        fs.rmSync(skillPath, { recursive: true, force: true });
+        removed = true;
+      }
+    }
+
+    if (!removed) {
+      console.warn(
+        `Warning: skill "${skillName}" not found in any skills directory`,
+      );
       return false;
     }
+
+    return true;
   } catch (err) {
     console.error(`Error removing skill: ${(err as Error).message}`);
     return false;
