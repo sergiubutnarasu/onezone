@@ -2,6 +2,7 @@ import { AgentTag } from "@onezone/shared";
 import type { TaskDetails } from "@onezone/shared";
 import { setup as setupClaude } from "../agents/claude.js";
 import { setup as setupCopilot } from "../agents/copilot.js";
+import { getEffectiveTaskAgentAndModel } from "../lib/effective-task-agent.js";
 
 export const agentFactory = ({
   projectId,
@@ -40,23 +41,8 @@ export const setupTerminalAgent = (payload?: unknown) => {
   }
 
   const projectId = (project as { id?: unknown }).id;
-  const useTaskAgentAndModel = (task as { useTaskAgentAndModel?: unknown }).useTaskAgentAndModel ?? false;
-
-  // Determine effective agent and model:
-  // If useTaskAgentAndModel is false and the column has an agent configured, use the column's agent/model.
-  // Otherwise fall back to the task's own agent/model.
-  const column = (task as { column?: unknown }).column as TaskDetails["column"];
-
-  let effectiveAgent: TaskDetails["agent"];
-  let effectiveModel: string | undefined;
-
-  if (!useTaskAgentAndModel && column?.agentId && column?.agent) {
-    effectiveAgent = column.agent;
-    effectiveModel = column.model ?? (task as { model?: unknown }).model as string | undefined;
-  } else {
-    effectiveAgent = (task as { agent?: unknown }).agent as TaskDetails["agent"];
-    effectiveModel = (task as { model?: unknown }).model as string | undefined;
-  }
+  const { agent: effectiveAgent, model: effectiveModel } =
+    getEffectiveTaskAgentAndModel(task);
 
   if (!effectiveAgent || typeof effectiveAgent !== "object") {
     return null;

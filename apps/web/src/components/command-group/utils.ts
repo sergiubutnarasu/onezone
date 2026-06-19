@@ -1,17 +1,10 @@
+import { parseRunnerPayload } from "@onezone/shared";
 import type { RoomMessage } from "@/hooks/useTaskRoom";
 import type { GroupedLine } from "./types";
 
 export function getDisplayCommand(command: string): string {
-  if (command.startsWith("/onezone-runner ")) {
-    try {
-      const parsed = JSON.parse(command.slice("/onezone-runner ".length));
-      return parsed?.kanbanColumnName ?? "/onezone-runner";
-    } catch {
-      // fall through
-    }
-    return "/onezone-runner";
-  }
-  return command;
+  const payload = parseRunnerPayload<{ kanbanColumnName?: string }>(command);
+  return payload?.kanbanColumnName ?? command;
 }
 
 export function isSetupLine(content: string): boolean {

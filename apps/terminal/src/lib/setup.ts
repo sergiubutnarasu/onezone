@@ -11,6 +11,7 @@ import {
   getProjectWorkDir,
   removeSkill,
 } from "./project-paths.js";
+import { getEffectiveTaskAgentCode } from "./effective-task-agent.js";
 import { setupSkills } from "./skills.js";
 import type { TaskJobConfig } from "./types.js";
 
@@ -93,7 +94,7 @@ export const setupProject = async (
     lines.push("✔ Repository ready.");
   }
 
-  const agentTag = (task as { agent?: { tag?: string } }).agent?.tag;
+  const agentTag = getEffectiveTaskAgentCode(task as TaskDetails, project);
 
   if (agentTag === AgentTag.GithubCopilotCLI) {
     lines.push("Checking Copilot configuration...");

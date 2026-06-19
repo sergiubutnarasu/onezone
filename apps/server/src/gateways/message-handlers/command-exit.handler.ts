@@ -1,12 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EventCommands, MessageRole, createProjectRoomId } from '@onezone/shared';
+import { EventCommands, MessageRole, createProjectRoomId, extractTaskId, parseRunnerPayload } from '@onezone/shared';
 import { MessageType, NotificationType } from '@prisma/client';
 import { Server, Socket } from 'socket.io';
 import { MessagesService } from '../../messages/messages.service';
 import { TasksService } from '../../tasks/tasks.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { ProjectsService } from '../../projects/projects.service';
-import { extractTaskId } from '@onezone/shared';
 import { IMessageHandler } from './message-handler.interface';
 
 interface RunnerPayload {
@@ -15,13 +14,7 @@ interface RunnerPayload {
 }
 
 function parseRunnerCommand(command: string): RunnerPayload | null {
-  const match = command.match(/^\/onezone-runner\s+(\{.+\})$/s);
-  if (!match) return null;
-  try {
-    return JSON.parse(match[1]) as RunnerPayload;
-  } catch {
-    return null;
-  }
+  return parseRunnerPayload<RunnerPayload>(command);
 }
 
 export interface CommandExitData {

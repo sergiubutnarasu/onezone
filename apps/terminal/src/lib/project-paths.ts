@@ -159,12 +159,13 @@ export const createClaudeSettings = (projectId: string): boolean => {
           `Bash(*)`,
           `Edit(/${workDir})`,
           `Read(/${workDir})`,
+          `Read(/${projectConfigFolder})`,
         ],
       },
       sandbox: {
         filesystem: {
           allowWrite: [`/${workDir}`],
-          allowRead: [`/${workDir}`],
+          allowRead: [`/${workDir}`, `/${projectConfigFolder}`],
         },
       },
       ...(isRtkAvailable() && {
@@ -233,7 +234,11 @@ export const createCopilotSettings = (projectId: string): boolean => {
     const projectConfigFolder = getProjectConfigFolder(projectId);
     const githubDir = path.join(projectConfigFolder, ".github");
     const copilotDir = path.join(githubDir, "copilot");
-    const instructionsPath = path.join(githubDir, "copilot-instructions.md");
+    const instructionsDir = path.join(githubDir, "instructions");
+    const instructionsPath = path.join(
+      instructionsDir,
+      "onezone.instructions.md",
+    );
     const settingsPath = path.join(copilotDir, "settings.json");
 
     if (!fs.existsSync(githubDir)) {
@@ -242,6 +247,9 @@ export const createCopilotSettings = (projectId: string): boolean => {
     if (!fs.existsSync(copilotDir)) {
       fs.mkdirSync(copilotDir, { recursive: true });
     }
+    if (!fs.existsSync(instructionsDir)) {
+      fs.mkdirSync(instructionsDir, { recursive: true });
+    }
 
     const settings = {
       permissions: {
@@ -249,12 +257,13 @@ export const createCopilotSettings = (projectId: string): boolean => {
           `Bash(*)`,
           `Edit(/${workDir})`,
           `Read(/${workDir})`,
+          `Read(/${projectConfigFolder})`,
         ],
       },
       sandbox: {
         filesystem: {
           allowWrite: [`/${workDir}`],
-          allowRead: [`/${workDir}`],
+          allowRead: [`/${workDir}`, `/${projectConfigFolder}`],
         },
       },
       ...(isRtkAvailable() && {
@@ -281,7 +290,8 @@ export const createCopilotSettings = (projectId: string): boolean => {
     );
 
     if (fs.existsSync(rulesSourcePath)) {
-      fs.copyFileSync(rulesSourcePath, instructionsPath);
+      const rules = fs.readFileSync(rulesSourcePath, "utf8");
+      fs.writeFileSync(instructionsPath, `---\napplyTo: "**"\n---\n\n${rules}`);
     } else {
       console.warn(`Warning: rules.md not found at ${rulesSourcePath}`);
     }

@@ -1,4 +1,7 @@
-import { type AgentOutputParser } from "./types.js";
+import {
+  type AgentOutputParser,
+  parseNextColumnTag,
+} from "./types.js";
 
 // Copilot CLI emits one JSON object per line (JSONL). Unlike Claude Code,
 // Copilot does NOT include token counts or a result text in the final
@@ -14,8 +17,14 @@ import { type AgentOutputParser } from "./types.js";
 // To surface totals on the `result` line (which is what the command-runner
 // uses for the COMMAND_EXIT payload), the parser must be stateful and
 // accumulate `outputTokens` across all `assistant.message` lines.
+//
+// Likewise, the `[[ONEZONE_NEXT_COLUMN:...]]` signal lives in the final
+// `assistant.message` content (not in the `result` message), so the parser
+// must remember the last assistant content and parse the tag from it when
+// the `result` line arrives.
 export function createCopilotParser(): AgentOutputParser {
   let accumulatedOutputTokens = 0;
+  let lastAssistantContent: string | undefined;
 
   return (line) => {
     let parsed: unknown;
@@ -36,6 +45,7 @@ export function createCopilotParser(): AgentOutputParser {
 
       const content =
         typeof data?.content === "string" ? data.content : undefined;
+      if (content) lastAssistantContent = content;
       return {
         content: content || undefined,
         outputTokens,
@@ -61,7 +71,9 @@ export function createCopilotParser(): AgentOutputParser {
           totalCostUsd: premiumRequests,
           outputTokens: accumulatedOutputTokens,
         },
-        nextColumnId: undefined,
+        nextColumnId: lastAssistantContent
+          ? parseNextColumnTag(lastAssistantContent)
+          : undefined,
         finished: true,
       },
     };

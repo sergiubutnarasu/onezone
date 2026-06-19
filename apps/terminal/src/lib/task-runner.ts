@@ -1,4 +1,4 @@
-import { TaskDetails } from "@onezone/shared";
+import { RUNNER_PROMPT_PREFIX, TaskDetails } from "@onezone/shared";
 import { spawnCommand, SpawnCommandProps } from "./command-runner.js";
 
 export interface TaskRunnerProps extends Omit<SpawnCommandProps, "content"> {}
@@ -46,7 +46,7 @@ export const taskRunner = ({
   };
 
   spawnCommand({
-    content: `/onezone-runner ${JSON.stringify(input)}`,
+    content: `${RUNNER_PROMPT_PREFIX}\n\n${JSON.stringify(input)}`,
     payload,
     deps,
     activeProcesses,

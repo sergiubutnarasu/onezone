@@ -8,6 +8,7 @@ import {
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { runProcess, terminateTree } from "./process-runner.js";
+import { getEffectiveTaskAgentCode } from "./effective-task-agent.js";
 import {
   getAllInstalledSkills,
   getProjectConfigFolder,
@@ -20,7 +21,7 @@ const inFlightInstalls = new Map<string, Promise<void>>();
 const AGENT_TAG_MAPPINGS: Record<AgentTag, string> = {
   [AgentTag.GithubCopilotCLI]: "github-copilot",
   [AgentTag.ClaudeCode]: "claude-code",
-}
+};
 
 function getSkillDirs(
   configDir: string,
@@ -121,7 +122,7 @@ export const setupSkills = async ({
 
   const skills = project?.skills ?? [];
   const configDir = getProjectConfigFolder(project.id);
-  const agentCode = getSkillInstallAgentCode(task, project);
+  const agentCode = getEffectiveTaskAgentCode(task, project);
 
   if (!agentCode) {
     emit?.("Skipping skill install: no agent configured.");
@@ -164,21 +165,6 @@ export const setupSkills = async ({
     emit?.("✔ Skills ready.");
   }
 };
-
-function getSkillInstallAgentCode(
-  task: TaskDetails | undefined,
-  project: ProjectInfo,
-): RunSkillCommandPayload["agentCode"] | null {
-  if (task && !task.useTaskAgentAndModel && task.column?.agent?.tag) {
-    return task.column.agent.tag;
-  }
-
-  if (task?.agent?.tag) {
-    return task.agent.tag;
-  }
-
-  return project.defaultAgent?.tag ?? null;
-}
 
 function waitForInstall(
   pending: Promise<void>,
