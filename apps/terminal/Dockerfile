@@ -27,6 +27,13 @@ RUN pnpm deploy --filter=@onezone/terminal --prod /deploy
 # ---- Runtime image ----
 FROM node:22-trixie-slim
 
+# Which agent CLIs the terminal worker should install at runtime.
+# Passed through to docker-entrypoint.sh as env vars.
+ARG INSTALL_CLAUDE_CODE=true
+ARG INSTALL_COPILOT_CLI=true
+ENV INSTALL_CLAUDE_CODE=$INSTALL_CLAUDE_CODE
+ENV INSTALL_COPILOT_CLI=$INSTALL_COPILOT_CLI
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
   git \

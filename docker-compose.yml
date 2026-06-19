@@ -81,9 +81,14 @@ services:
     build:
       context: .
       dockerfile: apps/terminal/Dockerfile
+      args:
+        INSTALL_CLAUDE_CODE: ${INSTALL_CLAUDE_CODE:-true}
+        INSTALL_COPILOT_CLI: ${INSTALL_COPILOT_CLI:-true}
     environment:
       TERMINAL_NAME: ${TERMINAL_NAME:-Onezone Docker Terminal}
       TERMINAL_SERVER_URL: ${TERMINAL_SERVER_URL:-http://server:5026}
+      INSTALL_CLAUDE_CODE: ${INSTALL_CLAUDE_CODE:-true}
+      INSTALL_COPILOT_CLI: ${INSTALL_COPILOT_CLI:-true}
       ANTHROPIC_AUTH_TOKEN: ${ANTHROPIC_AUTH_TOKEN}
       ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}

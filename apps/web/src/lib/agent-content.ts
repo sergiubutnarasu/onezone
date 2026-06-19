@@ -154,13 +154,13 @@ export function createAgentContentParser(tag: AgentTag): AgentContentParser {
 
 function parseClaudeAgentLine(raw: string): ContentBlock[] | null {
   const obj = parseJsonLine(raw);
-  if (!obj) return [{ kind: 'raw', text: raw }];
+  if (!obj) return [{ kind: 'text', text: raw }];
   return parseClaudeLine(obj);
 }
 
 function parseCopilotAgentLine(raw: string): ContentBlock[] | null {
   const obj = parseJsonLine(raw);
-  if (!obj) return [{ kind: 'raw', text: raw }];
+  if (!obj) return [{ kind: 'text', text: raw }];
   return parseCopilotLine(obj);
 }
 
@@ -171,7 +171,7 @@ function parseCopilotAgentLine(raw: string): ContentBlock[] | null {
  */
 export function parseAgentLine(raw: string): ContentBlock[] | null {
   const obj = parseJsonLine(raw);
-  if (!obj) return [{ kind: 'raw', text: raw }];
+  if (!obj) return [{ kind: 'text', text: raw }];
 
   // Claude and Copilot use mutually exclusive `type` values, so we can
   // safely dispatch without knowing the agent tag.

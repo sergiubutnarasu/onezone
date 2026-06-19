@@ -1,14 +1,18 @@
 #!/bin/sh
 set -e
 
-# Install Claude Code if not present (persisted in /home/agent/.local volume)
-if ! command -v claude >/dev/null 2>&1; then
+# Defaults: install everything when the flags are unset (backwards compatible).
+INSTALL_CLAUDE_CODE="${INSTALL_CLAUDE_CODE:-true}"
+INSTALL_COPILOT_CLI="${INSTALL_COPILOT_CLI:-true}"
+
+# Install Claude Code if selected and not present (persisted in /home/agent/.local volume)
+if [ "$INSTALL_CLAUDE_CODE" = "true" ] && ! command -v claude >/dev/null 2>&1; then
   echo "Installing Claude Code..."
   curl -fsSL https://claude.ai/install.sh | bash
 fi
 
-# Install GitHub Copilot CLI if not present (persisted in /home/agent/.local volume)
-if ! command -v copilot >/dev/null 2>&1; then
+# Install GitHub Copilot CLI if selected and not present (persisted in /home/agent/.local volume)
+if [ "$INSTALL_COPILOT_CLI" = "true" ] && ! command -v copilot >/dev/null 2>&1; then
   echo "Installing GitHub Copilot CLI..."
   curl -fsSL https://gh.io/copilot-install | bash
 fi
