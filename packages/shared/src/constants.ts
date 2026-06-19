@@ -31,7 +31,7 @@ export function createProjectRoomId(projectId: string): string {
  * with the JSON as `$ARGUMENTS[0]`.
  */
 export const RUNNER_PROMPT_PREFIX =
-  'Invoke the "onezone-runner" skill with the following JSON as $ARGUMENTS[0], then follow the skill\'s workflow exactly:';
+  'Follow your custom instructions, then invoke the "onezone-runner" skill with the following JSON as $ARGUMENTS[0], then follow the skill\'s workflow exactly:';
 
 /**
  * Extracts the runner JSON payload from a command string.
