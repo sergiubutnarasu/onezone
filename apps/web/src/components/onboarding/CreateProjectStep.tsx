@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ProjectForm } from "@/components/ProjectForm";
-import type { Agent } from "@/lib/api";
+import type { Agent } from "@/types/agent";
 
 interface CreateProjectStepProps {
   agents: Agent[];

@@ -1,5 +1,5 @@
 import { Socket } from "socket.io-client";
-import { tryRefresh } from "./auth/refresh";
+import { tryRefresh } from "./refresh";
 
 /**
  * Attaches a listener to the socket's 'error' event. When the server rejects

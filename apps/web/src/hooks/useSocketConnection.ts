@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { API_BASE as SERVER_URL } from '../lib/http-client';
+import { API_BASE as SERVER_URL } from "@/constants";
 import { attachSocketAuthRefresh } from '../lib/socket-auth';
 
 export function useSocketConnection(taskId: string): {

@@ -75,7 +75,6 @@ export function EditTaskDialog({
     handleSubmit,
     setValue,
     watch,
-    reset,
     formState: { errors, isSubmitting },
   } = methods;
 

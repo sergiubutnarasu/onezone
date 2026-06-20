@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
-import { getMe, logout as apiLogout, type AuthUser } from "@/lib/api";
+import { getMe, logout as apiLogout } from "@/lib/api";
+import type { AuthUser } from "@onezone/shared";
 
 interface AuthContextValue {
   user: AuthUser | null;

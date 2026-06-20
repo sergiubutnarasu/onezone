@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { AgentModelRow } from "./AgentModelRow";
-import type { Agent } from "@/lib/api";
+import type { Agent } from "@/types/agent";
 
 interface ConfigureAgentsStepProps {
   agents: Agent[];

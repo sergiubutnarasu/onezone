@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { parseSkillCommand } from '@/lib/skills';
+import { parseSkillCommand } from "@/lib/skills";
 import type { ProjectSkill } from '@onezone/shared';
 
 interface SkillsManagerProps {

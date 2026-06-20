@@ -6,7 +6,7 @@ import { updateAgent } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Bot, Save, X } from "lucide-react";
-import type { Agent } from "@/lib/api";
+import type { Agent } from "@/types/agent";
 
 interface AgentModelRowProps {
   agent: Agent;

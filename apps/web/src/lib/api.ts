@@ -1,4 +1,5 @@
 // apps/web/src/lib/api.ts
+// API client functions only. Types live in @onezone/shared or apps/web/src/types.
 
 import {
   type Agent as SharedAgent,
@@ -13,72 +14,56 @@ import {
   type TaskSchedule,
   type Terminal,
 } from "@onezone/shared";
-import { httpClient, API_BASE } from "./http-client";
+import { httpClient } from "./http-client";
+import { API_BASE } from "@/constants";
 export type {
   KanbanColumn,
   ProjectInfo as Project,
 } from "@onezone/shared";
+
+import type {
+  ProjectExportConfig,
+  TaskOrderItem,
+  ScheduleInput,
+} from "@/types/api";
+export type { ProjectExportConfig, TaskOrderItem, ScheduleInput } from "@/types/api";
 
 export interface Agent extends SharedAgent {
   defaultModel?: string;
   userModel?: string | null;
 }
 
-// ─── Auth types ───────────────────────────────────────────────────────────────
-
-export interface AuthUser {
-  id: string;
-  email: string;
-  name: string;
-  isAdmin?: boolean;
-}
-
-export function safeReturnTo(value: string | null): string {
-  // Only accept relative paths — prevents open redirect to external domains.
-  // A single leading '/' (not '//') is always same-origin with router.push().
-  if (!value || !value.startsWith('/') || value.startsWith('//')) return '/';
-  return value;
-}
-
 async function authRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...options.headers },
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...options.headers },
   });
   if (!res.ok) {
-    const body = await res.json().catch(() => ({})) as { error?: string };
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
     throw new Error(body.error ?? `HTTP ${res.status}`);
   }
   return res.json() as Promise<T>;
 }
 
 export const login = (email: string, password: string) =>
-  authRequest<{ access_token: string; refresh_token: string }>('/auth/login', {
-    method: 'POST',
+  authRequest<{ access_token: string; refresh_token: string }>("/auth/login", {
+    method: "POST",
     body: JSON.stringify({ email, password }),
   });
 
 export const register = (email: string, password: string, name: string) =>
-  authRequest<{ access_token: string; refresh_token: string; message?: string }>('/auth/signup', {
-    method: 'POST',
+  authRequest<{ access_token: string; refresh_token: string; message?: string }>("/auth/signup", {
+    method: "POST",
     body: JSON.stringify({ email, password, name }),
   });
 
-export const logout = () =>
-  authRequest<void>('/auth/logout', { method: 'POST' });
+export const logout = () => authRequest<void>("/auth/logout", { method: "POST" });
 
-export const getMe = () => authRequest<AuthUser>('/auth/me');
+export const getMe = () => authRequest<import("@onezone/shared").AuthUser>("/auth/me");
 
 export const activateDevice = (user_code: string) =>
-  httpClient.post<{ approved: boolean }>('/auth/activate', { user_code });
-
-export interface TaskOrderItem {
-  id: string;
-  /** null means the task moves to the virtual Backlog column */
-  columnId: string | null;
-  order: number;
-}
+  httpClient.post<{ approved: boolean }>("/auth/activate", { user_code });
 
 export const fetchProjects = () => httpClient.get<ProjectInfo[]>("/projects");
 
@@ -107,22 +92,11 @@ export const updateProject = (
 export const deleteProject = (id: string) =>
   httpClient.delete<void>(`/projects/${id}`);
 
-export interface ProjectExportConfig {
-  version: string;
-  name: string;
-  description: string | null;
-  repository: string | null;
-  defaultAgent: string;
-  defaultModel: string;
-  columns: { name: string; instructions: string; agent: string | null; model: string | null }[];
-  skills?: { source: string; skillName: string }[];
-}
-
 export const exportProject = (id: string) =>
   httpClient.get<ProjectExportConfig>(`/projects/${id}/export`);
 
 export const importProject = (config: ProjectExportConfig) =>
-  httpClient.post<ProjectInfo>('/projects/import', config);
+  httpClient.post<ProjectInfo>("/projects/import", config);
 
 export const fetchProject = (id: string) =>
   httpClient.get<ProjectInfo>(`/projects/${id}`);
@@ -140,11 +114,11 @@ export const updateGlobalAgent = (id: string, data: { model: string }) =>
 
 export const fetchTasks = (
   projectId: string,
-  params?: { orderBy?: string; order?: 'asc' | 'desc' },
+  params?: { orderBy?: string; order?: "asc" | "desc" },
 ) => {
   const qs = params
-    ? '?' + new URLSearchParams(params as Record<string, string>).toString()
-    : '';
+    ? "?" + new URLSearchParams(params as Record<string, string>).toString()
+    : "";
   return httpClient.get<Task[]>(`/projects/${projectId}/tasks${qs}`);
 };
 
@@ -252,7 +226,7 @@ export const installGlobalSkill = (data: {
 // Notifications
 export const fetchNotifications = (includeRead = false, page = 1, limit = 20) => {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-  if (includeRead) params.set('includeRead', 'true');
+  if (includeRead) params.set("includeRead", "true");
   return httpClient.get<Paginated<Notification>>(`/notifications?${params}`);
 };
 export type { Paginated };
@@ -271,7 +245,7 @@ export const removeGlobalSkill = (skillId: string) =>
 
 // Project memory
 export const fetchMemoryFiles = (projectId: string, prefix?: string) => {
-  const params = prefix ? `?prefix=${encodeURIComponent(prefix)}` : '';
+  const params = prefix ? `?prefix=${encodeURIComponent(prefix)}` : "";
   return httpClient.get<{ keys: string[] }>(`/projects/${projectId}/memory${params}`);
 };
 
@@ -287,20 +261,6 @@ export const deleteMemoryFile = (projectId: string, key: string) =>
 // Task schedules
 export const fetchSchedules = (projectId: string) =>
   httpClient.get<TaskSchedule[]>(`/projects/${projectId}/schedules`);
-
-export interface ScheduleInput {
-  name: string;
-  description?: string;
-  cronExpression: string;
-  timezone?: string;
-  startColumnId: string;
-  terminalId: string;
-  agentId: string;
-  model: string;
-  useScheduleAgentAndModel?: boolean;
-  enabled?: boolean;
-  runOnce?: boolean;
-}
 
 export const createSchedule = (projectId: string, data: ScheduleInput) =>
   httpClient.post<TaskSchedule>(`/projects/${projectId}/schedules`, data);

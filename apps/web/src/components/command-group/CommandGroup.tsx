@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Loader2, Square, Play } from "lucide-react";
-import type { RoomMessage } from "@/hooks/useTaskRoom";
 import { SetupLogBlock } from "./SetupLogBlock";
 import { AgentOutputLine } from "./AgentOutputLine";
 import { getDisplayCommand, groupSetupLines } from "./utils";

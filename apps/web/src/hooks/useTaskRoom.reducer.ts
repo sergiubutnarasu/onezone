@@ -1,5 +1,5 @@
-import { MessageType } from '@onezone/shared';
-import type { Action, RoomMessage, State } from './useTaskRoom.types';
+import { MessageType } from "@onezone/shared";
+import type { Action, RoomMessage, State } from "@/types/room";
 
 function buildSyntheticExits(
   messages: RoomMessage[],

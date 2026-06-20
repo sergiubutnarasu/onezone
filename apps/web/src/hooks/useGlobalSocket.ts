@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { usePathname } from 'next/navigation';
 import { io } from 'socket.io-client';
 import { EventCommands, type Task, type Terminal } from '@onezone/shared';
-import { API_BASE as SERVER_URL } from '../lib/http-client';
+import { API_BASE as SERVER_URL } from "@/constants";
 import { useAuth } from '../lib/auth-context';
 import { attachSocketAuthRefresh } from '../lib/socket-auth';
 

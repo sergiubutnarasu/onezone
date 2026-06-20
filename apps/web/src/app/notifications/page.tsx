@@ -9,6 +9,7 @@ import {
   markNotificationRead,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { timeAgo } from "@/lib/format";
 import type { Notification } from "@onezone/shared";
 import {
   useMutation,
@@ -16,7 +17,6 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import {
-  Bell,
   CheckCheck,
   CheckCircle,
   Inbox,
@@ -26,16 +26,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
 
 function NotificationIcon({ type }: { type: Notification["type"] }) {
   if (type === "TASK_COMPLETED")

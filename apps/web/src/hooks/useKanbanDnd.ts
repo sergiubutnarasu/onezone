@@ -52,7 +52,7 @@ function applyReorder(tasks: Task[], activeId: string, overId: string): Task[] {
   return arrayMove(tasks, oldIndex, newIndex);
 }
 
-function toReorderPayload(tasks: Task[], columnOrder: string[]): TaskOrderItem[] {
+function toReorderPayload(tasks: Task[]): TaskOrderItem[] {
   const counters = new Map<string | null, number>();
   // Sort tasks by the column order so ordering is consistent
   return tasks.map((t) => {
@@ -262,7 +262,7 @@ export function useKanbanDnd(projectId: string, initialTasks: Task[], kanbanColu
       const isDroppedOnCard = overId !== activeId && !columnsRef.current.some((c) => c.id === overId) && overId !== BACKLOG_COLUMN_ID && overId !== COMPLETED_COLUMN_ID;
       const next = isDroppedOnCard ? applyReorder(current, activeId, overId) : current;
       if (next !== current) syncTasks(next);
-      persistOrder(toReorderPayload(next, columnsRef.current.map((c) => c.id)));
+      persistOrder(toReorderPayload(next));
       if (!underlyingColumnChanged) {
         persistCompleted({ taskId: activeId, completed: false });
       }
@@ -275,7 +275,7 @@ export function useKanbanDnd(projectId: string, initialTasks: Task[], kanbanColu
 
     if (virtualColumnChanged || next !== current) {
       syncTasks(next);
-      persistOrder(toReorderPayload(next, columnsRef.current.map((c) => c.id)));
+      persistOrder(toReorderPayload(next));
     }
   }, [syncTasks, persistOrder, persistCompleted, persistColumnOrder, activeColumn]);
 

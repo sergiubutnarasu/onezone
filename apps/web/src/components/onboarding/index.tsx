@@ -6,7 +6,7 @@ import { StepIndicator } from "./StepIndicator";
 import { ConnectTerminalStep } from "./ConnectTerminalStep";
 import { ConfigureAgentsStep } from "./ConfigureAgentsStep";
 import { CreateProjectStep } from "./CreateProjectStep";
-import type { Agent } from "@/lib/api";
+import type { Agent } from "@/types/agent";
 
 const STEPS = [
   { id: 1, label: "Terminal", icon: Monitor },

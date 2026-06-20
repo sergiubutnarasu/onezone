@@ -1,5 +1,5 @@
 import { MessageType } from "@onezone/shared";
-import type { RoomMessage } from "@/hooks/useTaskRoom";
+import type { RoomMessage } from "@/types/room";
 import type { CommandGroupData } from "@/components/command-group";
 import { parseAgentLine } from "@/lib/agent-content";
 

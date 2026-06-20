@@ -4,11 +4,11 @@
 import { AgentTag } from "@onezone/shared";
 
 export type ContentBlock =
-  | { kind: 'text'; text: string }
-  | { kind: 'thinking'; text: string }
-  | { kind: 'tool_use'; name: string; input: Record<string, unknown> }
-  | { kind: 'tool_result'; text: string }
-  | { kind: 'raw'; text: string };
+  | { kind: "text"; text: string }
+  | { kind: "thinking"; text: string }
+  | { kind: "tool_use"; name: string; input: Record<string, unknown> }
+  | { kind: "tool_result"; text: string }
+  | { kind: "raw"; text: string };
 
 export type AgentContentParser = (raw: string) => ContentBlock[] | null;
 
@@ -18,54 +18,54 @@ export type AgentContentParser = (raw: string) => ContentBlock[] | null;
 
 function parseClaudeLine(obj: Record<string, unknown>): ContentBlock[] | null {
   // Skip system/init messages entirely
-  if (obj.type === 'system') return null;
+  if (obj.type === "system") return null;
 
   // Assistant messages — extract content blocks
-  if (obj.type === 'assistant') {
+  if (obj.type === "assistant") {
     const message = obj.message as Record<string, unknown> | undefined;
     const contentBlocks = message?.content as unknown[] | undefined;
     if (!Array.isArray(contentBlocks)) return null;
 
     const result: ContentBlock[] = [];
     for (const block of contentBlocks) {
-      if (!block || typeof block !== 'object') continue;
+      if (!block || typeof block !== "object") continue;
       const b = block as Record<string, unknown>;
 
-      if (b.type === 'text' && typeof b.text === 'string' && b.text.trim()) {
-        result.push({ kind: 'text', text: b.text });
-      } else if (b.type === 'thinking' && typeof b.thinking === 'string' && b.thinking.trim()) {
-        result.push({ kind: 'thinking', text: b.thinking });
-      } else if (b.type === 'tool_use' && typeof b.name === 'string') {
-        result.push({ kind: 'tool_use', name: b.name, input: (b.input as Record<string, unknown>) ?? {} });
+      if (b.type === "text" && typeof b.text === "string" && b.text.trim()) {
+        result.push({ kind: "text", text: b.text });
+      } else if (b.type === "thinking" && typeof b.thinking === "string" && b.thinking.trim()) {
+        result.push({ kind: "thinking", text: b.thinking });
+      } else if (b.type === "tool_use" && typeof b.name === "string") {
+        result.push({ kind: "tool_use", name: b.name, input: (b.input as Record<string, unknown>) ?? {} });
       }
     }
     return result.length > 0 ? result : null;
   }
 
   // User messages — extract tool results
-  if (obj.type === 'user') {
+  if (obj.type === "user") {
     const message = obj.message as Record<string, unknown> | undefined;
     const contentBlocks = message?.content as unknown[] | undefined;
     if (!Array.isArray(contentBlocks)) return null;
 
     const result: ContentBlock[] = [];
     for (const block of contentBlocks) {
-      if (!block || typeof block !== 'object') continue;
+      if (!block || typeof block !== "object") continue;
       const b = block as Record<string, unknown>;
 
-      if (b.type === 'tool_result') {
+      if (b.type === "tool_result") {
         const text = extractToolResultText(b.content);
-        if (text) result.push({ kind: 'tool_result', text });
+        if (text) result.push({ kind: "tool_result", text });
       }
     }
     return result.length > 0 ? result : null;
   }
 
   // Final result message — Claude uses top-level `result` string
-  if (obj.type === 'result') {
-    const resultText = typeof obj.result === 'string' ? obj.result : null;
+  if (obj.type === "result") {
+    const resultText = typeof obj.result === "string" ? obj.result : null;
     if (resultText && resultText.trim()) {
-      return [{ kind: 'text', text: resultText }];
+      return [{ kind: "text", text: resultText }];
     }
     return null;
   }
@@ -79,53 +79,48 @@ function parseClaudeLine(obj: Record<string, unknown>): ContentBlock[] | null {
 
 function parseCopilotLine(obj: Record<string, unknown>): ContentBlock[] | null {
   // Assistant message with text content and tool requests
-  if (obj.type === 'assistant.message') {
+  if (obj.type === "assistant.message") {
     const data = obj.data as Record<string, unknown> | undefined;
     const result: ContentBlock[] = [];
 
-    const content = typeof data?.content === 'string' ? data.content : null;
+    const content = typeof data?.content === "string" ? data.content : null;
     if (content && content.trim()) {
-      result.push({ kind: 'text', text: content });
+      result.push({ kind: "text", text: content });
     }
 
     const toolRequests = Array.isArray(data?.toolRequests)
       ? (data.toolRequests as Record<string, unknown>[])
       : [];
     for (const req of toolRequests) {
-      if (!req || typeof req !== 'object') continue;
-      const name = typeof req.name === 'string' ? req.name : 'tool';
-      const input =
-        (req.arguments as Record<string, unknown> | undefined) ?? {};
-      result.push({ kind: 'tool_use', name, input });
+      if (!req || typeof req !== "object") continue;
+      const name = typeof req.name === "string" ? req.name : "tool";
+      const input = (req.arguments as Record<string, unknown> | undefined) ?? {};
+      result.push({ kind: "tool_use", name, input });
     }
     return result.length > 0 ? result : null;
   }
 
   // Tool execution result
   if (
-    obj.type === 'tool.execution_complete' ||
-    obj.type === 'tool.execution_partial_result'
+    obj.type === "tool.execution_complete" ||
+    obj.type === "tool.execution_partial_result"
   ) {
     const data = obj.data as Record<string, unknown> | undefined;
     const result = data?.result as Record<string, unknown> | undefined;
-    const resultContent =
-      typeof result?.content === 'string' ? result.content : null;
-    const partialOutput =
-      typeof data?.partialOutput === 'string' ? data.partialOutput : null;
+    const resultContent = typeof result?.content === "string" ? result.content : null;
+    const partialOutput = typeof data?.partialOutput === "string" ? data.partialOutput : null;
     const text = resultContent ?? partialOutput;
     if (text && text.trim()) {
-      return [{ kind: 'tool_result', text }];
+      return [{ kind: "tool_result", text }];
     }
     return null;
   }
 
-  // Final result message — Copilot uses `data.result` string
-  if (obj.type === 'result') {
+  if (obj.type === "result") {
     const data = obj.data as Record<string, unknown> | undefined;
-    const resultText =
-      typeof data?.result === 'string' ? data.result : null;
+    const resultText = typeof data?.result === "string" ? data.result : null;
     if (resultText && resultText.trim()) {
-      return [{ kind: 'text', text: resultText }];
+      return [{ kind: "text", text: resultText }];
     }
     return null;
   }
@@ -154,13 +149,13 @@ export function createAgentContentParser(tag: AgentTag): AgentContentParser {
 
 function parseClaudeAgentLine(raw: string): ContentBlock[] | null {
   const obj = parseJsonLine(raw);
-  if (!obj) return [{ kind: 'text', text: raw }];
+  if (!obj) return [{ kind: "text", text: raw }];
   return parseClaudeLine(obj);
 }
 
 function parseCopilotAgentLine(raw: string): ContentBlock[] | null {
   const obj = parseJsonLine(raw);
-  if (!obj) return [{ kind: 'text', text: raw }];
+  if (!obj) return [{ kind: "text", text: raw }];
   return parseCopilotLine(obj);
 }
 
@@ -171,22 +166,18 @@ function parseCopilotAgentLine(raw: string): ContentBlock[] | null {
  */
 export function parseAgentLine(raw: string): ContentBlock[] | null {
   const obj = parseJsonLine(raw);
-  if (!obj) return [{ kind: 'text', text: raw }];
+  if (!obj) return [{ kind: "text", text: raw }];
 
-  // Claude and Copilot use mutually exclusive `type` values, so we can
-  // safely dispatch without knowing the agent tag.
   switch (obj.type) {
-    case 'system':
-    case 'assistant':
-    case 'user':
+    case "system":
+    case "assistant":
+    case "user":
       return parseClaudeLine(obj);
-    case 'assistant.message':
-    case 'tool.execution_complete':
-    case 'tool.execution_partial_result':
+    case "assistant.message":
+    case "tool.execution_complete":
+    case "tool.execution_partial_result":
       return parseCopilotLine(obj);
-    case 'result':
-      // Both agents use `type: "result"` — try Claude first (top-level
-      // `result` string), then Copilot (`data.result` string).
+    case "result":
       return parseClaudeLine(obj) ?? parseCopilotLine(obj);
     default:
       return null;
@@ -198,30 +189,22 @@ export function parseAgentLine(raw: string): ContentBlock[] | null {
 // ---------------------------------------------------------------------------
 
 function parseJsonLine(raw: string): Record<string, unknown> | null {
-  let parsed: unknown;
   try {
-    parsed = JSON.parse(raw);
+    return JSON.parse(raw) as Record<string, unknown>;
   } catch {
     return null;
   }
-  if (!parsed || typeof parsed !== 'object') return null;
-  return parsed as Record<string, unknown>;
 }
 
 function extractToolResultText(content: unknown): string | null {
-  if (typeof content === 'string') return content.trim() || null;
-
-  if (Array.isArray(content)) {
-    const parts: string[] = [];
-    for (const item of content) {
-      if (!item || typeof item !== 'object') continue;
-      const i = item as Record<string, unknown>;
-      if (i.type === 'text' && typeof i.text === 'string') {
-        parts.push(i.text);
-      }
-    }
-    return parts.join('\n').trim() || null;
+  if (typeof content === "string") return content;
+  if (
+    content &&
+    typeof content === "object" &&
+    "text" in content &&
+    typeof (content as Record<string, unknown>).text === "string"
+  ) {
+    return (content as Record<string, unknown>).text as string;
   }
-
   return null;
 }

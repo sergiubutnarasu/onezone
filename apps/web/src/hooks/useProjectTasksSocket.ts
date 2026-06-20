@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { io } from 'socket.io-client';
 import { EventCommands } from '@onezone/shared';
-import { API_BASE as SERVER_URL } from '../lib/http-client';
+import { API_BASE as SERVER_URL } from "@/constants";
 import { attachSocketAuthRefresh } from '../lib/socket-auth';
 
 export function useProjectTasksSocket(projectId: string) {

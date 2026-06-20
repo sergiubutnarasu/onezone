@@ -1,5 +1,5 @@
 import { parseRunnerPayload } from "@onezone/shared";
-import type { RoomMessage } from "@/hooks/useTaskRoom";
+import type { RoomMessage } from "@/types/room";
 import type { GroupedLine } from "./types";
 
 export function getDisplayCommand(command: string): string {

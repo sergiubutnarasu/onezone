@@ -3,7 +3,8 @@
 import { useEffect, type ReactNode } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createProject, type Project } from "@/lib/api";
+import { createProject } from "@/lib/api";
+import type { ProjectInfo as Project } from "@onezone/shared";
 import { Input } from "@/components/ui/input";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {

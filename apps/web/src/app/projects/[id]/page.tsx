@@ -10,7 +10,6 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useProjectTasksSocket } from "@/hooks/useProjectTasksSocket";
-import type { Project } from "@/lib/api";
 import {
   fetchAgents,
   fetchKanbanColumns,
@@ -19,7 +18,7 @@ import {
   fetchTasks,
   fetchTerminals,
 } from "@/lib/api";
-import type { Agent, KanbanColumn, Task, Terminal } from "@onezone/shared";
+import type { ProjectInfo as Project, Agent, KanbanColumn, Task, Terminal } from "@onezone/shared";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, Hash, Home, Settings } from "lucide-react";
 import Link from "next/link";

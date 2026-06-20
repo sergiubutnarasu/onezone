@@ -1,10 +1,9 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { THEME_STORAGE_KEY } from '@/constants';
 
 type Theme = 'light' | 'dark';
-
-const STORAGE_KEY = 'theme';
 
 interface ThemeContextValue {
   theme: Theme;
@@ -17,7 +16,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('dark');
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
+    const stored = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
     if (stored === 'light' || stored === 'dark') {
       setThemeState(stored);
       applyTheme(stored);
@@ -26,7 +25,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   function setTheme(next: Theme) {
     setThemeState(next);
-    localStorage.setItem(STORAGE_KEY, next);
+    localStorage.setItem(THEME_STORAGE_KEY, next);
     applyTheme(next);
   }
 

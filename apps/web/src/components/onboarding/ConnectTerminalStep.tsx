@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchTerminals } from "@/lib/api";
-import { API_BASE } from "@/lib/http-client";
+import { API_BASE } from "@/constants";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/CopyButton";
 import { Check } from "lucide-react";

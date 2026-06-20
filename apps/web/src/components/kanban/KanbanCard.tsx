@@ -6,23 +6,12 @@ import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
 import { GripVertical, Bot, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { timeAgo } from "@/lib/format";
 import { type Task } from "@onezone/shared";
 
 interface KanbanCardProps {
   task: Task;
   projectId: string;
-}
-
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const days = Math.floor(diff / 86400000);
-  if (days === 0) return "Today";
-  if (days === 1) return "Yesterday";
-  if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
 }
 
 export const KanbanCard = memo(function KanbanCard({

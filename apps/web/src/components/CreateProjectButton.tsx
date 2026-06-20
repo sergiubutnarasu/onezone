@@ -9,7 +9,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { CreateProjectDialog } from "./CreateProjectDialog";
-import { importProject, type ProjectExportConfig } from "@/lib/api";
+import { importProject } from "@/lib/api";
+import type { ProjectExportConfig } from "@/types/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import type { Agent, Terminal } from "@onezone/shared";

@@ -6,19 +6,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { fetchAgents, fetchProjects, fetchTerminals } from "@/lib/api";
+import { formatDate } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Calendar, FolderOpen, Layers } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 function ProjectCardSkeleton() {
   return (

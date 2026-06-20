@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { deleteKanbanColumn } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { COLUMN_COLORS } from "@/constants";
 import {
   SortableContext,
   useSortable,
@@ -18,17 +19,6 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { CheckCircle2, GripVertical, Pencil, Trash2 } from "lucide-react";
 import { memo, useMemo, useRef, useState } from "react";
 import { KanbanCard } from "./KanbanCard";
-
-const COLUMN_COLORS = [
-  "text-sky-400",
-  "text-amber-400",
-  "text-violet-400",
-  "text-orange-400",
-  "text-emerald-400",
-  "text-blue-400",
-  "text-pink-400",
-  "text-teal-400",
-];
 
 interface KanbanColumnProps {
   columnId: string;

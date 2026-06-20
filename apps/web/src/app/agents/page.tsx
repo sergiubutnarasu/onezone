@@ -14,7 +14,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { Agent } from "@/lib/api";
+import type { Agent } from "@/types/agent";
 import { useState } from "react";
 
 type AgentWithModels = Agent & {

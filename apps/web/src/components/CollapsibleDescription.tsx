@@ -4,8 +4,7 @@ import { useRef, useState, useLayoutEffect } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { RichTextViewer } from "@/components/ui/rich-text-viewer";
 import { cn } from "@/lib/utils";
-
-const COLLAPSED_MAX_HEIGHT = 72; // ~3 lines
+import { COLLAPSED_MAX_HEIGHT } from "@/constants";
 
 interface CollapsibleDescriptionProps {
   value?: string | null;

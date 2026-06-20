@@ -1,6 +1,6 @@
 "use client";
 
-import type { RoomMessage } from "@/hooks/useTaskRoom";
+import type { RoomMessage } from "@/types/room";
 
 export interface CommandGroupData {
   jobId: string;

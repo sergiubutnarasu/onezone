@@ -11,7 +11,6 @@ import {
   setTaskCompleted,
 } from "@/lib/api";
 import {
-  BACKLOG_COLUMN_ID,
   COMPLETED_COLUMN_ID,
   type KanbanColumn,
   type Terminal,

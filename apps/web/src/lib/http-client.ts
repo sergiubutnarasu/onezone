@@ -1,22 +1,7 @@
 // apps/web/src/lib/http-client.ts
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5026';
-
-let refreshPromise: Promise<boolean> | null = null;
-
-async function tryRefresh(): Promise<boolean> {
-  if (refreshPromise) return refreshPromise;
-  refreshPromise = fetch(`${API_BASE}/auth/refresh`, {
-    method: 'POST',
-    credentials: 'include',
-  })
-    .then((r) => r.ok)
-    .catch(() => false)
-    .finally(() => {
-      refreshPromise = null;
-    });
-  return refreshPromise;
-}
+import { API_BASE } from "@/constants";
+import { tryRefresh } from "./auth/refresh";
 
 async function request<T>(
   path: string,
@@ -25,9 +10,9 @@ async function request<T>(
 ): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
-    credentials: 'include',
+    credentials: "include",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...options.headers,
     },
   });
@@ -40,10 +25,10 @@ async function request<T>(
       }
     }
     // Redirect to login on auth failure (only in browser)
-    if (typeof window !== 'undefined') {
-      window.location.href = '/auth/login';
+    if (typeof window !== "undefined") {
+      window.location.href = "/auth/login";
     }
-    throw new Error('Unauthorized');
+    throw new Error("Unauthorized");
   }
 
   if (!res.ok) {
@@ -63,16 +48,16 @@ export const httpClient = {
     return request<T>(path);
   },
   post<T>(path: string, body: unknown): Promise<T> {
-    return request<T>(path, { method: 'POST', body: JSON.stringify(body) });
+    return request<T>(path, { method: "POST", body: JSON.stringify(body) });
   },
   patch<T>(path: string, body: unknown): Promise<T> {
-    return request<T>(path, { method: 'PATCH', body: JSON.stringify(body) });
+    return request<T>(path, { method: "PATCH", body: JSON.stringify(body) });
   },
   put<T>(path: string, body: unknown): Promise<T> {
-    return request<T>(path, { method: 'PUT', body: JSON.stringify(body) });
+    return request<T>(path, { method: "PUT", body: JSON.stringify(body) });
   },
   delete<T>(path: string): Promise<T> {
-    return request<T>(path, { method: 'DELETE' });
+    return request<T>(path, { method: "DELETE" });
   },
 };
 

@@ -5,8 +5,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { io, Socket } from "socket.io-client";
 import { EventCommands } from "@onezone/shared";
 import { reducer, initialState } from "./useTaskRoom.reducer";
-import type { RoomMessage, ConnectedTerminal } from "./useTaskRoom.types";
-import { API_BASE as SERVER_URL } from "../lib/http-client";
+import type { RoomMessage, ConnectedTerminal } from "@/types/room";
+import { API_BASE } from "@/constants";
 import { attachSocketAuthRefresh } from "../lib/socket-auth";
 
 export type { RoomMessage, ConnectedTerminal };
@@ -32,7 +32,7 @@ export function useTaskRoom(
   });
 
   useEffect(() => {
-    const socket = io(`${SERVER_URL}/chat`, {
+    const socket = io(`${API_BASE}/chat`, {
       auth: { taskId, role: "user" },
       withCredentials: true,
     });

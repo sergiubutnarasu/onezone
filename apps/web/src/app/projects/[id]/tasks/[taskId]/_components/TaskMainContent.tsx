@@ -9,7 +9,7 @@ import { MessageInput } from "@/components/MessageInput";
 import { TerminalStatusBar } from "@/components/TerminalStatusBar";
 import type { Task } from "@onezone/shared";
 import type { ChatItem } from "../_lib/chat-items";
-import type { ConnectedTerminal } from "@/hooks/useTaskRoom";
+import type { ConnectedTerminal } from "@/types/room";
 
 interface TaskMainContentProps {
   task: Task | undefined;
