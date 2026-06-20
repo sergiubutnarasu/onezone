@@ -66,11 +66,11 @@ function SidebarContent({
   agents: Agent[];
 }) {
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ["tasks", projectId],
-    queryFn: () => fetchTasks(projectId),
+    queryKey: ["tasks", projectId, { orderBy: "createdAt", order: "desc" }],
+    queryFn: () => fetchTasks(projectId, { orderBy: "createdAt", order: "desc" }),
   });
 
-  const sortedTasks = tasks.sort((a, b) => a.order - b.order);
+  const sortedTasks = tasks;
 
   return (
     <>

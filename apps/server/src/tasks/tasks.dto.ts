@@ -46,7 +46,13 @@ export class ReorderTasksDto {
 }
 
 export class ListTasksQueryDto {
-  // Filtering by column is handled client-side; all tasks returned together.
+  @IsOptional()
+  @IsString()
+  orderBy?: string;
+
+  @IsOptional()
+  @IsString()
+  order?: 'asc' | 'desc';
 }
 
 export class UpdateTaskColumnDto {

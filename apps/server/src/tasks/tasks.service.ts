@@ -388,10 +388,19 @@ export class TasksService {
     return this.flattenTask(task);
   }
 
-  async findAllByProject(projectId: string, userId: string) {
+  async findAllByProject(
+    projectId: string,
+    userId: string,
+    query?: { orderBy?: string; order?: 'asc' | 'desc' },
+  ) {
+    const orderBy =
+      query?.orderBy === 'createdAt'
+        ? { createdAt: query.order ?? 'desc' }
+        : { order: 'asc' as const };
+
     const tasks = await this.prisma.task.findMany({
       where: { projectId, userId },
-      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+      orderBy: [orderBy, { createdAt: 'desc' }],
       include: {
         terminalAssignment: { include: { terminal: true } },
         columnAssignment: { include: { column: { include: { agent: true } } } },

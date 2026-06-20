@@ -138,8 +138,15 @@ export const updateAgent = (id: string, data: { model: string }) =>
 export const updateGlobalAgent = (id: string, data: { model: string }) =>
   httpClient.patch<Agent>(`/agents/${id}/global`, data);
 
-export const fetchTasks = (projectId: string) =>
-  httpClient.get<Task[]>(`/projects/${projectId}/tasks`);
+export const fetchTasks = (
+  projectId: string,
+  params?: { orderBy?: string; order?: 'asc' | 'desc' },
+) => {
+  const qs = params
+    ? '?' + new URLSearchParams(params as Record<string, string>).toString()
+    : '';
+  return httpClient.get<Task[]>(`/projects/${projectId}/tasks${qs}`);
+};
 
 export const createTask = (
   projectId: string,
