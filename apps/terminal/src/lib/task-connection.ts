@@ -7,20 +7,12 @@ import {
   TaskDetails,
   createTaskRoomId,
 } from "@onezone/shared";
-import { IO_SERVER_DISCONNECT } from "../lib/constants.js";
-import { createTaskSocket } from "../lib/task-socket.js";
-import type { ActiveProcessEntry } from "./command-runner.js";
+import { IO_SERVER_DISCONNECT } from "./constants.js";
+import { createTaskSocket } from "./task-socket.js";
+import type { ActiveProcessEntry } from "./types/index.js";
 import { spawnCommand } from "./command-runner.js";
 import { taskRunner } from "./task-runner.js";
-
-export interface TaskConnectionDeps {
-  serverUrl: string;
-  task: TaskDetails;
-  terminalId: string;
-  terminalName: string;
-  activeTaskIds: Set<string>;
-  log: (message: string, ...args: unknown[]) => void;
-}
+import type { TaskConnectionDeps } from "./types/index.js";
 
 /**
  * Connects to a task room and handles incoming events using a switch-based
@@ -73,7 +65,7 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
             activeProcesses,
           });
         },
-        onMessage: (event, payload) => {
+        onMessage: (event: string, payload: unknown) => {
           const deps = { socket, roomId, terminalId, terminalName, serverUrl, log, isSocketClosed };
 
           switch (event) {
@@ -171,12 +163,12 @@ export function connectToTask(deps: TaskConnectionDeps): Promise<void> {
               break;
           }
         },
-        onConnectError: (_, err) => {
+        onConnectError: (_: string, err: Error) => {
           log(
             `[${terminalName}] [${roomId}] Connection failed (${err.message}), retrying...`,
           );
         },
-        onDisconnect: (_, reason) => {
+        onDisconnect: (_: string, reason: string) => {
           if (closedIntentionally) return;
 
           if (reason === IO_SERVER_DISCONNECT) {

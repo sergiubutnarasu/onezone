@@ -1,7 +1,6 @@
 import { RUNNER_PROMPT_PREFIX, TaskDetails } from "@onezone/shared";
-import { spawnCommand, SpawnCommandProps } from "./command-runner.js";
-
-export interface TaskRunnerProps extends Omit<SpawnCommandProps, "content"> {}
+import { spawnCommand } from "./command-runner.js";
+import type { TaskRunnerProps } from "./types/index.js";
 
 export const taskRunner = ({
   payload,

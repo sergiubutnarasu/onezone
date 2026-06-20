@@ -1,8 +1,7 @@
 import { MessageStream } from "@onezone/shared";
 import { ChildProcess, execSync, spawn } from "node:child_process";
 import { createInterface } from "node:readline";
-
-const TERMINATION_GRACE_MS = 2_000;
+import { TERMINATION_GRACE_MS } from "./constants.js";
 
 function getChildPids(pid: number): number[] {
   try {

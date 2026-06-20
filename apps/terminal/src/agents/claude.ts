@@ -4,7 +4,7 @@ import {
   getClaudeSettingsPath,
   getProjectConfigFolder,
 } from "../lib/project-paths.js";
-import { AgentConfig } from "../lib/types.js";
+import { AgentConfig } from "../lib/types/index.js";
 
 export const setup = ({
   projectId,

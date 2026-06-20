@@ -2,17 +2,9 @@
 
 import { EventCommands } from "@onezone/shared";
 import type { AssignTaskPayload, TaskDetails } from "@onezone/shared";
-import { IO_SERVER_DISCONNECT } from "../lib/constants.js";
-import { createLobbySocket } from "../lib/task-socket.js";
-
-export interface LobbyConnectionDeps {
-  serverUrl: string;
-  terminalId: string;
-  terminalName: string;
-  activeTaskIds: Set<string>;
-  onTaskAssigned: (task: TaskDetails) => Promise<void>;
-  log: (message: string, ...args: unknown[]) => void;
-}
+import { IO_SERVER_DISCONNECT } from "./constants.js";
+import { createLobbySocket } from "./task-socket.js";
+import type { LobbyConnectionDeps } from "./types/index.js";
 
 /**
  * Connects to the lobby room and waits for task assignments.
@@ -36,7 +28,7 @@ export function connectToLobby(deps: LobbyConnectionDeps): Promise<void> {
           `[${terminalName}] Connected to ${serverUrl} | Waiting for task assignment...`,
         );
       },
-      onMessage: (event, payload) => {
+      onMessage: (event: string, payload: unknown) => {
         if (event !== EventCommands.AssignTask) return;
 
         const { task } = payload as AssignTaskPayload;
@@ -63,12 +55,12 @@ export function connectToLobby(deps: LobbyConnectionDeps): Promise<void> {
           );
         });
       },
-      onConnectError: (_, err) => {
+      onConnectError: (_: string, err: Error) => {
         log(
           `[${terminalName}] Lobby connection failed (${err.message}), retrying...`,
         );
       },
-      onDisconnect: (_, reason) => {
+      onDisconnect: (_: string, reason: string) => {
         if (reason === IO_SERVER_DISCONNECT) {
           reject(new Error(`Lobby disconnected: ${reason}`));
         } else {

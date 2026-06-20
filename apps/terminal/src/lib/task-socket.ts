@@ -5,19 +5,7 @@ import { Socket } from 'socket.io-client';
 import { IO_SERVER_DISCONNECT } from './constants.js';
 import { createTerminalSocket } from './socket-client.js';
 import { refreshAccessToken } from './config.js';
-
-export interface TaskSocketCallbacks {
-  onConnect: (roomId: string) => void;
-  onMessage: (event: string, payload: unknown) => void;
-  onConnectError: (roomId: string, err: Error) => void;
-  onDisconnect: (roomId: string, reason: string) => void;
-}
-
-export interface TaskSocketConnection {
-  socket: Socket;
-  cleanup: () => void;
-  isClosed: () => boolean;
-}
+import type { TaskSocketCallbacks, TaskSocketConnection } from './types/index.js';
 
 /**
  * Attaches an "Unauthorized" error handler to a socket.

@@ -13,7 +13,7 @@ import {
 } from "./project-paths.js";
 import { getEffectiveTaskAgentCode } from "./effective-task-agent.js";
 import { setupSkills } from "./skills.js";
-import type { TaskJobConfig } from "./types.js";
+import type { TaskJobConfig } from "./types/index.js";
 
 export const setupProject = async (
   payload: unknown,

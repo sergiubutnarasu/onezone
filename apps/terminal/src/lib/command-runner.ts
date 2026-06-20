@@ -12,33 +12,11 @@ import {
 import { shellQuote, stripAnsi } from "../lib/helper.js";
 import { runProcess, terminateTree } from "../lib/process-runner.js";
 import { setupProject } from "../lib/setup.js";
-
-const COMMAND_EXIT_ACK_TIMEOUT_MS = 5_000;
-const COMMAND_EXIT_WARN_ATTEMPTS = 3;
-
-export interface CommandRunnerDeps {
-  socket: Socket;
-  roomId: string;
-  terminalId: string;
-  terminalName: string;
-  serverUrl: string;
-  log: (message: string, ...args: unknown[]) => void;
-  isSocketClosed: () => boolean;
-}
-
-export interface ActiveProcessEntry {
-  cleanup: () => void;
-  writeStdin?: (data: string) => void;
-}
-
-export interface SpawnCommandProps {
-  content: string;
-  payload: unknown;
-  deps: CommandRunnerDeps;
-  activeProcesses: Map<string, ActiveProcessEntry>;
-  /** When true, parses [[ONEZONE_NEXT_COLUMN:...]] and emits taskRunnerFinished. Defaults to false. */
-  isTaskRunner?: boolean;
-}
+import {
+  COMMAND_EXIT_ACK_TIMEOUT_MS,
+  COMMAND_EXIT_WARN_ATTEMPTS,
+} from "./constants.js";
+import type { ActiveProcessEntry, CommandRunnerDeps, SpawnCommandProps } from "./types/index.js";
 
 function waitForSocketConnect(socket: Socket, timeoutMs: number): Promise<boolean> {
   if (socket.connected) return Promise.resolve(true);

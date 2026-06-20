@@ -1,4 +1,4 @@
-import { AgentTag } from "@onezone/shared";
+import type { AgentTag } from "@onezone/shared";
 
 export type TaskJobConfig = {
   projectId: string;

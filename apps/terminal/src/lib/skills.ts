@@ -14,14 +14,10 @@ import {
   getProjectConfigFolder,
   removeSkill,
 } from "./project-paths.js";
+import { AGENT_TAG_MAPPINGS } from "./constants.js";
 
 // Dedupes concurrent install attempts for the same skill across tasks/terminals.
 const inFlightInstalls = new Map<string, Promise<void>>();
-
-const AGENT_TAG_MAPPINGS: Record<AgentTag, string> = {
-  [AgentTag.GithubCopilotCLI]: "github-copilot",
-  [AgentTag.ClaudeCode]: "claude-code",
-};
 
 function getSkillDirs(
   configDir: string,

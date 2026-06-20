@@ -8,24 +8,25 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-const SERVICE_NAME = "onezone";
+import { SERVICE_NAME } from './constants.js';
+
 const TOKEN_FILE = join(homedir(), ".onezone", "tokens.json");
 
-interface TokenFile {
+interface TokenFileInternal {
   access_token?: string;
   refresh_token?: string;
 }
 
-async function readTokenFile(): Promise<TokenFile> {
+async function readTokenFile(): Promise<TokenFileInternal> {
   try {
     const data = await readFile(TOKEN_FILE, "utf-8");
-    return JSON.parse(data) as TokenFile;
+    return JSON.parse(data) as TokenFileInternal;
   } catch {
     return {};
   }
 }
 
-async function writeTokenFile(tokens: TokenFile): Promise<void> {
+async function writeTokenFile(tokens: TokenFileInternal): Promise<void> {
   await mkdir(join(homedir(), ".onezone"), { recursive: true });
   await writeFile(TOKEN_FILE, JSON.stringify(tokens), { mode: 0o600 });
 }

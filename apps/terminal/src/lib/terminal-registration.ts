@@ -2,11 +2,7 @@
 
 import { hostname } from 'node:os';
 import { authenticatedFetch } from './config.js';
-
-export interface RegisterTerminalInput {
-  serverUrl: string;
-  name: string;
-}
+import type { RegisterTerminalInput } from './types/index.js';
 
 /**
  * Registers the terminal with the server via HTTP POST /terminals/register.

@@ -3,7 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { shellQuote } from "../lib/helper.js";
 import { getProjectConfigFolder } from "../lib/project-paths.js";
-import { AgentConfig } from "../lib/types.js";
+import { AgentConfig } from "../lib/types/index.js";
 
 export const setup = ({
   projectId,

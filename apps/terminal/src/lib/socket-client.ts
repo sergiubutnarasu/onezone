@@ -6,13 +6,7 @@ import {
 import { hostname } from "node:os";
 import { io, Socket } from "socket.io-client";
 import { getAccessToken } from "./config.js";
-
-export interface TerminalSocketOptions {
-  serverUrl: string;
-  taskId?: string;
-  terminalId: string;
-  terminalName: string;
-}
+import type { TerminalSocketOptions } from "./types/index.js";
 
 export function createTerminalSocket(
   options: TerminalSocketOptions,
