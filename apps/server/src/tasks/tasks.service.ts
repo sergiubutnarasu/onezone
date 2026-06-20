@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import {
-  AgentTag,
   ChatMessage,
   KanbanColumn,
   MessageRole,
@@ -10,6 +9,8 @@ import { MessageType, NotificationType } from "@prisma/client";
 import { TerminalRegistryService } from "../gateways/terminal-registry.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { toAgentTag } from "../libs/agent-tag";
+import { toISO, toISONow } from "../libs/date-mapper";
 import { TaskOrderItemDto } from "./tasks.dto";
 
 @Injectable()
@@ -73,14 +74,11 @@ export class TasksService {
             ? {
                 id: rawColumnAgent.id,
                 name: rawColumnAgent.name,
-                tag: rawColumnAgent.tag as unknown as AgentTag,
+                tag: toAgentTag(rawColumnAgent.tag),
               }
             : null,
           model: raw.model ?? null,
-          createdAt:
-            raw.createdAt instanceof Date
-              ? raw.createdAt.toISOString()
-              : (raw.createdAt ?? new Date().toISOString()),
+          createdAt: toISONow(raw.createdAt),
         }
       : null;
     return {
@@ -89,13 +87,13 @@ export class TasksService {
       description: task.description,
       columnId: column?.id ?? null,
       column: column,
-      completedAt: task.completedAt?.toISOString() ?? null,
+      completedAt: toISO(task.completedAt),
       agentId: task.agentId,
       agent: task.agent
         ? {
             id: task.agent.id,
             name: task.agent.name,
-            tag: task.agent.tag as unknown as AgentTag,
+            tag: toAgentTag(task.agent.tag),
           }
         : null,
       model: task.model,
@@ -111,7 +109,7 @@ export class TasksService {
           ? {
               id: project.defaultAgent.id,
               name: project.defaultAgent.name,
-              tag: project.defaultAgent.tag as unknown as AgentTag,
+              tag: toAgentTag(project.defaultAgent.tag),
             }
           : null,
         defaultModel: project.defaultModel,
@@ -141,11 +139,11 @@ export class TasksService {
     });
     const projectWithAllSkills = {
       ...project,
-      createdAt: project.createdAt.toISOString(),
+      createdAt: toISO(project.createdAt),
       skills: [...(project.skills ?? []), ...globalSkills],
       kanbanColumns: kanbanColumns.map((c) => ({
         ...c,
-        createdAt: c.createdAt.toISOString(),
+        createdAt: toISO(c.createdAt),
       })),
     };
     const currentColumn =
@@ -446,11 +444,11 @@ export class TasksService {
     const project = task.project;
     const projectWithAllSkills = {
       ...project,
-      createdAt: project.createdAt.toISOString(),
+      createdAt: toISO(project.createdAt),
       skills: [...(project.skills ?? []), ...globalSkills],
       kanbanColumns: project.kanbanColumns.map((c) => ({
         ...c,
-        createdAt: c.createdAt.toISOString(),
+        createdAt: toISO(c.createdAt),
       })),
     };
     const taskForMap = {
@@ -460,7 +458,7 @@ export class TasksService {
             ...task.columnAssignment,
             column: {
               ...task.columnAssignment.column,
-              createdAt: task.columnAssignment.column.createdAt.toISOString(),
+              createdAt: toISO(task.columnAssignment.column.createdAt),
             },
           }
         : null,
@@ -478,7 +476,7 @@ export class TasksService {
         await tx.task.update({ where: { id }, data: { completedAt: null } });
       } else {
         const col = await this.findColumnInProject(columnId, task.project!.id, userId);
-        column = { ...col, createdAt: col.createdAt.toISOString() };
+        column = { ...col, createdAt: toISO(col.createdAt) };
         await tx.taskColumn.upsert({
           where: { taskId: id },
           create: { taskId: id, columnId },
@@ -592,7 +590,7 @@ export class TasksService {
             where: { id: item.columnId },
             select: { id: true, name: true, index: true, projectId: true, instructions: true, agentId: true, model: true, createdAt: true },
           });
-          column = col ? { ...col, createdAt: col.createdAt.toISOString() } : null;
+          column = col ? { ...col, createdAt: toISO(col.createdAt) } : null;
         }
         this.terminalRegistry.notifyTaskColumnUpdated(
           item.id,
@@ -643,11 +641,11 @@ export class TasksService {
       const t = a.task;
       const projectWithAllSkills = {
         ...t.project,
-        createdAt: t.project.createdAt.toISOString(),
+        createdAt: toISO(t.project.createdAt),
         skills: [...(t.project.skills ?? []), ...globalSkills],
         kanbanColumns: t.project.kanbanColumns.map((c) => ({
           ...c,
-          createdAt: c.createdAt.toISOString(),
+          createdAt: toISO(c.createdAt),
         })),
       };
       const tForMap = {
@@ -657,7 +655,7 @@ export class TasksService {
               ...t.columnAssignment,
               column: {
                 ...t.columnAssignment.column,
-                createdAt: t.columnAssignment.column.createdAt.toISOString(),
+                createdAt: toISO(t.columnAssignment.column.createdAt),
               },
             }
           : null,

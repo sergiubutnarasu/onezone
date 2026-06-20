@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EventCommands, MessageRole, createProjectRoomId, extractTaskId, parseRunnerPayload } from '@onezone/shared';
+import { EventCommands, MessageRole, createProjectRoomId, extractTaskId } from '@onezone/shared';
 import { MessageType, NotificationType } from '@prisma/client';
 import { Server, Socket } from 'socket.io';
 import { MessagesService } from '../../messages/messages.service';
@@ -7,32 +7,8 @@ import { TasksService } from '../../tasks/tasks.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { ProjectsService } from '../../projects/projects.service';
 import { IMessageHandler } from './message-handler.interface';
-
-interface RunnerPayload {
-  taskName?: string;
-  kanbanColumnName?: string;
-}
-
-function parseRunnerCommand(command: string): RunnerPayload | null {
-  return parseRunnerPayload<RunnerPayload>(command);
-}
-
-export interface CommandExitData {
-  roomId: string;
-  terminalId?: string;
-  terminalName?: string;
-  jobId: string;
-  command: string;
-  exitCode: number;
-  ts?: number;
-  agentId?: string;
-  model?: string;
-  totalCostUsd?: number;
-  inputTokens?: number;
-  outputTokens?: number;
-  taskRunnerFinished?: boolean;
-  nextColumnId?: string | null;
-}
+import type { CommandExitData } from '../../types';
+import { parseRunnerCommand } from '../../libs/runner-command';
 
 @Injectable()
 export class CommandExitHandler implements IMessageHandler<CommandExitData> {

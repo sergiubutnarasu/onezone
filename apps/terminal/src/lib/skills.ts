@@ -1,5 +1,4 @@
 import {
-  AgentTag,
   MessageStream,
   type ProjectInfo,
   type RunSkillCommandPayload,

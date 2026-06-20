@@ -1,27 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { MessageType } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
-
-export interface CreateMessageDto {
-  roomId: string;
-  taskId: string;
-  role: string;
-  terminalId?: string;
-  terminalName?: string;
-  messageType: MessageType;
-  jobId?: string;
-  command?: string;
-  exitCode?: number;
-  stream?: string;
-  content: string;
-  agentId?: string;
-  model?: string;
-  inputTokens?: number;
-  outputTokens?: number;
-  totalCostUsd?: number;
-  userId: string;
-  ts: number;
-}
+import { CreateMessageDto } from "../types";
 
 @Injectable()
 export class MessagesService {

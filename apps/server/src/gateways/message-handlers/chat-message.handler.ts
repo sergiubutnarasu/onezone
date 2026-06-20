@@ -7,11 +7,7 @@ import { MessagesService } from "../../messages/messages.service";
 import { TasksService } from "../../tasks/tasks.service";
 import { TerminalRegistryService } from "../terminal-registry.service";
 import { IMessageHandler } from "./message-handler.interface";
-
-export interface ChatMessageData {
-  roomId: string;
-  content: string;
-}
+import type { ChatMessageData } from "../../types";
 
 @Injectable()
 export class ChatMessageHandler implements IMessageHandler<ChatMessageData> {

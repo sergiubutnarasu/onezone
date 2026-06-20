@@ -7,7 +7,7 @@ export const taskRunner = ({
   deps,
   activeProcesses,
 }: TaskRunnerProps) => {
-  const { socket, roomId, terminalId, terminalName, log } = deps;
+  const { roomId, terminalName, log } = deps;
 
   const task = (payload as { task?: unknown }).task as TaskDetails | undefined;
 

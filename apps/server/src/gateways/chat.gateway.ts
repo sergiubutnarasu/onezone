@@ -25,10 +25,11 @@ import { Server, Socket } from 'socket.io';
 import { TasksService } from '../tasks/tasks.service';
 import { TerminalsService } from '../terminals/terminals.service';
 import { ProjectsService } from '../projects/projects.service';
-import { ChatMessageHandler, ChatMessageData } from './message-handlers/chat-message.handler';
-import { OutputLineHandler, OutputLineData } from './message-handlers/output-line.handler';
-import { CommandStartHandler, CommandStartData } from './message-handlers/command-start.handler';
-import { CommandExitHandler, CommandExitData } from './message-handlers/command-exit.handler';
+import { ChatMessageHandler } from './message-handlers/chat-message.handler';
+import { OutputLineHandler } from './message-handlers/output-line.handler';
+import { CommandStartHandler } from './message-handlers/command-start.handler';
+import { CommandExitHandler } from './message-handlers/command-exit.handler';
+import type { ChatMessageData, OutputLineData, CommandStartData, CommandExitData } from '../types';
 
 interface TerminalSocketMeta {
   role: 'terminal';

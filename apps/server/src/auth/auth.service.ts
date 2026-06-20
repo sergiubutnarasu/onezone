@@ -6,7 +6,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { isAdminEmail } from './admin-emails';
+import { isAdminEmail } from '../libs/admin-emails';
 
 @Injectable()
 export class AuthService {

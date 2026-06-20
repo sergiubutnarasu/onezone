@@ -1,7 +1,6 @@
 import {
   type AgentOutputParser,
   parseNextColumnTag,
-  type ParsedAgentLine,
 } from "./types.js";
 
 function extractClaudeContent(message: unknown): string | undefined {

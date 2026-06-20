@@ -1,26 +1,12 @@
 // apps/server/src/gateways/message-handlers/output-line.handler.ts
 
 import { Injectable, Logger } from '@nestjs/common';
-import { MessageRole, MessageStream } from '@onezone/shared';
+import { MessageRole } from '@onezone/shared';
 import { Server, Socket } from 'socket.io';
 import { MessagesService } from '../../messages/messages.service';
 import { extractTaskId } from '@onezone/shared';
 import { IMessageHandler } from './message-handler.interface';
-
-export interface OutputLineData {
-  roomId: string;
-  terminalId?: string;
-  terminalName?: string;
-  jobId?: string;
-  command?: string;
-  stream: MessageStream;
-  content: string;
-  ts?: number;
-  agentId?: string;
-  model?: string;
-  inputTokens?: number;
-  outputTokens?: number;
-}
+import type { OutputLineData } from '../../types';
 
 @Injectable()
 export class OutputLineHandler implements IMessageHandler<OutputLineData> {

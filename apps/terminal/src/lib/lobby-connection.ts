@@ -1,7 +1,7 @@
 // apps/terminal/src/commands/lobby-connection.ts
 
 import { EventCommands } from "@onezone/shared";
-import type { AssignTaskPayload, TaskDetails } from "@onezone/shared";
+import type { AssignTaskPayload } from "@onezone/shared";
 import { IO_SERVER_DISCONNECT } from "./constants.js";
 import { createLobbySocket } from "./task-socket.js";
 import type { LobbyConnectionDeps } from "./types/index.js";

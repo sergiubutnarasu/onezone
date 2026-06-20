@@ -6,10 +6,8 @@ import {
   createProjectConfigFolder,
   createProjectFolder,
   createProjectWorkDirFolder,
-  getAllInstalledSkills,
   getProjectFolder,
   getProjectWorkDir,
-  removeSkill,
 } from "./project-paths.js";
 import { getEffectiveTaskAgentCode } from "./effective-task-agent.js";
 import { setupSkills } from "./skills.js";

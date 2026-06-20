@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { isAdminEmail } from './admin-emails';
+import { isAdminEmail } from '../libs/admin-emails';
 import { AuthUser } from './current-user.decorator';
 
 @Injectable()

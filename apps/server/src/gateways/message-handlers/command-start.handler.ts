@@ -1,33 +1,15 @@
 // apps/server/src/gateways/message-handlers/command-start.handler.ts
 
 import { Injectable, Logger } from '@nestjs/common';
-import { EventCommands, MessageRole, createProjectRoomId, extractTaskId, parseRunnerPayload } from '@onezone/shared';
+import { EventCommands, MessageRole, createProjectRoomId, extractTaskId } from '@onezone/shared';
 import { MessageType, NotificationType } from '@prisma/client';
 import { Server, Socket } from 'socket.io';
 import { MessagesService } from '../../messages/messages.service';
 import { TasksService } from '../../tasks/tasks.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { IMessageHandler } from './message-handler.interface';
-
-interface RunnerPayload {
-  taskName?: string;
-  kanbanColumnName?: string;
-}
-
-function parseRunnerCommand(command: string): RunnerPayload | null {
-  return parseRunnerPayload<RunnerPayload>(command);
-}
-
-export interface CommandStartData {
-  roomId: string;
-  terminalId?: string;
-  terminalName?: string;
-  jobId: string;
-  command: string;
-  agentId?: string;
-  agentName?: string;
-  model?: string;
-}
+import type { CommandStartData } from '../../types';
+import { parseRunnerCommand } from '../../libs/runner-command';
 
 @Injectable()
 export class CommandStartHandler implements IMessageHandler<CommandStartData> {

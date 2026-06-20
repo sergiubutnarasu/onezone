@@ -1,3 +1,5 @@
+// apps/server/src/libs/admin-emails.ts
+
 import { ConfigService } from '@nestjs/config';
 
 export function getAdminEmails(config: ConfigService): string[] {

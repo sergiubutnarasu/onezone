@@ -1,14 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { NotificationType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-
-export interface CreateNotificationDto {
-  type: NotificationType;
-  taskId: string;
-  projectId: string;
-  message: string;
-  userId: string;
-}
+import { CreateNotificationDto } from '../types';
 
 @Injectable()
 export class NotificationsService {

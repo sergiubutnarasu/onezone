@@ -3,12 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { randomUUID } from 'node:crypto';
 import { STALE_THRESHOLD_MS } from '@onezone/shared';
 import { PrismaService } from '../prisma/prisma.service';
-
-export interface RegisterTerminalInput {
-  name: string;
-  hostname: string;
-  userId: string;
-}
+import { RegisterTerminalInput } from '../types';
 
 @Injectable()
 export class TerminalsService implements OnModuleInit {

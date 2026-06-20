@@ -16,7 +16,7 @@ import {
   COMMAND_EXIT_ACK_TIMEOUT_MS,
   COMMAND_EXIT_WARN_ATTEMPTS,
 } from "./constants.js";
-import type { ActiveProcessEntry, CommandRunnerDeps, SpawnCommandProps } from "./types/index.js";
+import type { SpawnCommandProps } from "./types/index.js";
 
 function waitForSocketConnect(socket: Socket, timeoutMs: number): Promise<boolean> {
   if (socket.connected) return Promise.resolve(true);

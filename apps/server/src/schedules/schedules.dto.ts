@@ -1,11 +1,9 @@
 import {
   IsBoolean,
-  IsInt,
   IsOptional,
   IsString,
   IsUUID,
   MaxLength,
-  Min,
 } from 'class-validator';
 
 export class CreateScheduleDto {
