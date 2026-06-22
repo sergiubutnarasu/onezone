@@ -27,13 +27,6 @@ RUN pnpm deploy --filter=@onezone/terminal --prod /deploy
 # ---- Runtime image ----
 FROM node:22-trixie-slim
 
-# Which agent CLIs the terminal worker should install at runtime.
-# Passed through to docker-entrypoint.sh as env vars.
-ARG INSTALL_CLAUDE_CODE=true
-ARG INSTALL_COPILOT_CLI=true
-ENV INSTALL_CLAUDE_CODE=$INSTALL_CLAUDE_CODE
-ENV INSTALL_COPILOT_CLI=$INSTALL_COPILOT_CLI
-
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
   git \
@@ -69,7 +62,7 @@ RUN chmod +x /home/agent/docker-entrypoint.sh \
   && chown -R $USER_UID:$USER_GID /home/agent
 USER ${USER_UID}:${USER_GID}
 
-# Add ~/.local/bin to PATH (Claude Code, RTK, uv installed at container start via entrypoint)
+# Add ~/.local/bin to PATH (RTK, uv installed at container start via entrypoint)
 ENV PATH="/home/agent/.local/bin:$PATH"
 ENV RTK_TELEMETRY_DISABLED=1
 

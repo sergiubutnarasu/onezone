@@ -80,7 +80,7 @@ When a task is assigned, the terminal selects a runner from the task agent tag.
 | `claude-code` | Claude Code CLI |
 | `github-copilot-cli` | GitHub Copilot CLI |
 
-The terminal host is responsible for installing and authenticating any agent CLI it is expected to run. In Docker, `docker-entrypoint.sh` installs Claude Code, GitHub Copilot CLI, `uv`, and RTK when missing, initializes RTK's Claude hook config, prepares SSH defaults, authenticates to Onezone if needed, and starts `onezone-terminal listen`.
+In Docker, `docker-entrypoint.sh` installs `uv` and RTK when missing, initializes RTK's Claude hook config, prepares SSH defaults, authenticates to Onezone if needed, and starts `onezone-terminal listen`.
 
 Useful runtime variables for the Docker terminal include:
 

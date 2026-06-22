@@ -53,7 +53,7 @@ Runtime services:
 - Node.js `>=22.0.0`
 - pnpm `>=9.0.0` (`packageManager` is `pnpm@9.12.0`)
 - Docker and Docker Compose for local infrastructure or the full stack
-- A supported agent CLI on any terminal worker you want to use, such as Claude Code or GitHub Copilot CLI
+- Agent provider credentials (ANTHROPIC_* for Claude, COPILOT_* for GitHub Copilot) configured in your .env
 
 ## Quick Start Options
 
@@ -190,7 +190,7 @@ Run these from the repository root.
 - Keep Redis private to the application network and use provider-level authentication/TLS when available.
 - Run the server behind HTTPS, or behind a trusted reverse proxy that terminates TLS.
 - Use separate terminal workers for untrusted or high-risk automation, and isolate their filesystem, SSH keys, and cloud credentials.
-- Restrict Docker terminal volumes to the data you intentionally want persisted: `.ssh`, `.onezone`, `.local`, and `.claude` are persisted by the provided Compose file.
+- Restrict Docker terminal volumes to the data you intentionally want persisted: `.ssh`, `.onezone`, `.local`, `.claude`, and `.copilot` are persisted by the provided Compose file.
 - Monitor `/health`, container restarts, database connections, Redis availability, schedule execution, terminal heartbeats, and command failure notifications.
 - Keep agent provider tokens out of source control and inject them through your deployment secret manager.
 
@@ -198,7 +198,7 @@ Run these from the repository root.
 
 - The server exposes REST and Socket.io on the same port. Your reverse proxy must support WebSocket upgrades.
 - The web app is built with Next.js and expects `NEXT_PUBLIC_API_URL` at build time when using the Docker image build argument.
-- The terminal worker can run inside Docker Compose or on any host with Node.js and the required agent CLIs installed.
+- The terminal worker can run inside Docker Compose or on any host with Node.js.
 - Cookie security is derived from `WEB_ORIGIN`: HTTPS origins set secure cookies.
 - Horizontal server scaling requires all server instances to share the same PostgreSQL database, Redis instance, and JWT configuration.
 
@@ -218,7 +218,7 @@ Run these from the repository root.
 | Web cannot log in or refresh sessions | Confirm `WEB_ORIGIN`, `NEXT_PUBLIC_API_URL`, HTTPS/proxy settings, and cookies are aligned. |
 | Terminal says it is not authenticated | Run `onezone-terminal login --server <api-url>` again and complete the activation page. |
 | Terminal does not appear connected | Check the server URL, JWT refresh flow, WebSocket upgrades, and terminal heartbeat logs. |
-| Tasks do not stream output | Verify the assigned terminal is connected, the task has an agent/model, and the agent CLI is installed on the worker. |
+| Tasks do not stream output | Verify the assigned terminal is connected, the task has an agent/model, and the agent credentials are configured. |
 | WebSocket events do not fan out in production | Confirm every server instance points at the same reachable Redis instance. |
 | Docker terminal repeatedly asks for login | Ensure the `terminal_workdir` volume is writable and persisted, and that `WEB_ORIGIN` points at a reachable activation page. |
 
