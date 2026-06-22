@@ -7,3 +7,4 @@ export * from "./schedule.js";
 export * from "./pagination.js";
 export * from "./notification.js";
 export * from "./socket.js";
+export * from "./content-block.js";

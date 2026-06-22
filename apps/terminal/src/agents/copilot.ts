@@ -1,4 +1,4 @@
-import { AgentTag } from "@onezone/shared";
+import { AgentTag, type UnifiedContentBlock } from "@onezone/shared";
 import { CopilotClient, approveAll } from "@github/copilot-sdk";
 import * as fs from "fs";
 import * as path from "path";
@@ -79,11 +79,13 @@ export const setup = ({
         resolveEvent?.();
       };
 
-      // The web frontend parses raw JSONL lines to extract text, thinking,
-      // tool_use, and tool_result blocks. Serialize SDK events to the same
-      // shape the CLI JSONL output uses so the frontend parser can handle them.
-      const enqueueRaw = (type: string, data: unknown) => {
-        enqueue({ type: AgentEventType.Text, content: JSON.stringify({ type, data }) });
+      // Emit unified content blocks so the web frontend never has to
+      // branch on agent type.  Each Text event is a JSON array of
+      // UnifiedContentBlock objects.
+      const enqueueBlocks = (blocks: UnifiedContentBlock[]) => {
+        if (blocks.length > 0) {
+          enqueue({ type: AgentEventType.Text, content: JSON.stringify(blocks) });
+        }
       };
 
       session.on("assistant.message_delta", (event) => {
@@ -99,8 +101,24 @@ export const setup = ({
         if (content) {
           lastAssistantContent = content;
         }
-        // Emit the full message so the frontend can parse tool requests
-        enqueueRaw("assistant.message", data);
+
+        const blocks: UnifiedContentBlock[] = [];
+        if (typeof content === "string" && content.trim()) {
+          blocks.push({ kind: "text", text: content });
+        }
+
+        const toolRequests = Array.isArray((data as unknown as Record<string, unknown>).toolRequests)
+          ? ((data as unknown as Record<string, unknown>).toolRequests as Record<string, unknown>[])
+          : [];
+        for (const req of toolRequests) {
+          if (!req || typeof req !== "object") continue;
+          const name = typeof req.name === "string" ? req.name : "tool";
+          const input = (req.arguments as Record<string, unknown> | undefined) ?? {};
+          blocks.push({ kind: "tool_use", name, input });
+        }
+
+        enqueueBlocks(blocks);
+
         const outputTokens = data.outputTokens;
         if (outputTokens !== undefined) {
           enqueue({ type: AgentEventType.Usage, outputTokens });
@@ -108,19 +126,40 @@ export const setup = ({
       });
 
       session.on("assistant.reasoning", (event) => {
-        enqueueRaw("assistant.reasoning", event.data);
+        const data = event.data as unknown as Record<string, unknown>;
+        const reasoning = typeof data?.reasoning === "string" ? data.reasoning : null;
+        if (reasoning && reasoning.trim()) {
+          enqueueBlocks([{ kind: "thinking", text: reasoning }]);
+        }
       });
 
       session.on("tool.execution_start", (event) => {
-        enqueueRaw("tool.execution_start", event.data);
+        const data = event.data as unknown as Record<string, unknown>;
+        const name = typeof data?.name === "string" ? data.name : "tool";
+        const input = (data?.arguments as Record<string, unknown> | undefined) ?? {};
+        enqueueBlocks([{ kind: "tool_use", name, input }]);
       });
 
       session.on("tool.execution_complete", (event) => {
-        enqueueRaw("tool.execution_complete", event.data);
+        const data = event.data as unknown as Record<string, unknown>;
+        const result = data?.result as Record<string, unknown> | undefined;
+        const resultContent = typeof result?.content === "string" ? result.content : null;
+        const partialOutput = typeof data?.partialOutput === "string" ? data.partialOutput : null;
+        const text = resultContent ?? partialOutput;
+        if (text && text.trim()) {
+          enqueueBlocks([{ kind: "tool_result", text }]);
+        }
       });
 
       session.on("tool.execution_partial_result", (event) => {
-        enqueueRaw("tool.execution_partial_result", event.data);
+        const data = event.data as unknown as Record<string, unknown>;
+        const result = data?.result as Record<string, unknown> | undefined;
+        const resultContent = typeof result?.content === "string" ? result.content : null;
+        const partialOutput = typeof data?.partialOutput === "string" ? data.partialOutput : null;
+        const text = resultContent ?? partialOutput;
+        if (text && text.trim()) {
+          enqueueBlocks([{ kind: "tool_result", text }]);
+        }
       });
 
       session.on("assistant.usage", (event) => {

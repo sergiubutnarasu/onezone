@@ -1,4 +1,4 @@
-import { AgentTag } from "@onezone/shared";
+import { AgentTag, type UnifiedContentBlock } from "@onezone/shared";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import {
   getClaudeSettingsPath,
@@ -35,13 +35,27 @@ export const setup = ({
         includePartialMessages: false,
       },
     })) {
-      // The web frontend parses the raw stream-json line to extract
-      // text, thinking, tool_use, and tool_result blocks. Emit the
-      // SDK message as JSON so the frontend parser can handle it.
-      yield { type: AgentEventType.Text, content: JSON.stringify(message) };
+      // Emit unified content blocks so the web frontend never has to
+      // branch on agent type.  Each Text event is a JSON array of
+      // UnifiedContentBlock objects.
+      const blocks: UnifiedContentBlock[] = [];
 
       switch (message.type) {
         case "assistant": {
+          const contentBlocks = message.message?.content as unknown[] | undefined;
+          if (Array.isArray(contentBlocks)) {
+            for (const block of contentBlocks) {
+              if (!block || typeof block !== "object") continue;
+              const b = block as Record<string, unknown>;
+              if (b.type === "text" && typeof b.text === "string" && b.text.trim()) {
+                blocks.push({ kind: "text", text: b.text });
+              } else if (b.type === "thinking" && typeof b.thinking === "string" && b.thinking.trim()) {
+                blocks.push({ kind: "thinking", text: b.thinking });
+              } else if (b.type === "tool_use" && typeof b.name === "string") {
+                blocks.push({ kind: "tool_use", name: b.name, input: (b.input as Record<string, unknown>) ?? {} });
+              }
+            }
+          }
           const usage = message.message.usage;
           if (usage) {
             yield {
@@ -52,9 +66,26 @@ export const setup = ({
           }
           break;
         }
+        case "user": {
+          const contentBlocks = message.message?.content as unknown[] | undefined;
+          if (Array.isArray(contentBlocks)) {
+            for (const block of contentBlocks) {
+              if (!block || typeof block !== "object") continue;
+              const b = block as Record<string, unknown>;
+              if (b.type === "tool_result") {
+                const text = extractToolResultText(b.content);
+                if (text) blocks.push({ kind: "tool_result", text });
+              }
+            }
+          }
+          break;
+        }
         case "result": {
           if (message.subtype !== "success") break;
           const resultText = message.result;
+          if (resultText && resultText.trim()) {
+            blocks.push({ kind: "text", text: resultText });
+          }
           yield {
             type: AgentEventType.Result,
             content: resultText,
@@ -71,6 +102,10 @@ export const setup = ({
         default:
           break;
       }
+
+      if (blocks.length > 0) {
+        yield { type: AgentEventType.Text, content: JSON.stringify(blocks) };
+      }
     }
   }
 
@@ -79,3 +114,16 @@ export const setup = ({
     run,
   };
 };
+
+function extractToolResultText(content: unknown): string | null {
+  if (typeof content === "string") return content;
+  if (
+    content &&
+    typeof content === "object" &&
+    "text" in content &&
+    typeof (content as Record<string, unknown>).text === "string"
+  ) {
+    return (content as Record<string, unknown>).text as string;
+  }
+  return null;
+}
