@@ -218,220 +218,6 @@
         "view.js"
       ]
     },
-    "memory:delete": {
-      "aliases": [],
-      "args": {},
-      "description": "Delete a memory file for a project",
-      "examples": [
-        "<%= config.bin %> memory delete --project <uuid> --key raw/2026-06-01-fix.md"
-      ],
-      "flags": {
-        "project": {
-          "description": "Project ID (UUID)",
-          "name": "project",
-          "required": true,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "key": {
-          "description": "Memory file key",
-          "name": "key",
-          "required": true,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "server": {
-          "description": "Server URL",
-          "name": "server",
-          "default": "http://localhost:5026",
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "memory:delete",
-      "pluginAlias": "@onezone/terminal",
-      "pluginName": "@onezone/terminal",
-      "pluginType": "core",
-      "strict": true,
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "commands",
-        "memory",
-        "delete.js"
-      ]
-    },
-    "memory:list": {
-      "aliases": [],
-      "args": {},
-      "description": "List memory files for a project",
-      "examples": [
-        "<%= config.bin %> memory list --project <uuid>",
-        "<%= config.bin %> memory list --project <uuid> --prefix wiki/"
-      ],
-      "flags": {
-        "project": {
-          "description": "Project ID (UUID)",
-          "name": "project",
-          "required": true,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "prefix": {
-          "description": "Optional prefix filter (e.g. wiki/ or raw/)",
-          "name": "prefix",
-          "required": false,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "server": {
-          "description": "Server URL",
-          "name": "server",
-          "default": "http://localhost:5026",
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "memory:list",
-      "pluginAlias": "@onezone/terminal",
-      "pluginName": "@onezone/terminal",
-      "pluginType": "core",
-      "strict": true,
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "commands",
-        "memory",
-        "list.js"
-      ]
-    },
-    "memory:read": {
-      "aliases": [],
-      "args": {},
-      "description": "Read a memory file for a project",
-      "examples": [
-        "<%= config.bin %> memory read --project <uuid> --key wiki/architecture.md"
-      ],
-      "flags": {
-        "project": {
-          "description": "Project ID (UUID)",
-          "name": "project",
-          "required": true,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "key": {
-          "description": "Memory file key (e.g. INDEX.md, wiki/architecture.md)",
-          "name": "key",
-          "required": true,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "server": {
-          "description": "Server URL",
-          "name": "server",
-          "default": "http://localhost:5026",
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "memory:read",
-      "pluginAlias": "@onezone/terminal",
-      "pluginName": "@onezone/terminal",
-      "pluginType": "core",
-      "strict": true,
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "commands",
-        "memory",
-        "read.js"
-      ]
-    },
-    "memory:write": {
-      "aliases": [],
-      "args": {},
-      "description": "Write a memory file for a project",
-      "examples": [
-        "<%= config.bin %> memory write --project <uuid> --key wiki/architecture.md --content '# Architecture'",
-        "<%= config.bin %> memory write --project <uuid> --key raw/2026-06-01-fix.md --file ./notes.md"
-      ],
-      "flags": {
-        "project": {
-          "description": "Project ID (UUID)",
-          "name": "project",
-          "required": true,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "key": {
-          "description": "Memory file key (e.g. wiki/architecture.md)",
-          "name": "key",
-          "required": true,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "content": {
-          "description": "File content (inline)",
-          "name": "content",
-          "required": false,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "file": {
-          "description": "Path to local file to upload",
-          "name": "file",
-          "required": false,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "server": {
-          "description": "Server URL",
-          "name": "server",
-          "default": "http://localhost:5026",
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "memory:write",
-      "pluginAlias": "@onezone/terminal",
-      "pluginName": "@onezone/terminal",
-      "pluginType": "core",
-      "strict": true,
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "commands",
-        "memory",
-        "write.js"
-      ]
-    },
     "terminals:list": {
       "aliases": [],
       "args": {},
@@ -709,6 +495,220 @@
         "commands",
         "task",
         "view.js"
+      ]
+    },
+    "memory:delete": {
+      "aliases": [],
+      "args": {},
+      "description": "Delete a memory file for a project",
+      "examples": [
+        "<%= config.bin %> memory delete --project <uuid> --key raw/2026-06-01-fix.md"
+      ],
+      "flags": {
+        "project": {
+          "description": "Project ID (UUID)",
+          "name": "project",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "key": {
+          "description": "Memory file key",
+          "name": "key",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "server": {
+          "description": "Server URL",
+          "name": "server",
+          "default": "http://localhost:5026",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "memory:delete",
+      "pluginAlias": "@onezone/terminal",
+      "pluginName": "@onezone/terminal",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "memory",
+        "delete.js"
+      ]
+    },
+    "memory:list": {
+      "aliases": [],
+      "args": {},
+      "description": "List memory files for a project",
+      "examples": [
+        "<%= config.bin %> memory list --project <uuid>",
+        "<%= config.bin %> memory list --project <uuid> --prefix wiki/"
+      ],
+      "flags": {
+        "project": {
+          "description": "Project ID (UUID)",
+          "name": "project",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "prefix": {
+          "description": "Optional prefix filter (e.g. wiki/ or raw/)",
+          "name": "prefix",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "server": {
+          "description": "Server URL",
+          "name": "server",
+          "default": "http://localhost:5026",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "memory:list",
+      "pluginAlias": "@onezone/terminal",
+      "pluginName": "@onezone/terminal",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "memory",
+        "list.js"
+      ]
+    },
+    "memory:read": {
+      "aliases": [],
+      "args": {},
+      "description": "Read a memory file for a project",
+      "examples": [
+        "<%= config.bin %> memory read --project <uuid> --key wiki/architecture.md"
+      ],
+      "flags": {
+        "project": {
+          "description": "Project ID (UUID)",
+          "name": "project",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "key": {
+          "description": "Memory file key (e.g. INDEX.md, wiki/architecture.md)",
+          "name": "key",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "server": {
+          "description": "Server URL",
+          "name": "server",
+          "default": "http://localhost:5026",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "memory:read",
+      "pluginAlias": "@onezone/terminal",
+      "pluginName": "@onezone/terminal",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "memory",
+        "read.js"
+      ]
+    },
+    "memory:write": {
+      "aliases": [],
+      "args": {},
+      "description": "Write a memory file for a project",
+      "examples": [
+        "<%= config.bin %> memory write --project <uuid> --key wiki/architecture.md --content '# Architecture'",
+        "<%= config.bin %> memory write --project <uuid> --key raw/2026-06-01-fix.md --file ./notes.md"
+      ],
+      "flags": {
+        "project": {
+          "description": "Project ID (UUID)",
+          "name": "project",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "key": {
+          "description": "Memory file key (e.g. wiki/architecture.md)",
+          "name": "key",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "content": {
+          "description": "File content (inline)",
+          "name": "content",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "file": {
+          "description": "Path to local file to upload",
+          "name": "file",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "server": {
+          "description": "Server URL",
+          "name": "server",
+          "default": "http://localhost:5026",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "memory:write",
+      "pluginAlias": "@onezone/terminal",
+      "pluginName": "@onezone/terminal",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "memory",
+        "write.js"
       ]
     }
   },

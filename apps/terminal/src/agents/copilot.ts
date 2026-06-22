@@ -1,11 +1,15 @@
-import { AgentTag, type UnifiedContentBlock } from "@onezone/shared";
 import { CopilotClient, approveAll } from "@github/copilot-sdk";
+import { AgentTag, type UnifiedContentBlock } from "@onezone/shared";
 import * as fs from "fs";
 import * as path from "path";
+import { getProjectConfigFolder } from "../lib/project-paths.js";
 import {
-  getProjectConfigFolder,
-} from "../lib/project-paths.js";
-import { AgentEventType, type AgentConfig, type AgentEvent, type AgentRunParams, parseNextColumnTag } from "../lib/types/index.js";
+  AgentEventType,
+  parseNextColumnTag,
+  type AgentConfig,
+  type AgentEvent,
+  type AgentRunParams,
+} from "../lib/types/index.js";
 
 export const setup = ({
   projectId,
@@ -27,7 +31,11 @@ export const setup = ({
     .filter((dir) => fs.existsSync(dir))
     .join(",");
 
-  async function* run({ prompt, cwd, signal }: AgentRunParams): AsyncIterable<AgentEvent> {
+  async function* run({
+    prompt,
+    cwd,
+    signal,
+  }: AgentRunParams): AsyncIterable<AgentEvent> {
     const providerBaseUrl = process.env.COPILOT_PROVIDER_BASE_URL;
     const providerApiKey = process.env.COPILOT_PROVIDER_API_KEY;
     const providerType = process.env.COPILOT_PROVIDER_TYPE;
@@ -69,6 +77,7 @@ export const setup = ({
       });
 
       let lastAssistantContent: string | undefined;
+      let lastUsageTokens: { inputTokens?: number; outputTokens?: number } = {};
 
       const eventQueue: AgentEvent[] = [];
       let resolveEvent: (() => void) | undefined;
@@ -84,7 +93,10 @@ export const setup = ({
       // UnifiedContentBlock objects.
       const enqueueBlocks = (blocks: UnifiedContentBlock[]) => {
         if (blocks.length > 0) {
-          enqueue({ type: AgentEventType.Text, content: JSON.stringify(blocks) });
+          enqueue({
+            type: AgentEventType.Text,
+            content: JSON.stringify(blocks),
+          });
         }
       };
 
@@ -107,13 +119,17 @@ export const setup = ({
           blocks.push({ kind: "text", text: content });
         }
 
-        const toolRequests = Array.isArray((data as unknown as Record<string, unknown>).toolRequests)
-          ? ((data as unknown as Record<string, unknown>).toolRequests as Record<string, unknown>[])
+        const toolRequests = Array.isArray(
+          (data as unknown as Record<string, unknown>).toolRequests,
+        )
+          ? ((data as unknown as Record<string, unknown>)
+              .toolRequests as Record<string, unknown>[])
           : [];
         for (const req of toolRequests) {
           if (!req || typeof req !== "object") continue;
           const name = typeof req.name === "string" ? req.name : "tool";
-          const input = (req.arguments as Record<string, unknown> | undefined) ?? {};
+          const input =
+            (req.arguments as Record<string, unknown> | undefined) ?? {};
           blocks.push({ kind: "tool_use", name, input });
         }
 
@@ -127,7 +143,8 @@ export const setup = ({
 
       session.on("assistant.reasoning", (event) => {
         const data = event.data as unknown as Record<string, unknown>;
-        const reasoning = typeof data?.reasoning === "string" ? data.reasoning : null;
+        const reasoning =
+          typeof data?.reasoning === "string" ? data.reasoning : null;
         if (reasoning && reasoning.trim()) {
           enqueueBlocks([{ kind: "thinking", text: reasoning }]);
         }
@@ -136,15 +153,18 @@ export const setup = ({
       session.on("tool.execution_start", (event) => {
         const data = event.data as unknown as Record<string, unknown>;
         const name = typeof data?.name === "string" ? data.name : "tool";
-        const input = (data?.arguments as Record<string, unknown> | undefined) ?? {};
+        const input =
+          (data?.arguments as Record<string, unknown> | undefined) ?? {};
         enqueueBlocks([{ kind: "tool_use", name, input }]);
       });
 
       session.on("tool.execution_complete", (event) => {
         const data = event.data as unknown as Record<string, unknown>;
         const result = data?.result as Record<string, unknown> | undefined;
-        const resultContent = typeof result?.content === "string" ? result.content : null;
-        const partialOutput = typeof data?.partialOutput === "string" ? data.partialOutput : null;
+        const resultContent =
+          typeof result?.content === "string" ? result.content : null;
+        const partialOutput =
+          typeof data?.partialOutput === "string" ? data.partialOutput : null;
         const text = resultContent ?? partialOutput;
         if (text && text.trim()) {
           enqueueBlocks([{ kind: "tool_result", text }]);
@@ -154,8 +174,10 @@ export const setup = ({
       session.on("tool.execution_partial_result", (event) => {
         const data = event.data as unknown as Record<string, unknown>;
         const result = data?.result as Record<string, unknown> | undefined;
-        const resultContent = typeof result?.content === "string" ? result.content : null;
-        const partialOutput = typeof data?.partialOutput === "string" ? data.partialOutput : null;
+        const resultContent =
+          typeof result?.content === "string" ? result.content : null;
+        const partialOutput =
+          typeof data?.partialOutput === "string" ? data.partialOutput : null;
         const text = resultContent ?? partialOutput;
         if (text && text.trim()) {
           enqueueBlocks([{ kind: "tool_result", text }]);
@@ -163,10 +185,15 @@ export const setup = ({
       });
 
       session.on("assistant.usage", (event) => {
+        const usage = event.data;
+        lastUsageTokens = {
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
+        };
         enqueue({
           type: AgentEventType.Usage,
-          inputTokens: event.data.inputTokens,
-          outputTokens: event.data.outputTokens,
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
         });
       });
 
@@ -174,7 +201,7 @@ export const setup = ({
         enqueue({
           type: AgentEventType.Result,
           content: lastAssistantContent,
-          usage: {},
+          usage: lastUsageTokens,
           nextColumnId: lastAssistantContent
             ? parseNextColumnTag(lastAssistantContent)
             : undefined,
@@ -191,9 +218,14 @@ export const setup = ({
         enqueue({
           type: AgentEventType.Result,
           usage: {
-            totalCostUsd: data.totalNanoAiu,
-            inputTokens: typeof inputDetail === "object" ? inputDetail.tokenCount : undefined,
-            outputTokens: typeof outputDetail === "object" ? outputDetail.tokenCount : undefined,
+            inputTokens:
+              typeof inputDetail === "object"
+                ? inputDetail.tokenCount
+                : lastUsageTokens.inputTokens,
+            outputTokens:
+              typeof outputDetail === "object"
+                ? outputDetail.tokenCount
+                : lastUsageTokens.outputTokens,
           },
           nextColumnId: lastAssistantContent
             ? parseNextColumnTag(lastAssistantContent)
