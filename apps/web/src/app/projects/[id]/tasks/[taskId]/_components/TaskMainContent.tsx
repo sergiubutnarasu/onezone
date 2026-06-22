@@ -22,7 +22,6 @@ interface TaskMainContentProps {
   isConnected: boolean;
   isTerminalConnected: boolean;
   onStop: (jobId: string) => void;
-  onPing: (jobId: string) => void;
   onSend: (content: string) => void;
   onToggleSidebar: () => void;
   onToggleInfoPanel: () => void;
@@ -39,7 +38,6 @@ export function TaskMainContent({
   isConnected,
   isTerminalConnected,
   onStop,
-  onPing,
   onSend,
   onToggleSidebar,
   onToggleInfoPanel,
@@ -94,7 +92,7 @@ export function TaskMainContent({
 
       <TerminalStatusBar terminals={connectedTerminals} />
 
-      <TaskChatArea chatItems={chatItems} onStop={onStop} onPing={onPing} />
+      <TaskChatArea chatItems={chatItems} onStop={onStop} />
 
       {!isCompleted && (
         <MessageInput

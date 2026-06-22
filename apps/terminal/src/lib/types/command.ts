@@ -12,7 +12,6 @@ export interface CommandRunnerDeps {
 
 export interface ActiveProcessEntry {
   cleanup: () => void;
-  writeStdin?: (data: string) => void;
 }
 
 export interface SpawnCommandProps {

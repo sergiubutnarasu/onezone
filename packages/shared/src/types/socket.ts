@@ -45,7 +45,6 @@ export interface ServerToClientEvents {
   [EventCommands.TaskDeleted]: (payload: { taskId: string }) => void;
   [EventCommands.TaskColumnUpdated]: (task: TaskDetails) => void;
   [EventCommands.TerminalCommandStop]: (payload: { jobId: string }) => void;
-  [EventCommands.TerminalCommandPing]: (payload: { jobId: string; input: string }) => void;
 }
 
 export interface ClientToServerEvents {

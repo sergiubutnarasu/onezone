@@ -1,21 +1,15 @@
 // apps/terminal/src/commands/command-runner.ts
 
 import { EventCommands, MessageStream } from "@onezone/shared";
-import type { ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import type { Socket } from "socket.io-client";
 import { setupTerminalAgent } from "../agents/setup.js";
-import {
-  createAgentOutputParser,
-  type AgentOutputParser,
-} from "../lib/agent-output-parsers/index.js";
-import { shellQuote, stripAnsi } from "../lib/helper.js";
-import { runProcess, terminateTree } from "../lib/process-runner.js";
 import { setupProject } from "../lib/setup.js";
 import {
   COMMAND_EXIT_ACK_TIMEOUT_MS,
   COMMAND_EXIT_WARN_ATTEMPTS,
 } from "./constants.js";
+import { AgentEventType } from "./types/index.js";
 import type { SpawnCommandProps } from "./types/index.js";
 
 function waitForSocketConnect(socket: Socket, timeoutMs: number): Promise<boolean> {
@@ -120,26 +114,13 @@ export async function spawnCommand({
 
   socket.emit(EventCommands.TerminalCommandStart, basePayload);
 
-  const stderrBuffer: string[] = [];
   const setupAbortController = new AbortController();
   let cancelled = false;
-  let proc: ChildProcess | undefined;
-
-  let writeStdin: ((data: string) => void) | undefined;
 
   activeProcesses.set(jobId, {
     cleanup: () => {
       cancelled = true;
       setupAbortController.abort();
-      if (proc?.pid) terminateTree(proc.pid);
-    },
-    writeStdin: (data: string) => {
-      if (!writeStdin) {
-        log(`[${terminalName}] [${roomId}] writeStdin called but no stdin writer available for job ${jobId}`);
-        return;
-      }
-      log(`[${terminalName}] [${roomId}] Writing to job ${jobId} stdin: ${data.trim()}`);
-      writeStdin(data);
     },
   });
 
@@ -179,14 +160,6 @@ export async function spawnCommand({
   }
 
   const projectWorkDir = setupResult.projectWorkDir;
-  const command = `${terminalAgent.config.cmd} ${shellQuote(content)}`;
-  const killRunningProcess = () => {
-    if (proc?.pid) terminateTree(proc.pid);
-  };
-
-  const parseAgentLine: AgentOutputParser = createAgentOutputParser(
-    terminalAgent.config.tag,
-  );
 
   let resultReceived = false;
   let taskRunnerFinished = false;
@@ -197,92 +170,86 @@ export async function spawnCommand({
   } | null = null;
   let nextColumnId: string | null | undefined = undefined;
 
-  proc = runProcess({
-    cmd: command,
-    args: [],
-    shell: true,
-    cwd: projectWorkDir,
-    onStdinReady: (write) => {
-      writeStdin = write;
-    },
-    onLine: (stream, line) => {
-      const clean = stripAnsi(line);
-      if (!clean) return;
+  const runAbortController = new AbortController();
 
-      if (stream === MessageStream.Stderr) {
-        stderrBuffer.push(clean);
-        return;
-      }
-
-      const parsed = parseAgentLine(clean);
-
-      if (parsed?.result) {
-        resultUsage = parsed.result.usage ?? null;
-        resultReceived = true;
-        if (isTaskRunner && parsed.result.finished) {
-          nextColumnId = parsed.result.nextColumnId;
-          taskRunnerFinished = true;
-        }
-        killRunningProcess();
-      }
-
-      if (parsed?.content) {
-        socket.emit(EventCommands.OutputLine, {
-          ...basePayload,
-          stream,
-          content: parsed.content,
-          ts: Date.now(),
-          ...(parsed.inputTokens !== undefined || parsed.outputTokens !== undefined
-            ? { inputTokens: parsed.inputTokens, outputTokens: parsed.outputTokens }
-            : {}),
-        });
-        return;
-      }
-
-      socket.emit(EventCommands.OutputLine, {
-        ...basePayload,
-        stream,
-        content: clean,
-        ts: Date.now(),
-      });
-    },
-    onExit: (exitCode) => {
-      // If we already received the result line and killed the process ourselves,
-      // treat it as a clean exit regardless of the signal exit code.
-      const effectiveCode = resultReceived ? 0 : exitCode;
-
-      if (effectiveCode !== 0) {
-        let stderrTs = Date.now();
-        for (const line of stderrBuffer) {
-          socket.emit(EventCommands.OutputLine, {
-            ...basePayload,
-            stream: MessageStream.Stderr,
-            content: line,
-            ts: stderrTs++,
-          });
-        }
-      }
-
-      void emitCommandExitUntilAck({
-        socket,
-        log,
-        terminalName,
-        roomId,
-        isSocketClosed: deps.isSocketClosed,
-        payload: {
-          ...basePayload,
-          exitCode: effectiveCode,
-          ts: Date.now(),
-          taskRunnerFinished: taskRunnerFinished && !cancelled,
-          ...(taskRunnerFinished && !cancelled ? { nextColumnId } : {}),
-          ...(resultUsage ?? {}),
-        },
-      }).finally(() => activeProcesses.delete(jobId));
-
-      const badge =
-        effectiveCode === 0 ? "✔ done" : `✖ error (${effectiveCode})`;
-      log(`[${terminalName}] [${roomId}] ${badge}: "${content}"`);
+  activeProcesses.set(jobId, {
+    cleanup: () => {
+      cancelled = true;
+      runAbortController.abort();
     },
   });
 
+  try {
+    for await (const event of terminalAgent.config.run({
+      prompt: content,
+      cwd: projectWorkDir,
+      signal: runAbortController.signal,
+    })) {
+      switch (event.type) {
+        case AgentEventType.Text:
+          socket.emit(EventCommands.OutputLine, {
+            ...basePayload,
+            stream: MessageStream.Stdout,
+            content: event.content,
+            ts: Date.now(),
+          });
+          break;
+
+        case AgentEventType.Usage:
+          // Per-turn usage is not emitted as a separate line — it would
+          // create empty messages in the UI. Final usage is carried in
+          // the result event and sent with TerminalCommandExit.
+          break;
+
+        case AgentEventType.Stderr:
+          socket.emit(EventCommands.OutputLine, {
+            ...basePayload,
+            stream: MessageStream.Stderr,
+            content: event.content,
+            ts: Date.now(),
+          });
+          break;
+
+        case AgentEventType.Result:
+          resultUsage = event.usage ?? null;
+          resultReceived = true;
+          if (isTaskRunner && event.finished) {
+            nextColumnId = event.nextColumnId;
+            taskRunnerFinished = true;
+          }
+          break;
+      }
+    }
+  } catch (err) {
+    if (!cancelled) {
+      socket.emit(EventCommands.OutputLine, {
+        ...basePayload,
+        stream: MessageStream.Stderr,
+        content: `Agent error: ${(err as Error).message}`,
+        ts: Date.now(),
+      });
+    }
+  }
+
+  const effectiveCode = resultReceived ? 0 : cancelled ? 130 : 1;
+
+  void emitCommandExitUntilAck({
+    socket,
+    log,
+    terminalName,
+    roomId,
+    isSocketClosed: deps.isSocketClosed,
+    payload: {
+      ...basePayload,
+      exitCode: effectiveCode,
+      ts: Date.now(),
+      taskRunnerFinished: taskRunnerFinished && !cancelled,
+      ...(taskRunnerFinished && !cancelled ? { nextColumnId } : {}),
+      ...(resultUsage ?? {}),
+    },
+  }).finally(() => activeProcesses.delete(jobId));
+
+  const badge =
+    effectiveCode === 0 ? "✔ done" : `✖ error (${effectiveCode})`;
+  log(`[${terminalName}] [${roomId}] ${badge}: "${content}"`);
 }

@@ -478,14 +478,4 @@ export class ChatGateway
     if (meta?.role !== 'user' || meta.taskId !== data.taskId) return;
     this.terminalRegistry.forwardStopCommandToTerminal(data.taskId, data.jobId);
   }
-
-  @SubscribeMessage(EventCommands.TerminalCommandPing)
-  handleCommandPing(
-    @MessageBody() data: { jobId: string; taskId: string; input: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    const meta = this.socketMeta.get(client.id);
-    if (meta?.role !== 'user' || meta.taskId !== data.taskId) return;
-    this.terminalRegistry.forwardPingCommandToTerminal(data.taskId, data.jobId, data.input);
-  }
 }

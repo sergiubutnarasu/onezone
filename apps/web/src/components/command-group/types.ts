@@ -20,7 +20,6 @@ export type GroupedLine =
 export interface CommandGroupProps {
   group: CommandGroupData;
   onStop?: (jobId: string) => void;
-  onPing?: (jobId: string) => void;
 }
 
 export interface ExpandableProps {

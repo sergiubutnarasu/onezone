@@ -6,6 +6,7 @@ import {
   createProjectConfigFolder,
   createProjectFolder,
   createProjectWorkDirFolder,
+  ensureWorkDirProjectMarker,
   getProjectFolder,
   getProjectWorkDir,
 } from "./project-paths.js";
@@ -79,6 +80,13 @@ export const setupProject = async (
     return null;
   }
   lines.push(`✔ Workdir ready: ${getProjectWorkDir(projectId)}`);
+
+  // When there is no repository, the workdir is empty and Claude Code may
+  // traverse up to the parent project folder. Drop a marker so it treats
+  // the workdir itself as the project root.
+  if (!repository) {
+    ensureWorkDirProjectMarker(projectId);
+  }
 
   if (repository && typeof repository === "string") {
     lines.push("Checking repository...");

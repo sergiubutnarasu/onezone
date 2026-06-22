@@ -62,7 +62,6 @@ export default function TaskChatPage() {
     isConnected,
     sendMessage,
     stopCommand,
-    pingCommand,
     prependMessages,
   } = useTaskRoom(taskId, {
     onTaskDeleted: () => router.push(`/projects/${projectId}`),
@@ -141,7 +140,6 @@ export default function TaskChatPage() {
           isConnected={isConnected}
           isTerminalConnected={isAssignedTerminalConnected}
           onStop={stopCommand}
-          onPing={(jobId) => pingCommand(jobId, "Continue")}
           onSend={sendMessage}
           onToggleSidebar={() => setSidebarOpen((s) => !s)}
           onToggleInfoPanel={() => setInfoPanelOpen((s) => !s)}

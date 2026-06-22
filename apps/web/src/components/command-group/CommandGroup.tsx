@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Loader2, Square, Play } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Square } from "lucide-react";
 import { SetupLogBlock } from "./SetupLogBlock";
 import { AgentOutputLine } from "./AgentOutputLine";
 import { getDisplayCommand, groupSetupLines } from "./utils";
 import type { CommandGroupProps } from "./types";
 
-export function CommandGroup({ group, onStop, onPing }: CommandGroupProps) {
+export function CommandGroup({ group, onStop }: CommandGroupProps) {
   const [open, setOpen] = useState(false);
   const [expandSignal, setExpandSignal] = useState(0);
   const [expandDirection, setExpandDirection] = useState(false);
@@ -50,19 +50,6 @@ export function CommandGroup({ group, onStop, onPing }: CommandGroupProps) {
               <Loader2 className="size-3 animate-spin" />
               running
             </span>
-            {onPing && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onPing(group.jobId);
-                }}
-                className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
-                title="Continue command"
-              >
-                <Play className="size-2.5 fill-current" />
-                continue
-              </button>
-            )}
             {onStop && (
               <button
                 onClick={(e) => {

@@ -100,6 +100,28 @@ export const createProjectConfigFolder = (projectId: string): boolean => {
   }
 };
 
+/**
+ * Creates a `.gitkeep` file in the workdir so agent CLIs treat it as a
+ * project root and do not traverse up to the parent project folder.
+ */
+export const ensureWorkDirProjectMarker = (projectId: string): boolean => {
+  try {
+    const workDir = getProjectWorkDir(projectId);
+    const markerPath = path.join(workDir, ".gitkeep");
+
+    if (!fs.existsSync(markerPath)) {
+      fs.writeFileSync(markerPath, "", "utf8");
+    }
+
+    return true;
+  } catch (err) {
+    console.error(
+      `Error creating workdir project marker: ${(err as Error).message}`,
+    );
+    return false;
+  }
+};
+
 export const cloneProjectRepo = (
   projectId: string,
   repository: string,

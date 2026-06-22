@@ -7,7 +7,6 @@ export enum EventCommands {
   TerminalCommandExit = "terminal:command:exit",
   TerminalCommandRun = "terminal:command:run",
   TerminalCommandStop = "terminal:command:stop",
-  TerminalCommandPing = "terminal:command:ping",
   TerminalHeartbeat = "terminal:heartbeat",
   AssignTask = "terminal:assign-task",
   TaskDeleted = "task:deleted",
