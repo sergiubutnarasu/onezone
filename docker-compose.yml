@@ -8,11 +8,16 @@ services:
     ports:
       - "5432:5432"
     volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
   redis:
     image: redis:7-alpine
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     ports:
       - "6379:6379"
     restart: unless-stopped
@@ -29,16 +34,20 @@ services:
       GARAGE_DEFAULT_SECRET_KEY: ${S3_SECRET_ACCESS_KEY:-3a2a8c6903c5e28fe7468494c5d73d64dfd88581e166cb25cce043ff8eb11410}
       GARAGE_DEFAULT_BUCKET: ${S3_BUCKET_NAME:-onezone}
     volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
       - garage_meta:/var/lib/garage/meta
       - garage_data:/var/lib/garage/data
       - ./docker/garage.toml:/etc/garage.toml:ro
-    command: ["/garage", "server", "--single-node", "--default-bucket"]
     restart: unless-stopped
 
   server:
     build:
       context: .
       dockerfile: apps/server/Dockerfile
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     ports:
       - "5026:5026"
     environment:
@@ -71,6 +80,9 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5026}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     ports:
       - "5025:5025"
     depends_on:
@@ -93,6 +105,8 @@ services:
       COPILOT_PROVIDER_API_KEY: ${COPILOT_PROVIDER_API_KEY}
       COPILOT_PROVIDER_TYPE: ${COPILOT_PROVIDER_TYPE}
     volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
       - terminal_ssh:/home/agent/.ssh
       - terminal_workdir:/home/agent/.onezone
       - terminal_local:/home/agent/.local
