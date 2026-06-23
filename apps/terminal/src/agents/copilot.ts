@@ -27,9 +27,9 @@ export const setup = ({
     fs.existsSync(path.join(dir, ".github", "instructions")),
   );
 
-  const skillsDirs = [githubSkillsDir, agentsSkillsDir]
-    .filter((dir) => fs.existsSync(dir))
-    .join(",");
+  const skillsDirs = [githubSkillsDir, agentsSkillsDir].filter((dir) =>
+    fs.existsSync(dir),
+  );
 
   async function* run({
     prompt,
@@ -57,13 +57,7 @@ export const setup = ({
 
     const client = new CopilotClient({
       workingDirectory: cwd,
-      env: {
-        ...env,
-        ...(instructionsDirs.length > 0
-          ? { COPILOT_CUSTOM_INSTRUCTIONS_DIRS: instructionsDirs.join(",") }
-          : {}),
-        ...(skillsDirs ? { COPILOT_SKILLS_DIRS: skillsDirs } : {}),
-      },
+      env,
     });
 
     await client.start();
@@ -74,6 +68,11 @@ export const setup = ({
         ...(provider ? { provider } : {}),
         onPermissionRequest: approveAll,
         streaming: true,
+        enableSkills: true,
+        ...(instructionsDirs.length > 0
+          ? { instructionDirectories: instructionsDirs }
+          : {}),
+        ...(skillsDirs.length > 0 ? { skillDirectories: skillsDirs } : {}),
       });
 
       let lastAssistantContent: string | undefined;
