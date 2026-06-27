@@ -1,8 +1,10 @@
 import { AgentTag, type UnifiedContentBlock } from "@onezone/shared";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import {
-  getClaudeSettingsPath,
   getProjectConfigFolder,
+  getProjectWorkDir,
+  getRulesContent,
+  isRtkAvailable,
 } from "../lib/project-paths.js";
 import { AgentEventType, type AgentConfig, type AgentEvent, type AgentRunParams, parseNextColumnTag } from "../lib/types/index.js";
 
@@ -13,8 +15,9 @@ export const setup = ({
   projectId: string;
   model: string;
 }): AgentConfig => {
-  const settingsPath = getClaudeSettingsPath(projectId);
   const configPath = getProjectConfigFolder(projectId);
+  const workDir = getProjectWorkDir(projectId);
+  const systemRules = getRulesContent();
 
   async function* run({ prompt, cwd, signal }: AgentRunParams): AsyncIterable<AgentEvent> {
     const abortController = new AbortController();
@@ -27,12 +30,46 @@ export const setup = ({
         cwd,
         abortController,
         additionalDirectories: [`/${configPath}`],
-        settings: settingsPath,
+        settings: {
+          permissions: {
+            allow: [
+              `Bash(*)`,
+              `Edit(/${workDir})`,
+              `Read(/${workDir})`,
+              `Read(/${configPath})`,
+            ],
+          },
+          ...(isRtkAvailable() && {
+            hooks: {
+              PreToolUse: [
+                {
+                  matcher: "Bash",
+                  hooks: [{ type: "command", command: "rtk hook claude" }],
+                },
+              ],
+            },
+          }),
+        },
+        sandbox: {
+          filesystem: {
+            allowWrite: [`/${workDir}`],
+            allowRead: [`/${workDir}`, `/${configPath}`],
+          },
+        },
         env: {
           ...process.env,
           CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD: "1",
         },
         includePartialMessages: false,
+        ...(systemRules
+          ? {
+              systemPrompt: {
+                type: "preset",
+                preset: "claude_code",
+                append: systemRules,
+              },
+            }
+          : {}),
       },
     })) {
       // Emit unified content blocks so the web frontend never has to

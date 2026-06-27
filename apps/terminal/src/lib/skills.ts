@@ -29,6 +29,12 @@ function getSkillDirs(
       path.join(configDir, ".agents", "skills", skillName),
     ];
   }
+  if (agentCode === "opencode") {
+    return [
+      path.join(configDir, ".opencode", "skills", skillName),
+      path.join(configDir, ".agents", "skills", skillName),
+    ];
+  }
   return [path.join(configDir, ".claude", "skills", skillName)];
 }
 

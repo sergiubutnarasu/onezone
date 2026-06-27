@@ -13,4 +13,5 @@ export const SERVICE_NAME = "onezone";
 export const AGENT_TAG_MAPPINGS: Record<string, string> = {
   "claude-code": "claude-code",
   "github-copilot-cli": "github-copilot",
+  "opencode": "opencode",
 };

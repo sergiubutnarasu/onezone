@@ -46,6 +46,9 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
   && apt-get update && apt-get install -y gh \
   && rm -rf /var/lib/apt/lists/*
 
+# Install OpenCode CLI
+RUN npm install -g opencode-ai
+
 # Install locally built onezone-terminal (as root)
 COPY --from=builder /deploy /opt/onezone-terminal
 RUN chmod +x /opt/onezone-terminal/bin/run.js \
@@ -73,7 +76,8 @@ RUN mkdir -p /home/agent/.onezone/projects \
   && mkdir -p /home/agent/.local/bin \
   && mkdir -p /home/agent/.local/share \
   && mkdir -p /home/agent/.claude \
-  && mkdir -p /home/agent/.copilot
+  && mkdir -p /home/agent/.copilot \
+  && mkdir -p /home/agent/.opencode
 
 # Trust GitHub's host key
 RUN mkdir -p /home/agent/.ssh \

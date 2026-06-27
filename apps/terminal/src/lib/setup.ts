@@ -1,8 +1,9 @@
 import { AgentTag, type ProjectInfo, type TaskDetails } from "@onezone/shared";
 import {
   cloneProjectRepo,
-  createClaudeSettings,
-  createCopilotSettings,
+  setupClaudeConfig,
+  setupCopilotConfig,
+  setupOpencodeConfig,
   createProjectConfigFolder,
   createProjectFolder,
   createProjectWorkDirFolder,
@@ -104,11 +105,15 @@ export const setupProject = async (
 
   if (agentTag === AgentTag.GithubCopilotCLI) {
     lines.push("Checking Copilot configuration...");
-    createCopilotSettings(projectId);
+    setupCopilotConfig(projectId);
     lines.push("✔ Copilot configuration ready.");
+  } else if (agentTag === AgentTag.Opencode) {
+    lines.push("Checking Opencode configuration...");
+    setupOpencodeConfig(projectId);
+    lines.push("✔ Opencode configuration ready.");
   } else {
     lines.push("Checking Claude configuration...");
-    createClaudeSettings(projectId);
+    setupClaudeConfig(projectId);
     lines.push("✔ Claude configuration ready.");
   }
   flush();

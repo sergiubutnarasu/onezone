@@ -20,6 +20,9 @@ rtk init -g --auto-patch
 # Ensure Copilot config directory exists in the persisted /home/agent/.copilot volume.
 mkdir -p /home/agent/.copilot
 
+# Ensure Opencode config directory exists in the persisted /home/agent/.opencode volume.
+mkdir -p /home/agent/.opencode
+
 # Ensure .ssh dir exists with correct permissions
 mkdir -p /home/agent/.ssh
 chmod 700 /home/agent/.ssh

@@ -2,6 +2,7 @@ import { AgentTag } from "@onezone/shared";
 import type { TaskDetails } from "@onezone/shared";
 import { setup as setupClaude } from "../agents/claude.js";
 import { setup as setupCopilot } from "../agents/copilot.js";
+import { setup as setupOpencode } from "../agents/opencode.js";
 import { getEffectiveTaskAgentAndModel } from "../lib/effective-task-agent.js";
 
 export const agentFactory = ({
@@ -22,6 +23,8 @@ export const agentFactory = ({
       return setupClaude({ projectId, model });
     case AgentTag.GithubCopilotCLI:
       return setupCopilot({ projectId, model });
+    case AgentTag.Opencode:
+      return setupOpencode({ projectId, model });
     default:
       return null;
   }

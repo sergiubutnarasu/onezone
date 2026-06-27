@@ -104,6 +104,9 @@ services:
       COPILOT_PROVIDER_BASE_URL: ${COPILOT_PROVIDER_BASE_URL}
       COPILOT_PROVIDER_API_KEY: ${COPILOT_PROVIDER_API_KEY}
       COPILOT_PROVIDER_TYPE: ${COPILOT_PROVIDER_TYPE}
+      OPENCODE_PROVIDER_ID: ${OPENCODE_PROVIDER_ID}
+      OPENCODE_PROVIDER_BASE_URL: ${OPENCODE_PROVIDER_BASE_URL}
+      OPENCODE_PROVIDER_API_KEY: ${OPENCODE_PROVIDER_API_KEY}
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
@@ -112,6 +115,7 @@ services:
       - terminal_local:/home/agent/.local
       - terminal_claude:/home/agent/.claude
       - terminal_copilot:/home/agent/.copilot
+      - terminal_opencode:/home/agent/.opencode
     depends_on:
       server:
         condition: service_healthy
@@ -126,3 +130,4 @@ volumes:
   terminal_local:
   terminal_claude:
   terminal_copilot:
+  terminal_opencode:

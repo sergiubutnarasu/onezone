@@ -2,7 +2,7 @@ import { CopilotClient, approveAll } from "@github/copilot-sdk";
 import { AgentTag, type UnifiedContentBlock } from "@onezone/shared";
 import * as fs from "fs";
 import * as path from "path";
-import { getProjectConfigFolder } from "../lib/project-paths.js";
+import { getProjectConfigFolder, getRulesContent } from "../lib/project-paths.js";
 import {
   AgentEventType,
   parseNextColumnTag,
@@ -22,10 +22,7 @@ export const setup = ({
   const githubDir = path.join(configPath, ".github");
   const githubSkillsDir = path.join(githubDir, "skills");
   const agentsSkillsDir = path.join(configPath, ".agents", "skills");
-
-  const instructionsDirs = [configPath].filter((dir) =>
-    fs.existsSync(path.join(dir, ".github", "instructions")),
-  );
+  const systemRules = getRulesContent();
 
   const skillsDirs = [githubSkillsDir, agentsSkillsDir].filter((dir) =>
     fs.existsSync(dir),
@@ -69,10 +66,10 @@ export const setup = ({
         onPermissionRequest: approveAll,
         streaming: true,
         enableSkills: true,
-        ...(instructionsDirs.length > 0
-          ? { instructionDirectories: instructionsDirs }
-          : {}),
         ...(skillsDirs.length > 0 ? { skillDirectories: skillsDirs } : {}),
+        ...(systemRules
+          ? { systemMessage: { mode: "append", content: systemRules } }
+          : {}),
       });
 
       let lastAssistantContent: string | undefined;

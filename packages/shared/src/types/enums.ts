@@ -35,4 +35,5 @@ export enum MessageType {
 export enum AgentTag {
   ClaudeCode = "claude-code",
   GithubCopilotCLI = "github-copilot-cli",
+  Opencode = "opencode",
 }

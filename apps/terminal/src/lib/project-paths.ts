@@ -9,7 +9,7 @@ import { ONEZONE_PROJECTS_LOCATION } from "./constants.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const execFileAsync = promisify(execFile);
 
-const isRtkAvailable = (): boolean => {
+export const isRtkAvailable = (): boolean => {
   try {
     execSync("rtk --version", { stdio: "ignore" });
     return true;
@@ -37,17 +37,6 @@ export const getProjectWorkDir = (projectId: string): string => {
     ONEZONE_PROJECTS_LOCATION,
     projectId,
     "workdir",
-  );
-};
-
-export const getClaudeSettingsPath = (projectId: string): string => {
-  return path.join(
-    os.homedir(),
-    ONEZONE_PROJECTS_LOCATION,
-    projectId,
-    "config",
-    ".claude",
-    "settings.json",
   );
 };
 
@@ -164,60 +153,13 @@ export const cloneProjectRepo = (
   }
 };
 
-export const createClaudeSettings = (projectId: string): boolean => {
+export const setupClaudeConfig = (projectId: string): boolean => {
   try {
-    const workDir = getProjectWorkDir(projectId);
     const projectConfigFolder = getProjectConfigFolder(projectId);
     const claudeDir = path.join(projectConfigFolder, ".claude");
-    const settingsPath = path.join(claudeDir, "settings.json");
 
     if (!fs.existsSync(claudeDir)) {
       fs.mkdirSync(claudeDir, { recursive: true });
-    }
-
-    const settings = {
-      permissions: {
-        allow: [
-          `Bash(*)`,
-          `Edit(/${workDir})`,
-          `Read(/${workDir})`,
-          `Read(/${projectConfigFolder})`,
-        ],
-      },
-      sandbox: {
-        filesystem: {
-          allowWrite: [`/${workDir}`],
-          allowRead: [`/${workDir}`, `/${projectConfigFolder}`],
-        },
-      },
-      ...(isRtkAvailable() && {
-        hooks: {
-          PreToolUse: [
-            {
-              matcher: "Bash",
-              hooks: [{ type: "command", command: "rtk hook claude" }],
-            },
-          ],
-        },
-      }),
-    };
-
-    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
-
-    // copy rules.md to the claude config folder
-    const rulesSourcePath = path.join(
-      __dirname,
-      "..",
-      "static",
-      "agent",
-      "rules.md",
-    );
-    const rulesDestPath = path.join(projectConfigFolder, "CLAUDE.local.md");
-
-    if (fs.existsSync(rulesSourcePath)) {
-      fs.copyFileSync(rulesSourcePath, rulesDestPath);
-    } else {
-      console.warn(`Warning: rules.md not found at ${rulesSourcePath}`);
     }
 
     // copy skills folder to the claude config folder
@@ -245,77 +187,18 @@ export const createClaudeSettings = (projectId: string): boolean => {
 
     return true;
   } catch (err) {
-    console.error(`Error creating Claude settings: ${(err as Error).message}`);
+    console.error(`Error setting up Claude config: ${(err as Error).message}`);
     return false;
   }
 };
 
-export const createCopilotSettings = (projectId: string): boolean => {
+export const setupCopilotConfig = (projectId: string): boolean => {
   try {
-    const workDir = getProjectWorkDir(projectId);
     const projectConfigFolder = getProjectConfigFolder(projectId);
     const githubDir = path.join(projectConfigFolder, ".github");
-    const copilotDir = path.join(githubDir, "copilot");
-    const instructionsDir = path.join(githubDir, "instructions");
-    const instructionsPath = path.join(
-      instructionsDir,
-      "onezone.instructions.md",
-    );
-    const settingsPath = path.join(copilotDir, "settings.json");
 
     if (!fs.existsSync(githubDir)) {
       fs.mkdirSync(githubDir, { recursive: true });
-    }
-    if (!fs.existsSync(copilotDir)) {
-      fs.mkdirSync(copilotDir, { recursive: true });
-    }
-    if (!fs.existsSync(instructionsDir)) {
-      fs.mkdirSync(instructionsDir, { recursive: true });
-    }
-
-    const settings = {
-      permissions: {
-        allow: [
-          `Bash(*)`,
-          `Edit(/${workDir})`,
-          `Read(/${workDir})`,
-          `Read(/${projectConfigFolder})`,
-        ],
-      },
-      sandbox: {
-        filesystem: {
-          allowWrite: [`/${workDir}`],
-          allowRead: [`/${workDir}`, `/${projectConfigFolder}`],
-        },
-      },
-      ...(isRtkAvailable() && {
-        hooks: {
-          PreToolUse: [
-            {
-              matcher: "Bash",
-              hooks: [{ type: "command", command: "rtk hook claude" }],
-            },
-          ],
-        },
-      }),
-    };
-
-    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
-
-    // copy rules.md to the copilot instructions file
-    const rulesSourcePath = path.join(
-      __dirname,
-      "..",
-      "static",
-      "agent",
-      "rules.md",
-    );
-
-    if (fs.existsSync(rulesSourcePath)) {
-      const rules = fs.readFileSync(rulesSourcePath, "utf8");
-      fs.writeFileSync(instructionsPath, `---\napplyTo: "**"\n---\n\n${rules}`);
-    } else {
-      console.warn(`Warning: rules.md not found at ${rulesSourcePath}`);
     }
 
     // copy skills folder to the copilot skills directories
@@ -353,11 +236,68 @@ export const createCopilotSettings = (projectId: string): boolean => {
 
     return true;
   } catch (err) {
-    console.error(
-      `Error creating Copilot settings: ${(err as Error).message}`,
-    );
+    console.error(`Error setting up Copilot config: ${(err as Error).message}`);
     return false;
   }
+};
+
+export const setupOpencodeConfig = (projectId: string): boolean => {
+  try {
+    const projectConfigFolder = getProjectConfigFolder(projectId);
+    const opencodeDir = path.join(projectConfigFolder, ".opencode");
+
+    if (!fs.existsSync(opencodeDir)) {
+      fs.mkdirSync(opencodeDir, { recursive: true });
+    }
+
+    // copy skills folder to the opencode skills directory
+    const skillsSourcePath = path.join(
+      __dirname,
+      "..",
+      "static",
+      "agent",
+      "skills",
+    );
+    const skillsDestPath = path.join(opencodeDir, "skills");
+
+    if (fs.existsSync(skillsSourcePath)) {
+      const skillDirs = fs.readdirSync(skillsSourcePath);
+      for (const skillDir of skillDirs) {
+        fs.cpSync(
+          path.join(skillsSourcePath, skillDir),
+          path.join(skillsDestPath, skillDir),
+          { recursive: true },
+        );
+      }
+    } else {
+      console.warn(`Warning: skills folder not found at ${skillsSourcePath}`);
+    }
+
+    return true;
+  } catch (err) {
+    console.error(`Error setting up Opencode config: ${(err as Error).message}`);
+    return false;
+  }
+};
+
+/**
+ * Reads the canonical rules.md content from the bundled static folder.
+ * Used to pass rules as a system prompt at runtime instead of copying
+ * them to agent-specific config files.
+ */
+export const getRulesContent = (): string | undefined => {
+  const rulesSourcePath = path.join(
+    __dirname,
+    "..",
+    "static",
+    "agent",
+    "rules.md",
+  );
+  if (!fs.existsSync(rulesSourcePath)) {
+    console.warn(`Warning: rules.md not found at ${rulesSourcePath}`);
+    return undefined;
+  }
+  return fs.readFileSync(rulesSourcePath, "utf8");
 };
 
 const getSkillsDirs = (projectId: string, agentTag?: string): string[] => {
@@ -365,6 +305,12 @@ const getSkillsDirs = (projectId: string, agentTag?: string): string[] => {
   if (agentTag === "github-copilot-cli") {
     return [
       path.join(configDir, ".github", "skills"),
+      path.join(configDir, ".agents", "skills"),
+    ];
+  }
+  if (agentTag === "opencode") {
+    return [
+      path.join(configDir, ".opencode", "skills"),
       path.join(configDir, ".agents", "skills"),
     ];
   }
