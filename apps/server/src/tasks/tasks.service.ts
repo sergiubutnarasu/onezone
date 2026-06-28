@@ -189,9 +189,10 @@ export class TasksService {
     );
   }
 
-  private async ensureProjectOwned(projectId: string, userId: string): Promise<void> {
+  private async ensureProjectOwned(projectId: string, userId: string) {
     const project = await this.prisma.project.findUnique({ where: { id: projectId, userId } });
     if (!project) throw new NotFoundException(`Project ${projectId} not found`);
+    return project;
   }
 
   private async ensureTerminalOwned(terminalId: string, userId: string): Promise<void> {
@@ -327,8 +328,8 @@ export class TasksService {
       name: string;
       description?: string;
       terminalId: string;
-      agentId: string;
-      model: string;
+      agentId?: string;
+      model?: string;
       useTaskAgentAndModel?: boolean;
       userId: string;
       /**
@@ -340,11 +341,13 @@ export class TasksService {
       columnId?: string;
     },
   ) {
-    await this.ensureProjectOwned(projectId, data.userId);
+    const project = await this.ensureProjectOwned(projectId, data.userId);
     await this.ensureTerminalOwned(data.terminalId, data.userId);
     if (data.columnId) {
       await this.findColumnInProject(data.columnId, projectId, data.userId);
     }
+    const agentId = data.agentId ?? project.defaultAgentId;
+    const model = data.model ?? project.defaultModel;
     const count = await this.prisma.task.count({
       where: { projectId, userId: data.userId, columnAssignment: null },
     });
@@ -353,8 +356,8 @@ export class TasksService {
         data: {
           name: data.name,
           description: data.description,
-          agentId: data.agentId,
-          model: data.model,
+          agentId,
+          model,
           useTaskAgentAndModel: data.useTaskAgentAndModel ?? false,
           projectId,
           userId: data.userId,

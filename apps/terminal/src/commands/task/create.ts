@@ -7,7 +7,7 @@ export default class TaskCreate extends Command {
 
   static examples = [
     '<%= config.bin %> task create --project <uuid> --name "My task" --terminal <terminalUuid>',
-    '<%= config.bin %> task create --project <uuid> --name "My task" --description "Details" --terminal <terminalUuid>',
+    '<%= config.bin %> task create --project <uuid> --name "My task" --description "Details" --terminal <terminalUuid> --agent <agentUuid> --model <model>',
   ];
 
   static flags = {
@@ -27,6 +27,14 @@ export default class TaskCreate extends Command {
       description: "Terminal ID (UUID) to assign to this task",
       required: true,
     }),
+    agent: Flags.string({
+      description: "Agent ID (UUID) to assign to this task (defaults to project default agent)",
+      required: false,
+    }),
+    model: Flags.string({
+      description: "Model identifier to use for this task (defaults to project default model)",
+      required: false,
+    }),
     server: Flags.string({
       description: "Server URL",
       default: "http://localhost:5026",
@@ -37,11 +45,19 @@ export default class TaskCreate extends Command {
     const { flags } = await this.parse(TaskCreate);
     const baseUrl = flags.server;
 
-    const body: { name: string; description?: string; terminalId: string } = {
+    const body: {
+      name: string;
+      description?: string;
+      terminalId: string;
+      agentId?: string;
+      model?: string;
+    } = {
       name: flags.name,
       terminalId: flags.terminal,
     };
     if (flags.description) body.description = flags.description;
+    if (flags.agent) body.agentId = flags.agent;
+    if (flags.model) body.model = flags.model;
 
     let task: Task;
     try {

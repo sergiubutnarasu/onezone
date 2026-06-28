@@ -12,11 +12,13 @@ export class CreateTaskDto {
   @IsUUID()
   terminalId!: string;
 
+  @IsOptional()
   @IsUUID()
-  agentId!: string;
+  agentId?: string;
 
+  @IsOptional()
   @IsString()
-  model!: string;
+  model?: string;
 
   @IsOptional()
   @IsBoolean()
