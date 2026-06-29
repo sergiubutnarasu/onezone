@@ -21,6 +21,7 @@ import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { ActivateDto } from './dto/activate.dto';
 import { AuthUser, CurrentUser } from './current-user.decorator';
+import { usesHttps } from '../lib/web-origins';
 
 @Controller('auth')
 @Throttle({ default: { limit: 10, ttl: 60_000 } })
@@ -171,7 +172,7 @@ export class AuthController {
       10,
     );
     const refreshMaxAge = refreshDays * 24 * 60 * 60 * 1000;
-    const secure = this.config.getOrThrow<string>('WEB_ORIGIN').startsWith('https');
+    const secure = usesHttps(this.config);
 
     res.cookie('access_token', tokens.access_token, {
       httpOnly: true,

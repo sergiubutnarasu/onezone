@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { RedisIoAdapter } from './adapters/redis-io.adapter';
 import { AllExceptionsFilter } from './all-exceptions.filter';
+import { parseWebOrigins } from './lib/web-origins';
 import cookieParser = require('cookie-parser');
 
 async function bootstrap() {
@@ -19,8 +20,17 @@ async function bootstrap() {
 
   app.useGlobalFilters(new AllExceptionsFilter());
 
+  const allowedOrigins = parseWebOrigins(process.env.WEB_ORIGINS);
+
   app.enableCors({
-    origin: process.env.WEB_ORIGIN || 'http://localhost:5025',
+    origin: (origin, cb) => {
+      // Only allow origins listed in WEB_ORIGINS (comma-separated env var).
+      if (!origin || allowedOrigins.includes(origin)) {
+        cb(null, true);
+      } else {
+        cb(new Error(`CORS: origin ${origin} not allowed`));
+      }
+    },
     credentials: true,
   });
 

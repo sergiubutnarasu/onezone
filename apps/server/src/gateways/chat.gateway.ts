@@ -13,6 +13,7 @@ import {
 import { Logger, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { SocketAuthGuard } from './socket-auth.guard';
+import { parseWebOrigins } from '../lib/web-origins';
 import {
   EventCommands,
   SocketAuthSchema,
@@ -53,7 +54,7 @@ type SocketMeta = TerminalSocketMeta | UserSocketMeta;
 @WebSocketGateway({
   namespace: '/chat',
   cors: {
-    origin: process.env.WEB_ORIGIN || 'http://localhost:5025',
+    origin: parseWebOrigins(process.env.WEB_ORIGINS),
     credentials: true,
   },
 })

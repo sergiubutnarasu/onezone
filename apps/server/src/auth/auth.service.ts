@@ -7,6 +7,7 @@ import * as bcrypt from 'bcryptjs';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { isAdminEmail } from '../libs/admin-emails';
+import { getWebOrigins } from '../lib/web-origins';
 
 @Injectable()
 export class AuthService {
@@ -27,7 +28,7 @@ export class AuthService {
   }> {
     const deviceCode = randomBytes(32).toString('hex');
     const userCode = this.generateUserCode();
-    const webOrigin = this.config.getOrThrow<string>('WEB_ORIGIN');
+    const webOrigin = getWebOrigins(this.config)[0];
     const expiresIn = 600; // 10 minutes
     const interval = 5; // 5 seconds
 

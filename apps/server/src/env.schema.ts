@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 export const EnvSchema = z.object({
   JWT_SECRET: z.string().min(32),
-  WEB_ORIGIN: z.string().url(),
+  // Comma-separated list of allowed web origins (e.g. "http://localhost:5025,http://personal-macbook-pro.voltri.local:5025")
+  WEB_ORIGINS: z.string().min(1),
   DATABASE_URL: z.string().url(),
   REDIS_URL: z.string().url(),
   REFRESH_TOKEN_EXPIRES_IN: z.string(),

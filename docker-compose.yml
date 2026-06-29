@@ -70,7 +70,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-onezone}:${POSTGRES_PASSWORD:-onezone}@postgres:5432/${POSTGRES_DB:-onezone}}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:5025}
+      WEB_ORIGINS: ${WEB_ORIGINS:-http://localhost:5025}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
       REFRESH_TOKEN_EXPIRES_IN: ${REFRESH_TOKEN_EXPIRES_IN:-30d}
