@@ -29,9 +29,10 @@ Input: $ARGUMENTS[0]
 You **MUST** follow the steps below in order:
 
 1. **Fetch full task context.** Use the `onezone-terminal` CLI to retrieve the latest task details before starting work:
-   ```
+   ```sh
    onezone-terminal task view <taskId> --server <serverUrl>
    ```
+   If the command fails (non-zero exit), retry once. If it still fails, proceed with the input data you already have — do not abort.
 
 2. **Set up git worktree (if applicable).** If the input contains a non-empty `repository` field, invoke the `onezone-git-worktree` skill in `setup` mode before doing any file work:
    ```
@@ -46,10 +47,10 @@ You **MUST** follow the steps below in order:
 5. **Report completion.** Provide a detailed summary of the work done, including any relevant findings, decisions made, or items that may be useful for subsequent columns.
 
 6. **Determine the next column.** List all kanban columns to find the column that comes after `kanbanColumnId`:
-   ```
+   ```sh
    onezone-terminal column list --project <projectId> --server <serverUrl>
    ```
-   The columns are ordered; identify the one immediately after the current `kanbanColumnId`.
+   The columns are ordered by `Index`; identify the one whose index is immediately after the current column's index. If the current column is the last one (highest index), there is no next column.
 
 7. **Commit and clean up (if applicable).** If a git worktree was set up in step 2 **and** this is the last column (no next column exists), invoke the `onezone-git-worktree` skill in `commit-and-cleanup` mode before finishing:
    ```
@@ -62,7 +63,7 @@ You **MUST** follow the steps below in order:
    [[ONEZONE_NEXT_COLUMN:<column-uuid>]]
    ```
 
-   Replace `<column-uuid>` with the UUID of the next column. The tag must include both opening brackets `[[` and both closing brackets `]]`. Do not wrap the tag in backticks, quotes, bullets, or any explanatory text.
+   Replace `<column-uuid>` with the UUID of the next column. The tag must include both opening brackets `[[` and both closing brackets `]]`. Do not wrap the tag in backticks, quotes, bullets, or any explanatory text. The tag must be the **absolute last line** of your response — no trailing whitespace, no blank lines after it.
 
    Correct final line example:
    ```

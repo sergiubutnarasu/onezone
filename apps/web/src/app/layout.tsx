@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 import { AppShell } from '@/components/AppShell';
+import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
 import { cn } from '@/lib/utils';
 
 const geistSans = Geist({ subsets: ['latin'], variable: '--font-sans' });
@@ -11,6 +12,24 @@ const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-mono' });
 export const metadata: Metadata = {
   title: 'Onezone',
   description: 'Agent task runner',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Onezone',
+  },
+  icons: {
+    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+    apple: '/icon-192.png',
+  },
+};
+
+export const viewport = {
+  themeColor: '#4338ca',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -32,6 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-background text-foreground antialiased" suppressHydrationWarning>
         <Providers>
           <AppShell>{children}</AppShell>
+          <ServiceWorkerRegister />
         </Providers>
       </body>
     </html>

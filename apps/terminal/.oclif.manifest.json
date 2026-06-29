@@ -432,47 +432,13 @@
         "write.js"
       ]
     },
-    "terminals:list": {
-      "aliases": [],
-      "args": {},
-      "description": "List all terminals registered on the server",
-      "examples": [
-        "<%= config.bin %> terminals list",
-        "<%= config.bin %> terminals list --server http://localhost:5026"
-      ],
-      "flags": {
-        "server": {
-          "description": "Server URL",
-          "name": "server",
-          "default": "http://localhost:5026",
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "terminals:list",
-      "pluginAlias": "@onezone/terminal",
-      "pluginName": "@onezone/terminal",
-      "pluginType": "core",
-      "strict": true,
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "commands",
-        "terminals",
-        "list.js"
-      ]
-    },
     "task:create": {
       "aliases": [],
       "args": {},
       "description": "Create a new task in a project",
       "examples": [
         "<%= config.bin %> task create --project <uuid> --name \"My task\" --terminal <terminalUuid>",
-        "<%= config.bin %> task create --project <uuid> --name \"My task\" --description \"Details\" --terminal <terminalUuid>"
+        "<%= config.bin %> task create --project <uuid> --name \"My task\" --description \"Details\" --terminal <terminalUuid> --agent <agentUuid> --model <model>"
       ],
       "flags": {
         "project": {
@@ -503,6 +469,22 @@
           "description": "Terminal ID (UUID) to assign to this task",
           "name": "terminal",
           "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "agent": {
+          "description": "Agent ID (UUID) to assign to this task (defaults to project default agent)",
+          "name": "agent",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "model": {
+          "description": "Model identifier to use for this task (defaults to project default model)",
+          "name": "model",
+          "required": false,
           "hasDynamicHelp": false,
           "multiple": false,
           "type": "option"
@@ -709,6 +691,40 @@
         "commands",
         "task",
         "view.js"
+      ]
+    },
+    "terminals:list": {
+      "aliases": [],
+      "args": {},
+      "description": "List all terminals registered on the server",
+      "examples": [
+        "<%= config.bin %> terminals list",
+        "<%= config.bin %> terminals list --server http://localhost:5026"
+      ],
+      "flags": {
+        "server": {
+          "description": "Server URL",
+          "name": "server",
+          "default": "http://localhost:5026",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "terminals:list",
+      "pluginAlias": "@onezone/terminal",
+      "pluginName": "@onezone/terminal",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "terminals",
+        "list.js"
       ]
     }
   },

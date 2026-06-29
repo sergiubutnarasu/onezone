@@ -30,7 +30,7 @@ GIT_COMMON=$(cd "$(git rev-parse --git-common-dir)" 2>/dev/null && pwd -P)
 git rev-parse --show-superproject-working-tree 2>/dev/null
 ```
 
-- If `GIT_DIR != GIT_COMMON` **and** not a submodule: already in a linked worktree — skip to **Step 3** and record the current path as the working directory.
+- If `GIT_DIR != GIT_COMMON` **and** not a submodule: already in a linked worktree — skip to **Step 4** and record the current path as the working directory.
 - Otherwise: continue to Step 1.
 
 ### Step 1: Ensure `.worktrees` Is Ignored
@@ -105,11 +105,9 @@ Now working in: <absolute-path-to-worktree>
 
 **Goal:** Persist the task's changes to the remote and release the worktree.
 
-Run all commands from the **main workdir root** (the directory where the `.worktrees/` folder lives), not from inside the worktree.
-
 ### Step 1: Stage and Commit All Changes
 
-From inside the worktree directory:
+From inside the worktree directory (`.worktrees/<taskId>/`):
 
 ```bash
 cd .worktrees/<taskId>
@@ -122,9 +120,11 @@ The commit message must follow [Conventional Commits](https://www.conventionalco
 - `<description>` is a short imperative sentence derived from `taskName` (lowercase, ≤72 chars).
 - Example: `feat: add user authentication via JWT`
 
-If there are no staged changes (diff is empty), skip the commit — no error.
+If there are no staged changes (diff is empty), skip the commit — no error. If changes were already committed during the task, that's fine — proceed to push.
 
 ### Step 2: Push the Branch
+
+Still from inside the worktree directory:
 
 ```bash
 git push origin "<type>/<taskId[0:8]>-<slug>" --set-upstream
@@ -133,6 +133,8 @@ git push origin "<type>/<taskId[0:8]>-<slug>" --set-upstream
 If the push fails due to missing remote or auth issues, log the failure and continue with cleanup — do **not** abort.
 
 ### Step 3: Remove the Worktree
+
+Switch to the **main workdir root** (the directory where the `.worktrees/` folder lives) before removing:
 
 ```bash
 cd <workdir-root>
@@ -153,7 +155,7 @@ git worktree remove ".worktrees/<taskId>" --force
 **Never:**
 - Skip Step 0 — always detect existing isolation before creating a worktree
 - Create a worktree without first ensuring `.worktrees` is in `.gitignore`
-- Perform cleanup (`commit-and-cleanup`) from inside the worktree directory — always `cd` to the main workdir root first
+- Perform Step 3 (Remove the Worktree) from inside the worktree directory — always `cd` to the main workdir root first
 
 **Always:**
 - Include the first 8 chars of `taskId` as suffix in the branch name for uniqueness

@@ -46,26 +46,26 @@ Skip writing if the session produced no new information.
 
 ## CLI Commands
 
-Use `onezone-terminal memory` to interact with project memory:
+Use `onezone-terminal memory` to interact with project memory. The `--server` flag is required when the server is not at the default URL — always pass it using the `serverUrl` from the runner input.
 
 ```sh
 # List memory files
-onezone-terminal memory list --project <project-id> [--prefix wiki/]
+onezone-terminal memory list --project <project-id> --server <serverUrl> [--prefix wiki/]
 
 # Read a memory file
-onezone-terminal memory read --project <project-id> --key <key>
+onezone-terminal memory read --project <project-id> --server <serverUrl> --key <key>
 
-# Write a memory file (inline content)
-onezone-terminal memory write --project <project-id> --key <key> --content '<content>'
+# Write a memory file (inline content — use for short, single-line content)
+onezone-terminal memory write --project <project-id> --server <serverUrl> --key <key> --content '<content>'
 
-# Write a memory file from a local file
-onezone-terminal memory write --project <project-id> --key <key> --file <path>
+# Write a memory file from a local file (preferred for multi-line content)
+onezone-terminal memory write --project <project-id> --server <serverUrl> --key <key> --file <path>
 
 # Delete a memory file
-onezone-terminal memory delete --project <project-id> --key <key>
+onezone-terminal memory delete --project <project-id> --server <serverUrl> --key <key>
 ```
 
-The `--server` flag can be added to any command if the server is not at the default URL.
+**Important**: For multi-line wiki content, always write to a temporary file first and use `--file` instead of `--content`. Inline `--content` with complex markdown is error-prone due to shell quoting.
 
 ---
 
@@ -75,9 +75,9 @@ The `--server` flag can be added to any command if the server is not at the defa
 
 1. Read `INDEX.md`:
    ```sh
-   onezone-terminal memory read --project <project-id> --key INDEX.md
+   onezone-terminal memory read --project <project-id> --server <serverUrl> --key INDEX.md
    ```
-   If it does not exist, the wiki is empty — proceed with an empty context.
+   If the command exits with a non-zero code (file not found), the wiki is empty — proceed with an empty context. Do not treat this as an error.
 2. From the index, identify which wiki articles are relevant to the current task (e.g., if the task touches auth, load `wiki/architecture.md` and `wiki/decisions.md`).
 3. Load only those articles using `memory read`. Do NOT load the entire wiki upfront — it wastes context. Load additional articles on demand as needed.
 
@@ -98,9 +98,10 @@ Dump every new fact from the session as bullet points. No formatting required �
 
 Skip facts already present in an existing wiki article.
 
-Use `memory write` to upload the file:
+Use `memory write` to upload the file (prefer `--file` for multi-line content):
 ```sh
-onezone-terminal memory write --project <project-id> --key raw/YYYY-MM-DD-<slug>.md --content '<content>'
+# Write content to a temp file first, then upload
+onezone-terminal memory write --project <project-id> --server <serverUrl> --key raw/YYYY-MM-DD-<slug>.md --file /tmp/raw-note.md
 ```
 
 #### Step 2 — Compile raw into wiki
@@ -149,7 +150,7 @@ Keep descriptions to one line. The index is a navigation aid, not a summary.
 
 Upload with:
 ```sh
-onezone-terminal memory write --project <project-id> --key INDEX.md --content '<content>'
+onezone-terminal memory write --project <project-id> --server <serverUrl> --key INDEX.md --file /tmp/index.md
 ```
 
 #### Step 4 — Lint (opportunistic, not mandatory every session)
