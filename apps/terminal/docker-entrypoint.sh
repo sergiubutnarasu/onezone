@@ -1,18 +1,6 @@
 #!/bin/sh
 set -e
 
-# Install uv if not present
-if ! command -v uv >/dev/null 2>&1; then
-  echo "Installing uv..."
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-fi
-
-# Install RTK if not present
-if ! command -v rtk >/dev/null 2>&1; then
-  echo "Installing RTK..."
-  curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh
-fi
-
 # Ensure RTK's Claude hook config exists in the persisted /home/agent/.claude volume.
 mkdir -p /home/agent/.claude
 rtk init -g --auto-patch

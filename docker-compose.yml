@@ -41,6 +41,23 @@ services:
       - ./docker/garage.toml:/etc/garage.toml:ro
     restart: unless-stopped
 
+  server-migrate:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-onezone}:${POSTGRES_PASSWORD:-onezone}@postgres:5432/${POSTGRES_DB:-onezone}}
+    depends_on:
+      - postgres
+    # One-shot init container: apply pending migrations then seed reference data.
+    # `prisma db seed` reads the "prisma.seed" script from package.json.
+    # Seed is idempotent (upsert with empty update), so re-runs are safe.
+    command: ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node_modules/.bin/prisma db seed"]
+    restart: "no"
+
   server:
     build:
       context: .
@@ -57,17 +74,21 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
       REFRESH_TOKEN_EXPIRES_IN: ${REFRESH_TOKEN_EXPIRES_IN:-30d}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
       S3_ENDPOINT: ${S3_ENDPOINT:-http://garage:3900}
       S3_REGION: ${S3_REGION:-garage}
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-GKonezone}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-3a2a8c6903c5e28fe7468494c5d73d64dfd88581e166cb25cce043ff8eb11410}
       S3_BUCKET_NAME: ${S3_BUCKET_NAME:-onezone}
     depends_on:
-      - postgres
-      - redis
-      - garage
+      server-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+      garage:
+        condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:5026/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:5026/health/live"]
       interval: 10s
       timeout: 5s
       retries: 5

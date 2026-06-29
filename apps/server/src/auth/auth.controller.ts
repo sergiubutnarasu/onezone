@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { ConfigService } from '@nestjs/config';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Public } from './public.decorator';
@@ -22,6 +23,7 @@ import { ActivateDto } from './dto/activate.dto';
 import { AuthUser, CurrentUser } from './current-user.decorator';
 
 @Controller('auth')
+@Throttle({ default: { limit: 10, ttl: 60_000 } })
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
@@ -44,6 +46,7 @@ export class AuthController {
 
   @Post('activate')
   @UseGuards(JwtAuthGuard)
+  @SkipThrottle()
   @HttpCode(HttpStatus.OK)
   async activate(@Body() dto: ActivateDto, @CurrentUser() user: AuthUser) {
     const approved = await this.authService.approveDeviceCode(
@@ -55,6 +58,7 @@ export class AuthController {
 
   @Public()
   @Post('signup')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.CREATED)
   async signup(
     @Body() dto: SignupDto,
@@ -73,6 +77,7 @@ export class AuthController {
 
   @Public()
   @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() dto: LoginDto,
@@ -117,6 +122,7 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
+  @SkipThrottle()
   @HttpCode(HttpStatus.OK)
   async logout(
     @Req() req: Request,
@@ -136,6 +142,7 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
+  @SkipThrottle()
   me(@CurrentUser() user: AuthUser) {
     return this.authService.getMe(user.id);
   }

@@ -9,6 +9,7 @@ import {
   GetObjectCommand,
   PutObjectCommand,
   DeleteObjectCommand,
+  HeadBucketCommand,
 } from '@aws-sdk/client-s3';
 
 @Injectable()
@@ -122,5 +123,10 @@ export class S3Service {
       this.logger.error(`S3 delete failed: ${(err as Error).message}`);
       throw new InternalServerErrorException('Failed to delete memory file');
     }
+  }
+
+  /** Lightweight connectivity probe for health checks. */
+  async ping(): Promise<void> {
+    await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
   }
 }

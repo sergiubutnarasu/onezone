@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { HealthController } from './health.controller';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { EnvSchema } from './env.schema';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsModule } from './projects/projects.module';
 import { TasksModule } from './tasks/tasks.module';
@@ -16,11 +16,14 @@ import { AuthModule } from './auth/auth.module';
 import { GlobalJwtGuard } from './auth/global-jwt.guard';
 import { SchedulesModule } from './schedules/schedules.module';
 import { MemoryModule } from './memory/memory.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
-  controllers: [HealthController],
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validate: (config) => EnvSchema.parse(config),
+    }),
     ScheduleModule.forRoot(),
     PrismaModule,
     TerminalRegistryModule,
@@ -34,6 +37,7 @@ import { MemoryModule } from './memory/memory.module';
     NotificationsModule,
     SchedulesModule,
     MemoryModule,
+    HealthModule,
   ],
   providers: [
     {

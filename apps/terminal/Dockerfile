@@ -65,7 +65,7 @@ RUN chmod +x /home/agent/docker-entrypoint.sh \
   && chown -R $USER_UID:$USER_GID /home/agent
 USER ${USER_UID}:${USER_GID}
 
-# Add ~/.local/bin to PATH (RTK, uv installed at container start via entrypoint)
+# Add ~/.local/bin to PATH (RTK, uv installed during build)
 ENV PATH="/home/agent/.local/bin:$PATH"
 ENV RTK_TELEMETRY_DISABLED=1
 
@@ -78,6 +78,12 @@ RUN mkdir -p /home/agent/.onezone/projects \
   && mkdir -p /home/agent/.claude \
   && mkdir -p /home/agent/.copilot \
   && mkdir -p /home/agent/.opencode
+
+# Install uv (Python package manager) during build, not at runtime
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install RTK (token-optimized CLI proxy) during build, not at runtime
+RUN curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh
 
 # Trust GitHub's host key
 RUN mkdir -p /home/agent/.ssh \
