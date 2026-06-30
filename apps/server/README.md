@@ -10,6 +10,7 @@ The Onezone backend is a NestJS service that owns authentication, REST resources
 - Nest Schedule and `cron` for recurring task schedules.
 - HTTP-only auth cookies, bearer-token CLI auth, refresh tokens, and device-code login.
 - `class-validator`, `class-transformer`, and shared Zod contracts for payload validation.
+- S3-compatible storage for project-level memory reads and writes.
 
 ## Runtime Responsibilities
 
@@ -23,7 +24,8 @@ The Onezone backend is a NestJS service that owns authentication, REST resources
 | Agents | Agent registry and per-user/global model settings |
 | Schedules | Create, update, enable, run, and delete cron-based task schedules |
 | Notifications | List, count, mark read, and create task/command notifications |
-| Gateway | Authenticated Socket.io rooms for task chat, project events, terminal heartbeats, and command lifecycle events |
+| Memory | List, read, write, and delete project-scoped key-value entries backed by S3 |
+| S3 | Internal S3-compatible storage service for project memory |
 
 ## Development
 
@@ -56,12 +58,15 @@ The server listens on port `5026` by default. The health endpoint is `GET /healt
 |---|---|---|---|
 | `DATABASE_URL` | none | Yes | PostgreSQL connection string used by Prisma |
 | `REDIS_URL` | `redis://localhost:6379` | Yes | Redis URL used by the Socket.io adapter |
-| `WEB_ORIGIN` | `http://localhost:5025` | Yes | Allowed browser origin and base URL for device-code activation links |
+| `WEB_ORIGINS` | `http://localhost:5025` | Yes | Comma-separated allowed origins for CORS, cookies, and CLI device activation URLs |
 | `PORT` | `5026` | No | HTTP and WebSocket port |
 | `JWT_SECRET` | none | Yes | Access-token signing secret |
 | `JWT_EXPIRES_IN` | `15m` in Compose | Yes | Access-token cookie lifetime, for example `15m` or `1h` |
 | `REFRESH_TOKEN_EXPIRES_IN` | `30d` in Compose | Yes | Refresh-token lifetime in days, for example `30d` |
 | `ADMIN_EMAILS` | empty | No | Comma-separated list of emails treated as admins |
+| `S3_ENDPOINT` | none | Yes | S3-compatible endpoint for project memory storage |
+| `S3_ACCESS_KEY_ID` | none | Yes | S3 access key for project memory storage |
+| `S3_SECRET_ACCESS_KEY` | none | Yes | S3 secret key for project memory storage |
 
 ## API Surface
 
@@ -70,7 +75,7 @@ All routes except explicitly public auth routes are protected by the global JWT 
 | Resource | Routes |
 |---|---|
 | Auth | `POST /auth/signup`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/me`, `POST /auth/device`, `POST /auth/token`, `POST /auth/activate` |
-| Projects | `GET /projects`, `POST /projects`, `GET /projects/statistics`, `GET /projects/:id`, `PATCH /projects/:id`, `DELETE /projects/:id`, `GET /projects/:id/export`, `POST /projects/import` |
+| Projects | `GET /projects`, `POST /projects`, `GET /projects/statistics`, `GET /projects/:id`, `PATCH /projects/:id`, `DELETE /projects/:id`, `GET /projects/:id/export`, `POST /projects/import`, `GET /projects/:id/cost-stats` |
 | Project skills | `GET /skills`, `POST /skills`, `DELETE /skills/:skillId`, plus project-scoped skill routes under `/projects/:id/skills` |
 | Kanban columns | `GET/POST /projects/:projectId/kanban-columns`, `GET/PATCH/DELETE /projects/:projectId/kanban-columns/:columnId`, `PUT /projects/:projectId/kanban-columns/reorder` |
 | Tasks | `GET /tasks/:taskId`, `PATCH /tasks/:taskId`, `PATCH /tasks/:taskId/column`, `PATCH /tasks/:taskId/complete`, `PATCH /tasks/:taskId/terminal`, `DELETE /tasks/:taskId` |
@@ -79,7 +84,8 @@ All routes except explicitly public auth routes are protected by the global JWT 
 | Terminals | `GET /terminals`, `POST /terminals/register`, `POST /terminals/:terminalId/disconnect`, `POST /terminals/:terminalId/assign-task`, `DELETE /terminals/:terminalId` |
 | Agents | `GET /agents`, `GET /agents/:id`, `PATCH /agents/:id`, `PATCH /agents/:id/global` |
 | Schedules | `GET/POST /projects/:projectId/schedules`, `GET/PATCH/DELETE /schedules/:id`, `POST /schedules/:id/run` |
-| Notifications | `GET /notifications`, `GET /notifications/unread-count`, `PATCH /notifications/read-all`, `PATCH /notifications/:id/read` |
+| Memory | `GET /projects/:projectId/memory`, `GET /projects/:projectId/memory/:key`, `POST /projects/:projectId/memory/:key`, `DELETE /projects/:projectId/memory/:key` |
+| Health | `GET /health`, `GET /health/live`, `GET /health/ready` |
 
 ## WebSocket Events
 
@@ -108,7 +114,7 @@ Use `migrate deploy` outside local migration authoring. The seed script register
 
 ## Production Notes
 
-- Set `JWT_SECRET`, `DATABASE_URL`, `REDIS_URL`, `WEB_ORIGIN`, `JWT_EXPIRES_IN`, and `REFRESH_TOKEN_EXPIRES_IN` explicitly.
+- Set `WEB_ORIGINS`, `DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, and `REFRESH_TOKEN_EXPIRES_IN` explicitly.
 - Put the server behind HTTPS and a reverse proxy that supports WebSocket upgrades.
 - Run all server instances against the same PostgreSQL database, Redis instance, and JWT settings.
 - Keep Redis private to the application network and enable provider authentication/TLS where available.

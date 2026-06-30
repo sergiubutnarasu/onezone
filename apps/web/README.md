@@ -10,6 +10,7 @@ The Onezone web app is a Next.js dashboard for managing projects, kanban task fl
 - Tailwind CSS 4 with shadcn/Radix-style UI primitives.
 - Lexical for rich task descriptions.
 - `@dnd-kit` for kanban drag-and-drop.
+- `@tanstack/react-virtual` for virtualized lists.
 - React Hook Form for form state.
 - Lucide React icons.
 
@@ -19,14 +20,14 @@ The Onezone web app is a Next.js dashboard for managing projects, kanban task fl
 - Create projects with default agent/model settings and optional repository metadata.
 - Import and export projects.
 - Manage global and project-scoped skills.
-- Configure agents and user-specific model overrides.
+- Configure agents including Claude Code, GitHub Copilot CLI, and Opencode, with user-specific model overrides.
 - Create, edit, assign, reorder, complete, and delete tasks.
 - Move tasks through backlog, custom kanban columns, and completed state.
 - Assign terminals to tasks and monitor connection state.
 - Chat inside tasks while streaming terminal command output in real time.
 - Create and run recurring schedules for automated task creation/execution.
 - View notifications and unread counts for command and task events.
-- Review project and global statistics including command success/failure, tokens, and cost.
+- View and manage project memory entries backed by S3-compatible storage.
 
 ## Routes
 
@@ -39,6 +40,9 @@ The Onezone web app is a Next.js dashboard for managing projects, kanban task fl
 | `/` | Project list |
 | `/projects/[id]` | Project kanban board, project actions, schedules, and cost summary |
 | `/projects/[id]/tasks/[taskId]` | Task chat, terminal output, task metadata, and controls |
+| `/projects/[id]/settings/details` | Project details and configuration |
+| `/projects/[id]/settings/skills` | Project-scoped skills management |
+| `/projects/[id]/settings/memory` | Project memory key-value storage |
 | `/agents` | Agent and model configuration |
 | `/terminals` | Connected and registered terminal workers |
 | `/skills` | Global skills management |
@@ -81,7 +85,7 @@ When using the Docker image, `NEXT_PUBLIC_API_URL` is passed as a build argument
 
 - Deploy the web app behind HTTPS.
 - Set `NEXT_PUBLIC_API_URL` to the public HTTPS API URL reachable from users' browsers.
-- Make sure the server `WEB_ORIGIN` exactly matches the deployed web origin.
+- Make sure the server `WEB_ORIGINS` includes the deployed web origin.
 - Ensure the API reverse proxy supports WebSocket upgrades for Socket.io.
 - Build after environment variables are set because public Next.js variables are embedded in the client bundle.
 - Do not expose server-only secrets through `NEXT_PUBLIC_*` variables.

@@ -6,9 +6,11 @@ Shared TypeScript contracts for the Onezone server, web app, and terminal CLI. T
 
 | File | Purpose |
 |---|---|
-| `src/types.ts` | Domain interfaces, enums, Socket.io event maps, task schedule types, notification types, pagination, and room message unions |
+| `src/types/` | Domain interfaces, enums, Socket.io event maps, task schedule types, notification types, pagination, and room message unions |
 | `src/schemas.ts` | Zod schemas for shared input and Socket.io auth validation |
 | `src/constants.ts` | Heartbeat constants and task/project room helper functions |
+| `src/lib/room-ids.ts` | Room ID creation and extraction helpers |
+| `src/lib/runner-payload.ts` | Runner prompt prefix and payload parsing utilities |
 | `src/index.ts` | Public package exports |
 
 ## Core Types And Enums
@@ -16,7 +18,8 @@ Shared TypeScript contracts for the Onezone server, web app, and terminal CLI. T
 - `AuthUser` for authenticated user identity and admin status.
 - `EventCommands` for Socket.io event names, including chat, terminal command lifecycle, heartbeats, assignment, notifications, and project cost updates.
 - `MessageRole`, `MessageStream`, and `MessageType` for chat and command output records.
-- `AgentTag` for supported runner tags: `claude-code` and `github-copilot-cli`.
+- `AgentTag` for supported runner tags: `claude-code`, `github-copilot-cli`, and `opencode`.
+- `UnifiedContentBlock` and `ContentBlockKind` for normalized agent output consumed by the web frontend.
 - `Agent`, `ProjectInfo`, `KanbanColumn`, `ProjectSkill`, `Task`, `TaskDetails`, and `Terminal` for the main app resources.
 - `TaskSchedule` and `CRON_PRESETS` for recurring task automation.
 - `Notification` and `NotificationType` for notification inbox data.
@@ -32,14 +35,15 @@ The package defines typed event maps for Socket.io clients and servers:
 
 Important payloads include `AssignTaskPayload`, `CommandStartPayload`, `OutputLinePayload`, `CommandExitPayload`, and `ChatMessage`.
 
-Room helpers in `src/constants.ts` keep room IDs consistent:
+Room helpers in `src/lib/room-ids.ts` and runner payload utilities in `src/lib/runner-payload.ts` keep cross-package logic consistent:
 
 ```ts
-import { createProjectRoomId, createTaskRoomId, extractTaskId } from "@onezone/shared";
+import { createProjectRoomId, createTaskRoomId, extractTaskId, parseRunnerPayload } from "@onezone/shared";
 
 const taskRoom = createTaskRoomId(taskId);
 const projectRoom = createProjectRoomId(projectId);
 const parsedTaskId = extractTaskId(taskRoom);
+const payload = parseRunnerPayload(commandString);
 ```
 
 ## Schemas

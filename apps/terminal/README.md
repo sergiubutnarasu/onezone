@@ -65,6 +65,10 @@ The listener registers the terminal, joins the lobby, receives `terminal:assign-
 | `onezone-terminal task view` | Show task details |
 | `onezone-terminal task move` | Move a task to another kanban column |
 | `onezone-terminal task delete` | Delete a task |
+| `onezone-terminal memory list` | List project memory keys |
+| `onezone-terminal memory read` | Read a project memory entry |
+| `onezone-terminal memory write` | Write a project memory entry |
+| `onezone-terminal memory delete` | Delete a project memory entry |
 | `onezone-terminal column list` | List kanban columns |
 | `onezone-terminal column view` | Show column details |
 | `onezone-terminal terminals list` | List registered terminals |
@@ -79,6 +83,7 @@ When a task is assigned, the terminal selects a runner from the task agent tag.
 |---|---|
 | `claude-code` | Claude Code CLI |
 | `github-copilot-cli` | GitHub Copilot CLI |
+| `opencode` | Opencode CLI |
 
 In Docker, `docker-entrypoint.sh` installs `uv` and RTK when missing, initializes RTK's Claude hook config, prepares SSH defaults, authenticates to Onezone if needed, and starts `onezone-terminal listen`.
 

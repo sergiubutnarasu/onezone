@@ -23,7 +23,7 @@ flowchart TB
     end
 
     subgraph External["☁️ External / Host"]
-        AgentCLIs["Agent CLIs<br/>claude / copilot"]
+        AgentCLIs["Agent CLIs<br/>claude / copilot / opencode"]
         GitHub["GitHub / Git repos"]
         LLMProviders["LLM Providers<br/>Anthropic / OpenAI / Azure"]
     end
@@ -90,26 +90,26 @@ flowchart TB
             Notifications["NotificationsModule"]
             Schedules["SchedulesModule"]
             Memory["MemoryModule"]
+            S3["S3Module"]
+            HealthMod["HealthModule"]
         end
 
         subgraph Gateway["🔌 Socket.io Gateway"]
             ChatGateway["ChatGateway<br/>namespace: /chat"]
             RedisAdapter["RedisIoAdapter"]
             SocketAuth["SocketAuthGuard"]
-            TerminalRegistry["TerminalRegistryService"]
+            TerminalRegistry["TerminalRegistryModule"]
             MessageHandlers["Message Handlers"]
         end
 
         Prisma["PrismaModule<br/>(global)"]
-        S3["S3Module"]
-        Health["HealthController<br/>GET /health"]
+        Health["HealthController<br/>GET /health, /live, /ready"]
     end
 
     Bootstrap --> AppModule
     AppModule --> Modules
     AppModule --> Gateway
     AppModule --> Prisma
-    AppModule --> S3
     AppModule --> Health
     AppModule --> GlobalGuard
     AppModule --> Config
@@ -129,6 +129,8 @@ flowchart TB
     Notifications --> Prisma
     Schedules --> Prisma
     Memory --> S3
+    HealthMod --> Prisma
+    HealthMod --> S3
 ```
 
 ## Authentication Flows
@@ -230,7 +232,7 @@ flowchart TB
     Wait -->|AssignTask received| TaskConn["connectToTask()<br/>Socket.io task:xxx"]
 
     TaskConn --> Setup["setupProject()<br/>clone repo, install skills"]
-    Setup --> Agent["setupTerminalAgent()<br/>claude / copilot"]
+    Setup --> Agent["setupTerminalAgent()<br/>claude / copilot / opencode"]
     Agent --> Spawn["spawnCommand()<br/>run /onezone-runner"]
 
     Spawn --> Stream["Stream output:line<br/>command:start / command:exit"]
@@ -295,7 +297,7 @@ erDiagram
 ```mermaid
 flowchart TB
     subgraph NextApp["🌐 Next.js App"]
-        Layout["layout.tsx<br/>ThemeProvider + AuthProvider"]
+        Layout["layout.tsx<br/>ThemeProvider + AuthProvider + ServiceWorkerRegister + theme script"]
         Providers["providers.tsx<br/>QueryClient + GlobalSocketListener"]
         AppShell["AppShell<br/>auth gate + navigation"]
 
@@ -304,12 +306,13 @@ flowchart TB
         Pages --> Onboarding["/onboarding"]
         Pages --> ProjectPage["/projects/[id] Kanban"]
         Pages --> TaskChat["/projects/[id]/tasks/[taskId] Chat"]
+        Pages --> Settings["/projects/[id]/settings/*"]
         Pages --> Terminals["/terminals"]
         Pages --> Agents["/agents"]
-        Pages --> Schedules["/schedules"]
+        Pages --> Skills["/skills"]
         Pages --> Notifications["/notifications"]
         Pages --> Statistics["/statistics"]
-        Pages --> Auth["/auth/login | /auth/register"]
+        Pages --> Auth["/auth/login | /auth/register | /activate"]
 
         Hooks["Custom Hooks"]
         Hooks --> useGlobalSocket["useGlobalSocket"]
@@ -339,7 +342,7 @@ sequenceDiagram
     participant DB as PostgreSQL
     participant Redis as Redis
     participant Terminal as Terminal Worker
-    participant Agent as claude / copilot
+    participant Agent as claude / copilot / opencode
 
     User->>Web: Create task, pick terminal + column
     Web->>Server: POST /projects/:id/tasks
@@ -374,8 +377,9 @@ sequenceDiagram
 
 ## Deployment Notes
 
-- The server exposes REST and Socket.io on the same port. A reverse proxy must support WebSocket upgrades.
 - `NEXT_PUBLIC_API_URL` is baked into the web Docker image at build time.
+- `WEB_ORIGINS` is a comma-separated list of allowed origins used by the server for CORS and cookies.
 - The server applies Prisma migrations and seeds reference agents on container start.
-- The terminal container installs `claude`, `copilot`, `uv`, and `rtk` at runtime via `docker-entrypoint.sh` so tools are persisted in volumes.
+- The terminal container installs `claude`, `copilot`, `opencode`, `uv`, and `rtk` at runtime via `docker-entrypoint.sh` so tools are persisted in volumes.
 - Redis is used only for Socket.io horizontal scaling; the adapter is optional for a single server instance but required for multi-replica deployments.
+- Garage S3 (or any S3-compatible store) backs project memory reads and writes.

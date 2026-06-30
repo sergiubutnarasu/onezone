@@ -6,7 +6,8 @@ Onezone is a production-minded AI agent orchestration platform for running codin
 
 - Project workspaces with kanban columns, backlog, completion state, project import/export, and project-level skills.
 - Task assignment to connected terminals with real-time chat, stdout/stderr streaming, command lifecycle events, and stop signals.
-- Agent registry for Claude Code and GitHub Copilot CLI style runners, with global defaults and per-user model overrides.
+- Agent registry for Claude Code, GitHub Copilot CLI, and Opencode style runners, with global defaults and per-user model overrides.
+- Project memory backed by S3-compatible storage for key-value reads and writes scoped to each project.
 - Scheduled tasks powered by cron expressions, time zones, optional one-shot runs, and terminal/agent/model selection.
 - Authentication with email/password, HTTP-only cookies, JWT access tokens, refresh tokens, and CLI device-code login.
 - Notifications for command starts, command exits, failures, and completed tasks.
@@ -116,7 +117,7 @@ Root Docker Compose reads variables from `.env`. Individual apps can also read t
 | `POSTGRES_PASSWORD` | Compose Postgres | `onezone` | No | Database password for local Compose |
 | `DATABASE_URL` | Server | Compose builds one from Postgres values | Yes | PostgreSQL connection string |
 | `REDIS_URL` | Server | `redis://localhost:6379` locally, `redis://redis:6379` in Compose | Yes | Redis URL for the Socket.io adapter |
-| `WEB_ORIGIN` | Server | `http://localhost:5025` | Yes | Public web origin for CORS, cookies, and CLI device activation URLs |
+| `WEB_ORIGINS` | Server | `http://localhost:5025` | Yes | Comma-separated allowed origins for CORS, cookies, and CLI device activation URLs |
 | `PORT` | Server | `5026` | No | Server HTTP and WebSocket port |
 | `JWT_SECRET` | Server | none | Yes | Secret used to sign access tokens. Set a strong value in every environment. |
 | `JWT_EXPIRES_IN` | Server | `15m` | No | Access token lifetime. Supports values such as `15m`, `1h`, or `1d`. |
@@ -132,6 +133,9 @@ Root Docker Compose reads variables from `.env`. Individual apps can also read t
 | `COPILOT_PROVIDER_BASE_URL` | Terminal agent runtime | none | No | Optional custom model provider base URL for Copilot CLI. |
 | `COPILOT_PROVIDER_API_KEY` | Terminal agent runtime | none | No | Optional custom model provider API key for Copilot CLI. |
 | `COPILOT_PROVIDER_TYPE` | Terminal agent runtime | none | No | Optional custom model provider type for Copilot CLI (`openai`, `azure`, `anthropic`). |
+| `S3_ENDPOINT` | Server | none | Yes | S3-compatible endpoint for project memory storage |
+| `S3_ACCESS_KEY_ID` | Server | none | Yes | S3 access key for project memory storage |
+| `S3_SECRET_ACCESS_KEY` | Server | none | Yes | S3 secret key for project memory storage |
 
 Example local `.env`:
 
@@ -141,9 +145,12 @@ POSTGRES_USER=onezone
 POSTGRES_PASSWORD=onezone
 DATABASE_URL=postgresql://onezone:onezone@localhost:5432/onezone
 REDIS_URL=redis://localhost:6379
-WEB_ORIGIN=http://localhost:5025
+WEB_ORIGINS=http://localhost:5025
 NEXT_PUBLIC_API_URL=http://localhost:5026
 JWT_SECRET=replace-with-a-long-random-secret
+S3_ENDPOINT=http://localhost:9000
+S3_ACCESS_KEY_ID=minio
+S3_SECRET_ACCESS_KEY=minio123
 JWT_EXPIRES_IN=15m
 REFRESH_TOKEN_EXPIRES_IN=30d
 ADMIN_EMAILS=admin@example.com
@@ -183,7 +190,7 @@ Run these from the repository root.
 ## Production Checklist
 
 - Set a strong `JWT_SECRET`; never rely on unset or development-only secrets.
-- Set `WEB_ORIGIN` to the exact HTTPS origin of the deployed web app so CORS, secure cookies, and device activation links work correctly.
+- Set `WEB_ORIGINS` to the exact HTTPS origin(s) of the deployed web app so CORS, secure cookies, and device activation links work correctly.
 - Set `NEXT_PUBLIC_API_URL` to the public HTTPS URL of the API reachable by browsers.
 - Use managed PostgreSQL and Redis or persistent volumes with backups.
 - Run `pnpm --filter @onezone/server exec prisma migrate deploy` during release before starting the server.
