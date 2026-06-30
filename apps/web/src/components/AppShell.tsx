@@ -1,22 +1,14 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { useAuth } from "@/lib/auth-context";
 import { ReactNode } from "react";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const { user, isLoading } = useAuth();
   const isPublicRoute = pathname === "/auth/login" || pathname === "/auth/register";
-
-  useEffect(() => {
-    if (!isLoading && !user && !isPublicRoute) {
-      router.replace(`/auth/login?returnTo=${encodeURIComponent(pathname)}`);
-    }
-  }, [isLoading, user, isPublicRoute, router, pathname]);
 
   if (isPublicRoute) {
     return (
