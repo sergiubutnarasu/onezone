@@ -49,12 +49,25 @@ export class KanbanColumnsService {
 
   async createDefaults(projectId: string, userId: string, tx?: Prisma.TransactionClient) {
     const client = tx ?? this.prisma;
+
+    // Resolve agent names to IDs (DEFAULT_KANBAN_COLUMNS uses agent names, DB expects agentId UUIDs)
+    const agentNames = [...new Set(DEFAULT_KANBAN_COLUMNS.map((c) => c.agent).filter(Boolean) as string[])];
+    const agentMap = new Map<string, string>();
+    for (const name of agentNames) {
+      const agent = await client.agent.findFirst({ where: { name } });
+      if (agent) agentMap.set(name, agent.id);
+    }
+
     await client.kanbanColumn.createMany({
       data: DEFAULT_KANBAN_COLUMNS.map((col) => ({
         id: randomUUID(),
         projectId,
         userId,
-        ...col,
+        name: col.name,
+        instructions: col.instructions,
+        index: col.index,
+        agentId: col.agent ? (agentMap.get(col.agent) ?? null) : null,
+        model: col.model ?? null,
       })),
     });
     return this.findAllByProject(projectId, userId);

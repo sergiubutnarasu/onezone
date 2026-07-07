@@ -35,8 +35,19 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
         this.logger.warn(`Column ${data.nextColumnId} not found, marking task ${taskId} as completed`);
         await this.tasksService.setCompleted(taskId, true, userId);
       }
-    } else {
+      return;
+    }
+
+    // No next-column tag was found in the runner's output. This is only
+    // expected when the task is on the last column of the board. If it's not,
+    // the agent failed to emit the required signal - leave the task in place
+    // (rather than silently marking it complete) so the failure is visible.
+    if (await this.tasksService.isTaskOnLastColumn(taskId, userId)) {
       await this.tasksService.setCompleted(taskId, true, userId);
+    } else {
+      this.logger.warn(
+        `Task ${taskId} runner finished without a next-column signal while not on the last column; leaving task in place instead of auto-completing.`,
+      );
     }
   }
 
@@ -49,7 +60,9 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
     if (data.nextColumnId !== undefined) return;
 
     const task = await this.tasksService.findOne(taskId, userId);
-    if (!task.completedAt) {
+    if (task.completedAt) return;
+
+    if (await this.tasksService.isTaskOnLastColumn(taskId, userId)) {
       await this.tasksService.setCompleted(taskId, true, userId);
     }
   }

@@ -24,15 +24,17 @@ export const setup = ({
   const agentsSkillsDir = path.join(configPath, ".agents", "skills");
   const systemRules = getRulesContent();
 
-  const skillsDirs = [githubSkillsDir, agentsSkillsDir].filter((dir) =>
-    fs.existsSync(dir),
-  );
-
   async function* run({
     prompt,
     cwd,
     signal,
   }: AgentRunParams): AsyncIterable<AgentEvent> {
+    // Computed at run time (not at setup time) because setupProject() copies
+    // the skill folders into place after setup() has already been called.
+    const skillsDirs = [githubSkillsDir, agentsSkillsDir].filter((dir) =>
+      fs.existsSync(dir),
+    );
+
     const providerBaseUrl = process.env.COPILOT_PROVIDER_BASE_URL;
     const providerApiKey = process.env.COPILOT_PROVIDER_API_KEY;
     const providerType = process.env.COPILOT_PROVIDER_TYPE;

@@ -25,16 +25,27 @@ async function main() {
 
   // Backfill default kanban columns for any existing projects that have none.
   // New projects already get columns via KanbanColumnsService.createDefaults.
+  const agentNames = [...new Set(DEFAULT_KANBAN_COLUMNS.map((c) => c.agent).filter(Boolean) as string[])];
+  const agentMap = new Map<string, string>();
+  for (const name of agentNames) {
+    const agent = await prisma.agent.findFirst({ where: { name } });
+    if (agent) agentMap.set(name, agent.id);
+  }
+
   const projects = await prisma.project.findMany({ select: { id: true, name: true, userId: true } });
   for (const project of projects) {
     const existing = await prisma.kanbanColumn.count({ where: { projectId: project.id } });
     if (existing === 0) {
       await prisma.kanbanColumn.createMany({
         data: DEFAULT_KANBAN_COLUMNS.map((col) => ({
-          ...col,
           id: randomUUID(),
           projectId: project.id,
           userId: project.userId,
+          name: col.name,
+          instructions: col.instructions,
+          index: col.index,
+          agentId: col.agent ? (agentMap.get(col.agent) ?? null) : null,
+          model: col.model ?? null,
         })),
       });
       console.log(`Seeded default kanban columns for project "${project.name}"`);

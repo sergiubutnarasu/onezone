@@ -534,6 +534,28 @@ export class TasksService {
     return updated;
   }
 
+  /**
+   * Whether the task's current kanban column is the last one (by index) in its
+   * project. Tasks with no column assignment (e.g. backlog) are treated as
+   * terminal since there is no "next" column to advance to.
+   */
+  async isTaskOnLastColumn(taskId: string, userId: string): Promise<boolean> {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId, userId },
+      include: { columnAssignment: { include: { column: true } } },
+    });
+    if (!task) throw new NotFoundException(`Task ${taskId} not found`);
+
+    const currentIndex = task.columnAssignment?.column.index;
+    if (currentIndex === undefined) return true;
+
+    const { _max } = await this.prisma.kanbanColumn.aggregate({
+      where: { projectId: task.projectId },
+      _max: { index: true },
+    });
+    return currentIndex >= (_max.index ?? currentIndex);
+  }
+
   async reorder(projectId: string, items: TaskOrderItemDto[], userId: string) {
     await this.ensureProjectOwned(projectId, userId);
     const existing = await this.prisma.task.findMany({

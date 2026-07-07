@@ -33,14 +33,16 @@ memories/
 **Read mode** (argument contains "read" or no argument at session start):
 - Read `INDEX.md` first; load only the articles relevant to the current task.
 
-**Write mode** (after completing work):
+**Write mode** (before ending the session):
 - Running terminal commands (builds, tests, migrations, installs)
 - Fixing bugs or resolving errors
 - Discovering codebase patterns or architecture details
 - Making configuration changes
 - Completing any non-trivial task
 
-Skip writing if the session produced no new information.
+This is a mandatory step before your final summary or signal, not an optional one — do not skip it just because you are wrapping up, low on context/time, or the session ended in an error. Skip only if you can state affirmatively that the session produced zero new information.
+
+If you are too low on context/time to complete the full four-step procedure below, do at minimum Step 1 (stage raw facts) and list the new raw file under "Raw (uncompiled)" in `INDEX.md` rather than skipping the write entirely — a partially compiled memory is recoverable next session, a missing one is not.
 
 ---
 
@@ -66,6 +68,8 @@ onezone-terminal memory delete --project <project-id> --server <serverUrl> --key
 ```
 
 **Important**: For multi-line wiki content, always write to a temporary file first and use `--file` instead of `--content`. Inline `--content` with complex markdown is error-prone due to shell quoting.
+
+**Verify every write**: each command prints `Wrote memory file: <key>` on success and exits non-zero with an error message on failure (network/auth/server error). Check the result — do not assume a write succeeded. If it fails, retry once; if it still fails, mention the failure in your final summary instead of silently continuing.
 
 ---
 
