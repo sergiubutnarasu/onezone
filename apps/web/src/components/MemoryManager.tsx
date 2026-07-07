@@ -2,14 +2,15 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileText, Trash2, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { AddMemoryButton } from "@/components/AddMemoryButton";
-import { cn } from "@/lib/utils";
+import { MemoryTreeItem } from "@/components/MemoryTreeItem";
+import { buildMemoryTree } from "@/lib/memory-tree";
 import {
   fetchMemoryFiles,
   fetchMemoryFile,
@@ -30,6 +31,9 @@ export function MemoryManager({ projectId }: MemoryManagerProps) {
   const [hasFocusedEditor, setHasFocusedEditor] = useState(false);
   const [pendingSelectKey, setPendingSelectKey] = useState<string | null>(null);
   const [deleteKey, setDeleteKey] = useState<string | null>(null);
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const { data: filesData, isLoading: filesLoading } = useQuery({
     queryKey: ["project-memory", projectId],
@@ -37,7 +41,20 @@ export function MemoryManager({ projectId }: MemoryManagerProps) {
   });
 
   const keys = useMemo(() => filesData?.keys ?? [], [filesData?.keys]);
+  const tree = useMemo(() => buildMemoryTree(keys), [keys]);
   const activeKey = selectedKey ?? keys[0] ?? null;
+
+  const toggleFolder = useCallback((path: string) => {
+    setExpandedFolders((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+      }
+      return next;
+    });
+  }, []);
 
   const { data: fileData, isLoading: fileLoading } = useQuery({
     queryKey: ["project-memory-file", projectId, activeKey],
@@ -151,44 +168,18 @@ export function MemoryManager({ projectId }: MemoryManagerProps) {
         ) : (
           <ScrollArea className="flex-1 min-h-0">
             <div className="flex flex-col gap-0.5 p-2">
-              {keys.map((key) => (
-                <div
-                  key={key}
-                  role="button"
-                  tabIndex={0}
-                  className={cn(
-                    "group flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-                    activeKey === key
-                      ? "bg-accent text-accent-foreground font-medium"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  )}
-                  onClick={() => handleSelectFile(key)}
-                  onKeyDown={(event) => {
-                    if (event.target !== event.currentTarget) return;
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      handleSelectFile(key);
-                    }
-                  }}
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <FileText className="shrink-0" />
-                    <span className="truncate">{key}</span>
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    className="shrink-0 text-muted-foreground opacity-100 hover:text-destructive md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleDelete(key);
-                    }}
-                    disabled={deleteMutation.isPending}
-                    title={`Delete ${key}`}
-                  >
-                    <Trash2 />
-                  </Button>
-                </div>
+              {tree.map((node) => (
+                <MemoryTreeItem
+                  key={node.path}
+                  node={node}
+                  depth={0}
+                  activeKey={activeKey}
+                  expandedFolders={expandedFolders}
+                  onToggleFolder={toggleFolder}
+                  onSelectFile={handleSelectFile}
+                  onDeleteFile={handleDelete}
+                  isDeleting={deleteMutation.isPending}
+                />
               ))}
             </div>
           </ScrollArea>
