@@ -37,6 +37,13 @@ export const setup = ({
               `Edit(/${workDir})`,
               `Read(/${workDir})`,
               `Read(/${configPath})`,
+              `Write(/${workDir})`,
+              `Glob`,
+              `Grep`,
+              `WebSearch`,
+              `WebFetch(domain:*)`,
+              `Agent`,
+              `TodoWrite`,
             ],
           },
           ...(isRtkAvailable() && {

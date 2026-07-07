@@ -14,6 +14,7 @@ interface TaskChatAreaProps {
 export function TaskChatArea({ chatItems, onStop }: TaskChatAreaProps) {
   const scrollParentRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
+  const isProgrammaticScrollRef = useRef(false);
 
   const virtualizer = useVirtualizer({
     count: chatItems.length,
@@ -27,11 +28,12 @@ export function TaskChatArea({ chatItems, onStop }: TaskChatAreaProps) {
     overscan: 10,
   });
 
-  // Track whether user is scrolled to bottom
+  // Track whether user is scrolled to bottom (ignore programmatic scrolls)
   useEffect(() => {
     const el = scrollParentRef.current;
     if (!el) return;
     const handleScroll = () => {
+      if (isProgrammaticScrollRef.current) return;
       isAtBottomRef.current =
         el.scrollHeight - el.scrollTop - el.clientHeight < 50;
     };
@@ -39,10 +41,14 @@ export function TaskChatArea({ chatItems, onStop }: TaskChatAreaProps) {
     return () => el.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Auto-scroll to bottom on new messages only if already at bottom
+  // Auto-scroll to bottom on new messages only if user hasn't scrolled away
   useEffect(() => {
     if (chatItems.length > 0 && isAtBottomRef.current) {
-      virtualizer.scrollToIndex(chatItems.length - 1, { behavior: "smooth" });
+      isProgrammaticScrollRef.current = true;
+      virtualizer.scrollToIndex(chatItems.length - 1);
+      requestAnimationFrame(() => {
+        isProgrammaticScrollRef.current = false;
+      });
     }
   }, [chatItems]);
 
