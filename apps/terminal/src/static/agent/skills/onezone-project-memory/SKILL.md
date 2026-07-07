@@ -82,8 +82,8 @@ onezone-terminal memory delete --project <project-id> --server <serverUrl> --key
    onezone-terminal memory read --project <project-id> --server <serverUrl> --key INDEX.md
    ```
    If the command exits with a non-zero code (file not found), the wiki is empty — proceed with an empty context. Do not treat this as an error.
-2. From the index, identify which wiki articles are relevant to the current task (e.g., if the task touches auth, load `wiki/architecture.md` and `wiki/decisions.md`).
-3. Load only those articles using `memory read`. Do NOT load the entire wiki upfront — it wastes context. Load additional articles on demand as needed.
+2. From the index, identify every wiki article relevant to the current task (e.g., if the task touches auth, that includes `wiki/architecture.md` and `wiki/decisions.md`). Err on the side of including an article if it might be relevant.
+3. Read **all** of those identified articles with `memory read` before doing any other work — do not start the task on partial context or defer a flagged article to "read later if needed". Do NOT load clearly unrelated articles just to load the whole wiki — but every article flagged as relevant in step 2 must actually be read now, not skipped. Only load additional articles mid-task if new relevance emerges that wasn't apparent from the index.
 
 ### WRITE — After Completing Work
 
