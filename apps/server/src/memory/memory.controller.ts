@@ -10,12 +10,18 @@ import {
   HttpStatus,
   ParseUUIDPipe,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { S3Service } from '../s3/s3.service';
 import { ProjectsService } from '../projects/projects.service';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthUser } from '../auth/current-user.decorator';
 import { WriteMemoryDto } from './memory.dto';
 
+// Agents read/write many memory files in quick bursts (INDEX.md + every
+// relevant wiki article at session start, several rewrites at session end).
+// The global default (10 req/60s) is tuned for auth endpoints and throttles
+// these legitimate bursts; use a much higher, still-bounded limit here.
+@Throttle({ default: { limit: 120, ttl: 60_000 } })
 @Controller('projects/:projectId/memory')
 export class MemoryController {
   constructor(

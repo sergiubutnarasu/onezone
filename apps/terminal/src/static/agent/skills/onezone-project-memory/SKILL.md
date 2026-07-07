@@ -123,8 +123,8 @@ For each fact in the new raw file, decide which wiki article it belongs to:
 | A new cohesive topic with 3+ facts | `wiki/<topic>.md` (create new) |
 
 For each target article:
-- **Exists**: Read it with `memory read`. Make surgical additions only — do not rewrite unchanged sections.
-- **Does not exist**: Create it with `memory write` using the structure shown below.
+- **Exists**: Read it with `memory read`. For each fact, apply the [Merge Decision Per Fact](#merge-decision-per-fact) below — don't just append: check whether the article already says something about this that is now outdated or contradicted by what you learned, and replace that entry in place rather than leaving stale info alongside new info. Make surgical changes only — do not rewrite unchanged sections.
+- **Does not exist**: Only create it once you have actual content to put in it. Never `memory write` a new article that is empty or contains only the template headings/placeholders — create it in the same step you add its first real fact.
 
 Add **backlinks** at the bottom of each article pointing to related articles (e.g., `See also: [architecture.md](architecture.md)`).
 
