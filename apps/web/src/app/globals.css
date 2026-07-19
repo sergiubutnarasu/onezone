@@ -188,3 +188,25 @@
     background-clip: padding-box;
   }
 }
+
+@layer components {
+  .agent-markdown {
+    color: var(--muted-foreground);
+  }
+
+  .agent-markdown :where(pre) {
+    background: color-mix(in oklch, var(--muted) 60%, transparent);
+    color: var(--foreground);
+  }
+
+  .agent-markdown :where(pre code),
+  .agent-markdown :where(:not(pre) > code) {
+    color: var(--foreground);
+  }
+
+  .agent-markdown :where(:not(pre) > code) {
+    background: color-mix(in oklch, var(--muted) 60%, transparent);
+    border-radius: 0.25rem;
+    padding: 0 0.25rem;
+  }
+}

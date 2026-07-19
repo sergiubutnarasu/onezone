@@ -12,11 +12,11 @@ export function DiffLines({ diff }: { diff: string }) {
             key={`${index}-${line}`}
             className={`grid grid-cols-[3rem_minmax(0,1fr)] border-b border-border/20 last:border-b-0 ${
               isAddition
-                ? "bg-emerald-500/10 text-emerald-200"
+                ? "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
                 : isRemoval
-                  ? "bg-rose-500/10 text-rose-200"
+                  ? "bg-rose-500/10 text-rose-800 dark:text-rose-200"
                   : isHunk
-                    ? "bg-sky-500/10 text-sky-200"
+                    ? "bg-sky-500/10 text-sky-800 dark:text-sky-200"
                     : isHeader
                       ? "bg-muted/50 text-muted-foreground"
                       : "text-muted-foreground/80"

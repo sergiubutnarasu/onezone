@@ -1,6 +1,6 @@
 // Minimal service worker — serves a network-first strategy with a cache fallback
 // for navigation requests, so the app shell is available offline after first visit.
-const CACHE = 'onezone-v1';
+const CACHE = 'onezone-v2';
 const PRECACHE = ['/', '/manifest.webmanifest', '/icon.svg'];
 
 self.addEventListener('install', (event) => {

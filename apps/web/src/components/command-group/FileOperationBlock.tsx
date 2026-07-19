@@ -27,7 +27,7 @@ export function FileOperationBlock({
         ))}
       </div>
       {filePath && (
-        <div className="border-b border-border/40 px-2.5 py-1.5 font-mono text-xs text-sky-300/90 break-all">
+        <div className="border-b border-border/40 px-2.5 py-1.5 font-mono text-xs text-sky-800 dark:text-sky-300/90 break-all">
           {filePath}
         </div>
       )}

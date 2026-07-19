@@ -16,15 +16,15 @@ export function ToolUseBlock({ block, open, onOpenChange }: ToolUseBlockProps) {
   const displayBlock = getToolDisplayBlock(block);
 
   return (
-    <div className="border-l-2 border-violet-500/20 pl-2 my-1">
+    <div className="border-l-2 border-violet-600/30 dark:border-violet-500/20 pl-2 my-1">
       <button
         onClick={() => onOpenChange(!open)}
-        className="text-xs text-violet-400/70 hover:text-violet-300/90 transition-colors flex items-center gap-1.5 font-mono"
+        className="text-xs text-violet-800 hover:text-violet-950 dark:text-violet-400/70 dark:hover:text-violet-300/90 transition-colors flex items-center gap-1.5 font-mono"
       >
         {open ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-        <span className="text-violet-400/80">⚙</span>
+        <span className="text-violet-700 dark:text-violet-400/80">⚙</span>
         <span>{block.name}</span>
-        {!open && inputPreview && <span className="text-muted-foreground/40">({inputPreview}…)</span>}
+        {!open && inputPreview && <span className="text-muted-foreground">({inputPreview}…)</span>}
       </button>
       {open && (
         displayBlock ? (

@@ -21,9 +21,8 @@ export function ToolResultBlock({ text, open, onOpenChange }: ToolResultBlockPro
       </button>
       {open && (
         <div
-          className="mt-1 prose prose-sm prose-invert max-w-none text-muted-foreground/70 text-xs leading-relaxed
-          prose-p:my-0.5 prose-pre:bg-muted/40 prose-pre:text-xs prose-code:text-xs
-          prose-code:bg-muted/40 prose-code:px-1 prose-code:rounded"
+          className="agent-markdown mt-1 prose prose-sm dark:prose-invert max-w-none text-xs leading-relaxed
+          prose-p:my-0.5 prose-pre:text-xs prose-code:text-xs"
         >
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{stripLineNumbers(text)}</ReactMarkdown>
         </div>

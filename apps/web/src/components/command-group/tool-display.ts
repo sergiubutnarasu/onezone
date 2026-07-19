@@ -141,17 +141,18 @@ function sameDisplayValue(left: unknown, right: unknown): boolean {
 
 function buildSkillOperationBlock(name: string, input: Record<string, unknown>): ToolDisplayBlock | null {
   const toolName = name.toLowerCase();
+  const isSkillTool = toolName.includes("skill") || looksLikeSkillName(name);
   const skillName =
     stringInput(input.skillName) ??
     stringInput(input.skill_name) ??
     stringInput(input.skill) ??
     stringInput(input.name) ??
-    (looksLikeSkillName(name) ? name : undefined);
+    (isSkillTool && looksLikeSkillName(name) ? name : undefined);
   const source = stringInput(input.source) ?? stringInput(input.repository) ?? stringInput(input.repo);
-  const mode = stringInput(input.mode) ?? stringInput(input.action) ?? stringInput(input.command);
+  const mode = stringInput(input.mode) ?? stringInput(input.action) ?? (isSkillTool ? stringInput(input.command) : undefined);
   const args = getSkillArgs(input);
 
-  if (!skillName && !source && !mode && !args && !toolName.includes("skill")) return null;
+  if (!isSkillTool && !skillName && !source) return null;
   if (!skillName && !source && !mode && !args) return null;
 
   return {

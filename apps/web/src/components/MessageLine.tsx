@@ -60,11 +60,11 @@ export function MessageLine({ message }: { message: RoomMessage }) {
     return (
       <div
         className={`font-mono text-xs py-0.5 px-4 leading-relaxed ${
-          isStderr ? 'text-rose-400/80 bg-rose-500/5' : 'text-emerald-300/80'
+          isStderr ? 'text-rose-700 dark:text-rose-400/80 bg-rose-500/5' : 'text-emerald-700 dark:text-emerald-300/80'
         }`}
       >
         <span className="text-muted-foreground/40 mr-2">{timestamp}</span>
-        <span className="text-amber-400/70 mr-2">[{message.terminalName || message.terminalId}]</span>
+        <span className="text-amber-700 dark:text-amber-400/70 mr-2">[{message.terminalName || message.terminalId}]</span>
         {message.content}
       </div>
     );
@@ -75,9 +75,8 @@ export function MessageLine({ message }: { message: RoomMessage }) {
     <div className="py-1 px-4 flex items-baseline gap-2">
       <span className="text-muted-foreground/40 text-xs shrink-0">{timestamp}</span>
       <span className="text-primary font-semibold text-xs shrink-0">you</span>
-      <div className="prose prose-sm prose-invert max-w-none text-foreground/90 text-sm leading-relaxed
-        prose-p:my-0 prose-pre:bg-muted/60 prose-pre:text-xs prose-code:text-xs
-        prose-code:bg-muted/60 prose-code:px-1 prose-code:rounded">
+      <div className="agent-markdown prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed
+        prose-p:my-0 prose-pre:text-xs prose-code:text-xs">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
       </div>
     </div>

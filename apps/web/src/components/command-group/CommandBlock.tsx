@@ -35,7 +35,7 @@ export function CommandBlock({
   }
 
   return (
-    <div className="my-1 overflow-hidden rounded-md border border-amber-500/20 bg-zinc-950/80">
+    <div className="my-1 overflow-hidden rounded-md border border-border/70 bg-muted/60 dark:border-amber-500/20 dark:bg-zinc-950/80">
       <div
         role="button"
         tabIndex={0}
@@ -45,12 +45,12 @@ export function CommandBlock({
             ? setOpen((value) => !value)
             : undefined
         }
-        className="flex items-center gap-2 border-b border-white/10 px-2.5 py-1.5 text-[11px] text-amber-300/80 cursor-pointer"
+        className="flex items-center gap-2 border-b border-border/60 px-2.5 py-1.5 text-[11px] text-muted-foreground dark:border-white/10 dark:text-amber-300/80 cursor-pointer"
       >
         {open ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
         <Terminal className="size-3" />
         <span className="font-medium shrink-0">{title ?? "command"}</span>
-        <span className="truncate text-emerald-200/70">{firstLine}</span>
+        <span className="truncate text-foreground dark:text-emerald-100">{firstLine}</span>
         <button
           type="button"
           onClick={(event) => {
@@ -64,12 +64,12 @@ export function CommandBlock({
         </button>
       </div>
       {open && (
-        <pre className="overflow-x-auto p-2.5 text-xs leading-relaxed text-emerald-200">
+        <pre className="overflow-x-auto p-2.5 text-xs leading-relaxed text-foreground dark:text-emerald-100">
           <code>{command}</code>
         </pre>
       )}
       {open && propEntries.length > 0 && (
-        <div className="border-t border-white/10 p-2">
+        <div className="border-t border-border/60 p-2 dark:border-white/10">
           <MetadataGrid entries={propEntries} tone="amber" />
         </div>
       )}
