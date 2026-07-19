@@ -10,14 +10,26 @@ export const RUNNER_PROMPT_PREFIX =
   'Follow your custom instructions, then invoke the "onezone-runner" skill with the following JSON as $ARGUMENTS[0], then follow the skill\'s workflow exactly:';
 
 /**
+ * Prefix used by the task runner for tasks with `bypass` enabled. Instructs
+ * the model to invoke the `onezone-bypass-runner` skill instead, which runs
+ * the task's own instructions only (no kanban column instructions) and does
+ * not traverse columns.
+ */
+export const BYPASS_RUNNER_PROMPT_PREFIX =
+  'Follow your custom instructions, then invoke the "onezone-bypass-runner" skill with the following JSON as $ARGUMENTS[0], then follow the skill\'s workflow exactly:';
+
+const RUNNER_PROMPT_PREFIXES = [RUNNER_PROMPT_PREFIX, BYPASS_RUNNER_PROMPT_PREFIX];
+
+/**
  * Extracts the runner JSON payload from a command string.
  * Returns the parsed object, or `null` if the string doesn't match
- * the runner prompt format or the JSON is invalid.
+ * a runner prompt format or the JSON is invalid.
  */
 export function parseRunnerPayload<T = unknown>(command: string): T | null {
-  if (!command.startsWith(RUNNER_PROMPT_PREFIX)) return null;
+  const prefix = RUNNER_PROMPT_PREFIXES.find((p) => command.startsWith(p));
+  if (!prefix) return null;
   try {
-    return JSON.parse(command.slice(RUNNER_PROMPT_PREFIX.length).trim()) as T;
+    return JSON.parse(command.slice(prefix.length).trim()) as T;
   } catch {
     return null;
   }

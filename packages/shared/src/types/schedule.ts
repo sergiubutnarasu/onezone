@@ -17,6 +17,9 @@ export interface TaskSchedule {
   agent?: Pick<Agent, "id" | "name" | "tag"> | null;
   model: string;
   useScheduleAgentAndModel: boolean;
+  /** When true, tasks created by this schedule run in bypass mode (task
+   * instructions only, no column instructions), and are auto-completed. */
+  bypass: boolean;
   enabled: boolean;
   runOnce: boolean;
   lastRunAt?: string | null;

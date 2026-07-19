@@ -29,6 +29,7 @@ export interface ScheduleInput {
   agentId: string;
   model: string;
   useScheduleAgentAndModel?: boolean;
+  bypass?: boolean;
   enabled?: boolean;
   runOnce?: boolean;
 }

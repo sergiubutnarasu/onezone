@@ -131,6 +131,7 @@ export const createTask = (
     agentId: string;
     model: string;
     useTaskAgentAndModel?: boolean;
+    bypass?: boolean;
   },
 ) => httpClient.post<Task>(`/projects/${projectId}/tasks`, data);
 
@@ -158,6 +159,7 @@ export const updateTask = (
     agentId?: string;
     model?: string;
     useTaskAgentAndModel?: boolean;
+    bypass?: boolean;
   },
 ) => httpClient.patch<Task>(`/tasks/${taskId}`, data);
 

@@ -23,6 +23,10 @@ export class CreateTaskDto {
   @IsOptional()
   @IsBoolean()
   useTaskAgentAndModel?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  bypass?: boolean;
 }
 
 export class TaskOrderItemDto {
@@ -100,5 +104,9 @@ export class UpdateTaskDto {
   @IsOptional()
   @IsBoolean()
   useTaskAgentAndModel?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  bypass?: boolean;
 }
 

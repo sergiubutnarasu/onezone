@@ -15,6 +15,9 @@ export interface Task {
   agent?: Pick<Agent, "id" | "name" | "tag"> | null;
   model: string;
   useTaskAgentAndModel: boolean;
+  /** When true, the task runner executes the task's own instructions only
+   * (no kanban column instructions), then marks the task finished after the run. */
+  bypass: boolean;
   project?: ProjectInfo | null;
   completedAt?: string | null;
   createdAt: string;
@@ -30,6 +33,7 @@ export interface TaskDetails {
   agent?: Pick<Agent, "id" | "name" | "tag"> | null;
   model: string;
   useTaskAgentAndModel: boolean;
+  bypass: boolean;
   completedAt?: string | null;
   projectId: string;
   project: ProjectInfo;

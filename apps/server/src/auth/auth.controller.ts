@@ -40,6 +40,7 @@ export class AuthController {
 
   @Public()
   @Post('token')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   async token(@Body('device_code') deviceCode: string) {
     return this.authService.pollToken(deviceCode);

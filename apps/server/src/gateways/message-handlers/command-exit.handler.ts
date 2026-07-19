@@ -28,6 +28,14 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
   ): Promise<void> {
     if (!data.taskRunnerFinished) return;
 
+    const task = await this.tasksService.findOne(taskId, userId);
+    if (task.bypass) {
+      // Bypass tasks run their own instructions once and are always marked
+      // finished after the run, regardless of any next-column signal.
+      await this.tasksService.setCompleted(taskId, true, userId);
+      return;
+    }
+
     if (data.nextColumnId !== undefined) {
       try {
         await this.tasksService.updateColumn(taskId, data.nextColumnId, userId);
@@ -62,10 +70,11 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
     const task = await this.tasksService.findOne(taskId, userId);
     if (task.completedAt) return;
 
-    if (await this.tasksService.isTaskOnLastColumn(taskId, userId)) {
+    if (task.bypass || (await this.tasksService.isTaskOnLastColumn(taskId, userId))) {
       await this.tasksService.setCompleted(taskId, true, userId);
     }
   }
+
 
   async handle(
     data: CommandExitData,

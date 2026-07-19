@@ -107,6 +107,7 @@ export class SchedulesService implements OnModuleInit {
       agentId: schedule.agentId,
       model: schedule.model,
       useTaskAgentAndModel: schedule.useScheduleAgentAndModel,
+      bypass: schedule.bypass,
       userId: schedule.userId,
       columnId: schedule.startColumnId,
     });
@@ -184,6 +185,7 @@ export class SchedulesService implements OnModuleInit {
         agentId: data.agentId,
         model: data.model,
         useScheduleAgentAndModel: data.useScheduleAgentAndModel ?? false,
+        bypass: data.bypass ?? false,
         enabled: data.enabled ?? true,
         runOnce: data.runOnce ?? false,
         userId,

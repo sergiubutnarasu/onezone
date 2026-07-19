@@ -65,6 +65,7 @@ const emptyForm = (project: ProjectInfo | null, columns: KanbanColumn[], termina
   agentId: project?.defaultAgentId ?? "",
   model: project?.defaultModel ?? "",
   useScheduleAgentAndModel: false,
+  bypass: false,
   enabled: true,
   runOnce: false,
 });
@@ -295,6 +296,7 @@ function ScheduleForm({
           agentId: initial.agentId,
           model: initial.model,
           useScheduleAgentAndModel: initial.useScheduleAgentAndModel,
+          bypass: initial.bypass,
           enabled: initial.enabled,
           runOnce: initial.runOnce,
         }
@@ -506,6 +508,23 @@ function ScheduleForm({
         </div>
         <Controller
           name="useScheduleAgentAndModel"
+          control={control}
+          render={({ field }) => (
+            <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
+          )}
+        />
+      </div>
+
+      <div className="flex items-center justify-between rounded-md border border-border/60 bg-muted/30 px-3 py-2.5">
+        <div className="space-y-0.5">
+          <p className="text-sm font-medium">Bypass</p>
+          <p className="text-xs text-muted-foreground">
+            Run only the task&apos;s own instructions (no column instructions),
+            then mark it finished automatically.
+          </p>
+        </div>
+        <Controller
+          name="bypass"
           control={control}
           render={({ field }) => (
             <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />

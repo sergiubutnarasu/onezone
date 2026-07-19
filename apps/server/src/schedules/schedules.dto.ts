@@ -40,6 +40,10 @@ export class CreateScheduleDto {
 
   @IsOptional()
   @IsBoolean()
+  bypass?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   enabled?: boolean;
 
   @IsOptional()
@@ -84,6 +88,10 @@ export class UpdateScheduleDto {
   @IsOptional()
   @IsBoolean()
   useScheduleAgentAndModel?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  bypass?: boolean;
 
   @IsOptional()
   @IsBoolean()

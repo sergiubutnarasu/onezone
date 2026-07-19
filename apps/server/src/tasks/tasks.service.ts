@@ -31,6 +31,7 @@ export class TasksService {
       agentId: string;
       model: string;
       useTaskAgentAndModel: boolean;
+      bypass: boolean;
       completedAt?: Date | null;
       agent: { id: string; name: string; tag: string } | null;
       columnAssignment?: {
@@ -98,6 +99,7 @@ export class TasksService {
         : null,
       model: task.model,
       useTaskAgentAndModel: task.useTaskAgentAndModel,
+      bypass: task.bypass,
       projectId: project.id,
       project: {
         id: project.id,
@@ -331,6 +333,7 @@ export class TasksService {
       agentId?: string;
       model?: string;
       useTaskAgentAndModel?: boolean;
+      bypass?: boolean;
       userId: string;
       /**
        * Optional starting column. When provided, the task is created already
@@ -359,6 +362,7 @@ export class TasksService {
           agentId,
           model,
           useTaskAgentAndModel: data.useTaskAgentAndModel ?? false,
+          bypass: data.bypass ?? false,
           projectId,
           userId: data.userId,
           order: count,
@@ -716,6 +720,7 @@ export class TasksService {
       agentId?: string;
       model?: string;
       useTaskAgentAndModel?: boolean;
+      bypass?: boolean;
     },
     userId: string,
   ) {

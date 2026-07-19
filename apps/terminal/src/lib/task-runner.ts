@@ -1,4 +1,8 @@
-import { RUNNER_PROMPT_PREFIX, TaskDetails } from "@onezone/shared";
+import {
+  BYPASS_RUNNER_PROMPT_PREFIX,
+  RUNNER_PROMPT_PREFIX,
+  TaskDetails,
+} from "@onezone/shared";
 import { spawnCommand } from "./command-runner.js";
 import type { TaskRunnerProps } from "./types/index.js";
 
@@ -32,20 +36,34 @@ export const taskRunner = ({
     return;
   }
 
-  const input = {
-    taskId: task.id,
-    taskName: task.name,
-    taskDescription: task.description,
-    projectId: task.project.id,
-    kanbanColumnId: task.columnId,
-    kanbanColumnName: task.column?.name,
-    kanbanColumnInstructions: task.column?.instructions,
-    repository: task.project.repository ?? undefined,
-    serverUrl: deps.serverUrl,
-  };
+  const input = task.bypass
+    ? {
+        taskId: task.id,
+        taskName: task.name,
+        taskDescription: task.description,
+        kanbanColumnName: "Bypass",
+        projectId: task.project.id,
+        repository: task.project.repository ?? undefined,
+        serverUrl: deps.serverUrl,
+      }
+    : {
+        taskId: task.id,
+        taskName: task.name,
+        taskDescription: task.description,
+        projectId: task.project.id,
+        kanbanColumnId: task.columnId,
+        kanbanColumnName: task.column?.name,
+        kanbanColumnInstructions: task.column?.instructions,
+        repository: task.project.repository ?? undefined,
+        serverUrl: deps.serverUrl,
+      };
+
+  const prefix = task.bypass
+    ? BYPASS_RUNNER_PROMPT_PREFIX
+    : RUNNER_PROMPT_PREFIX;
 
   spawnCommand({
-    content: `${RUNNER_PROMPT_PREFIX}\n\n${JSON.stringify(input)}`,
+    content: `${prefix}\n\n${JSON.stringify(input)}`,
     payload,
     deps,
     activeProcesses,

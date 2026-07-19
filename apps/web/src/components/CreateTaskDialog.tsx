@@ -33,6 +33,7 @@ interface CreateTaskForm {
   agentId: string;
   model: string;
   useTaskAgentAndModel: boolean;
+  bypass: boolean;
 }
 
 interface CreateTaskDialogProps {
@@ -71,6 +72,7 @@ export function CreateTaskDialog({
       agentId: project?.defaultAgentId ?? "",
       model: project?.defaultModel ?? "",
       useTaskAgentAndModel: false,
+      bypass: false,
     },
   });
 
@@ -83,6 +85,7 @@ export function CreateTaskDialog({
         agentId: project?.defaultAgentId ?? "",
         model: project?.defaultModel ?? "",
         useTaskAgentAndModel: false,
+        bypass: false,
       });
     }
   }, [open, project, terminals, reset]);
@@ -100,6 +103,7 @@ export function CreateTaskDialog({
         agentId: data.agentId,
         model: data.model,
         useTaskAgentAndModel: data.useTaskAgentAndModel,
+        bypass: data.bypass,
       }),
     onSuccess: (task) => {
       qc.invalidateQueries({ queryKey: ["tasks", projectId] });
@@ -223,6 +227,26 @@ export function CreateTaskDialog({
             </div>
             <Controller
               name="useTaskAgentAndModel"
+              control={control}
+              render={({ field }) => (
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+          </div>
+
+          <div className="flex items-center justify-between rounded-md border border-border/60 bg-muted/30 px-3 py-2.5">
+            <div className="space-y-0.5">
+              <p className="text-sm font-medium">Bypass</p>
+              <p className="text-xs text-muted-foreground">
+                Run only this task&apos;s own instructions (no column
+                instructions), then mark it finished automatically.
+              </p>
+            </div>
+            <Controller
+              name="bypass"
               control={control}
               render={({ field }) => (
                 <Switch

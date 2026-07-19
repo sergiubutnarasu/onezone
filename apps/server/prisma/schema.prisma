@@ -122,6 +122,7 @@ model Task {
   agent                Agent         @relation(fields: [agentId], references: [id], onDelete: Restrict)
   model                String
   useTaskAgentAndModel Boolean       @default(false)
+  bypass               Boolean       @default(false)
   completedAt          DateTime?
   userId               String
   user                 User          @relation(fields: [userId], references: [id], onDelete: Restrict)
@@ -292,6 +293,7 @@ model TaskSchedule {
   agent                    Agent        @relation(fields: [agentId], references: [id], onDelete: Restrict)
   model                    String
   useScheduleAgentAndModel Boolean      @default(false)
+  bypass                   Boolean      @default(false)
   enabled                  Boolean      @default(true)
   runOnce                  Boolean      @default(false)
   lastRunAt                DateTime?
