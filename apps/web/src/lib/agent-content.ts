@@ -73,7 +73,7 @@ function normalizeTextBlocks(text: string, fallbackKind: "text" | "tool_result" 
     const language = info.split(/\s+/)[0]?.toLowerCase() ?? "";
     const body = match[2] ?? "";
 
-    if (COMMAND_LANGUAGES.has(language)) {
+    if (COMMAND_LANGUAGES.has(language) || (!language && looksLikeShellCommands(body))) {
       blocks.push({ kind: "command", command: body.trim(), language: language || undefined });
     } else if (DIFF_LANGUAGES.has(language)) {
       blocks.push({ kind: "diff", diff: body.trimEnd() });
@@ -91,6 +91,21 @@ function normalizeTextBlocks(text: string, fallbackKind: "text" | "tool_result" 
 function appendTextBlock(blocks: ContentBlock[], text: string, kind: "text" | "tool_result" | "raw") {
   if (!text.trim()) return;
   blocks.push({ kind, text });
+}
+
+function looksLikeShellCommands(text: string): boolean {
+  const executableLines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"));
+
+  if (executableLines.length === 0) return false;
+
+  return executableLines.every((line) =>
+    /^(?:[A-Z_][A-Z0-9_]*=\S+\s+)*(?:pnpm|npm|npx|yarn|bun|node|tsx|tsc|turbo|git|docker|docker-compose|cd|mkdir|cp|mv|rm|cat|sed|awk|grep|rg|find|curl|wget|python3?|pip3?|go|cargo|make|onezone-terminal|prisma)\b/.test(
+      line,
+    ),
+  );
 }
 
 function stringValue(value: unknown): string | undefined {

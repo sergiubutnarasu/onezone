@@ -37,7 +37,14 @@ export function ContentBlockView({
   }
 
   if (block.kind === "command") {
-    return <CommandBlock command={block.command} title={block.title} />;
+    return (
+      <CommandBlock
+        command={block.command}
+        title={block.title}
+        expandSignal={expandSignal}
+        expandDirection={expandDirection}
+      />
+    );
   }
 
   if (block.kind === "diff") {
