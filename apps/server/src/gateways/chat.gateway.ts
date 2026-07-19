@@ -19,6 +19,7 @@ import {
   SocketAuthSchema,
   createTaskRoomId,
   createProjectRoomId,
+  createUserRoomId,
 } from '@onezone/shared';
 import { TerminalRegistryService } from './terminal-registry.service';
 import { SYSTEM_TERMINALS_ROOM } from './constants';
@@ -67,6 +68,8 @@ export class ChatGateway
   private readonly logger = new Logger(ChatGateway.name);
   private readonly socketMeta = new Map<string, SocketMeta>();
   private readonly disconnectTimers = new Map<string, NodeJS.Timeout>();
+  /** Resolves once handleConnection's async room-join/setup has finished for a given socket. */
+  private readonly connectionReady = new Map<string, Promise<void>>();
 
   constructor(
     private readonly jwt: JwtService,
@@ -85,32 +88,49 @@ export class ChatGateway
   }
 
   async handleConnection(client: Socket): Promise<void> {
-    const result = SocketAuthSchema.safeParse(client.handshake.auth);
+    let resolveReady!: () => void;
+    this.connectionReady.set(client.id, new Promise((resolve) => { resolveReady = resolve; }));
 
-    if (!result.success) {
-      this.logger.warn(
-        `Socket ${client.id} rejected: invalid auth — ${result.error.message}`,
-      );
-      client.emit('error', { message: 'Invalid connection parameters' });
-      client.disconnect();
-      return;
+    try {
+      const result = SocketAuthSchema.safeParse(client.handshake.auth);
+
+      if (!result.success) {
+        this.logger.warn(
+          `Socket ${client.id} rejected: invalid auth — ${result.error.message}`,
+        );
+        client.emit('error', { message: 'Invalid connection parameters' });
+        client.disconnect();
+        return;
+      }
+
+      const { taskId, projectId, role, terminalId, terminalName, terminalHostname } = result.data;
+      const userId = this.authenticateConnection(client);
+
+      if (!userId) {
+        this.rejectSocket(client, 'Unauthorized');
+        return;
+      }
+
+      if (taskId) {
+        await this.connectToTaskRoom(client, { taskId, role, terminalId, terminalName, terminalHostname, userId });
+      } else if (projectId && role === 'user') {
+        await this.connectToProjectRoom(client, projectId, userId);
+      } else {
+        await this.connectToLobby(client, { role, terminalId, terminalName, terminalHostname, userId });
+      }
+    } finally {
+      resolveReady();
     }
+  }
 
-    const { taskId, projectId, role, terminalId, terminalName, terminalHostname } = result.data;
-    const userId = this.authenticateConnection(client);
-
-    if (!userId) {
-      this.rejectSocket(client, 'Unauthorized');
-      return;
-    }
-
-    if (taskId) {
-      await this.connectToTaskRoom(client, { taskId, role, terminalId, terminalName, terminalHostname, userId });
-    } else if (projectId && role === 'user') {
-      await this.connectToProjectRoom(client, projectId, userId);
-    } else {
-      await this.connectToLobby(client, { role, terminalId, terminalName, terminalHostname, userId });
-    }
+  /**
+   * Awaits any in-flight handleConnection setup for this socket. The client's
+   * 'connect' event can fire before our async room-join/socketMeta setup
+   * completes, so message handlers that check socketMeta must wait for this
+   * first to avoid spuriously rejecting events sent right after connecting.
+   */
+  private async awaitConnectionReady(client: Socket): Promise<void> {
+    await this.connectionReady.get(client.id);
   }
 
   private authenticateConnection(client: Socket): string | null {
@@ -246,6 +266,7 @@ export class ChatGateway
       });
     } else {
       this.socketMeta.set(client.id, { role: 'user', userId, taskId });
+      await client.join(createUserRoomId(userId));
 
       // Notify newly connected user of already-connected terminals in this task
       const ts = Date.now();
@@ -275,6 +296,7 @@ export class ChatGateway
     }
     const roomId = createProjectRoomId(projectId);
     await client.join(roomId);
+    await client.join(createUserRoomId(userId));
     this.socketMeta.set(client.id, { role: 'user', userId, projectId });
   }
 
@@ -328,10 +350,12 @@ export class ChatGateway
       }
     } else {
       this.socketMeta.set(client.id, { role: 'user', userId });
+      await client.join(createUserRoomId(userId));
     }
   }
 
   async handleDisconnect(client: Socket): Promise<void> {
+    this.connectionReady.delete(client.id);
     const meta = this.socketMeta.get(client.id);
 
     if (meta?.role === 'terminal') {
@@ -422,6 +446,7 @@ export class ChatGateway
     @MessageBody() data: ChatMessageData,
     @ConnectedSocket() client: Socket,
   ) {
+    await this.awaitConnectionReady(client);
     if (!this.getAuthorizedTaskId(client, data.roomId, 'user')) {
       return { status: 'error' };
     }
@@ -433,6 +458,7 @@ export class ChatGateway
     @MessageBody() data: OutputLineData,
     @ConnectedSocket() client: Socket,
   ) {
+    await this.awaitConnectionReady(client);
     if (!this.getAuthorizedTaskId(client, data.roomId, 'terminal')) {
       return { status: 'error' };
     }
@@ -447,6 +473,7 @@ export class ChatGateway
     @MessageBody() data: CommandStartData,
     @ConnectedSocket() client: Socket,
   ) {
+    await this.awaitConnectionReady(client);
     if (!this.getAuthorizedTaskId(client, data.roomId, 'terminal')) {
       return { status: 'error' };
     }
@@ -461,6 +488,7 @@ export class ChatGateway
     @MessageBody() data: CommandExitData,
     @ConnectedSocket() client: Socket,
   ) {
+    await this.awaitConnectionReady(client);
     if (!this.getAuthorizedTaskId(client, data.roomId, 'terminal')) {
       return { status: 'error' };
     }

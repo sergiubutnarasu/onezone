@@ -14,3 +14,8 @@ export function extractTaskId(roomId: string): string {
 export function createProjectRoomId(projectId: string): string {
   return `project:${projectId}`;
 }
+
+/** Constructs the socket room ID for a given user (used for user-scoped broadcasts like notifications). */
+export function createUserRoomId(userId: string): string {
+  return `user:${userId}`;
+}

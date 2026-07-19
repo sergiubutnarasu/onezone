@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EventCommands, MessageRole, createProjectRoomId, extractTaskId } from '@onezone/shared';
+import { EventCommands, MessageRole, createProjectRoomId, createUserRoomId, extractTaskId } from '@onezone/shared';
 import { MessageType, NotificationType } from '@prisma/client';
 import { Server, Socket } from 'socket.io';
 import { MessagesService } from '../../messages/messages.service';
@@ -153,7 +153,7 @@ export class CommandExitHandler implements IMessageHandler<CommandExitData> {
               message,
               userId: effectiveUserId,
             });
-            server?.to(createProjectRoomId(projectId)).emit(EventCommands.NotificationCreated, notif);
+            server?.to(createUserRoomId(effectiveUserId)).emit(EventCommands.NotificationCreated, notif);
           }
 
           if (server) {

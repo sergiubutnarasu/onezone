@@ -1,7 +1,7 @@
 // apps/server/src/gateways/message-handlers/command-start.handler.ts
 
 import { Injectable, Logger } from '@nestjs/common';
-import { EventCommands, MessageRole, createProjectRoomId, extractTaskId } from '@onezone/shared';
+import { EventCommands, MessageRole, createUserRoomId, extractTaskId } from '@onezone/shared';
 import { MessageType, NotificationType } from '@prisma/client';
 import { Server, Socket } from 'socket.io';
 import { MessagesService } from '../../messages/messages.service';
@@ -71,7 +71,7 @@ export class CommandStartHandler implements IMessageHandler<CommandStartData> {
             message: `Command "${columnName}" for task "${taskName}" started.`,
             userId: effectiveUserId,
           });
-          server?.to(createProjectRoomId(task.project!.id)).emit(EventCommands.NotificationCreated, notif);
+          server?.to(createUserRoomId(effectiveUserId)).emit(EventCommands.NotificationCreated, notif);
         } catch (e) {
           this.logger.warn(`Failed to create command start notification for task ${taskId}`, e);
         }

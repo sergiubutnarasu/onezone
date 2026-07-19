@@ -2,6 +2,10 @@
 name: onezone-project-memory
 description: "Maintain a living knowledge wiki for the project. Read at session start; write after completing tasks, discovering patterns, or fixing bugs. Uses a Karpathy-style wiki: raw/ for staged facts, wiki/ for compiled topic articles, INDEX.md as a navigable map. Stored remotely via the onezone-terminal memory command."
 argument-hint: "Optional context hint, e.g. 'just ran migration', 'fixed auth bug', 'read' (read-only mode)"
+license: MIT
+metadata:
+  author: Onezone
+  version: "1.0"
 ---
 
 # Project Memory Wiki

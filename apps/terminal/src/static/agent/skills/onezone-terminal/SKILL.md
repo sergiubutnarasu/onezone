@@ -2,6 +2,10 @@
 name: onezone-terminal
 description: "Use the onezone-terminal CLI to manage tasks, columns, and terminals in agent workflows. Use when you need to list, create, view, move, or delete tasks; inspect kanban columns; or query registered terminals. Triggers: 'list tasks', 'create a task', 'move task to column', 'check task status', 'onezone-terminal', 'project tasks'."
 argument-hint: "project UUID or task action to perform"
+license: MIT
+metadata:
+  author: Onezone
+  version: "1.0"
 ---
 
 # onezone-terminal CLI

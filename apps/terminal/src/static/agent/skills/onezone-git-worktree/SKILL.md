@@ -2,6 +2,10 @@
 name: onezone-git-worktree
 description: "Manage git worktree lifecycle for task isolation. Invoke in 'setup' mode at session start when the project has a repository; invoke in 'commit-and-cleanup' mode before completing the final column to commit, push, and remove the worktree."
 argument-hint: "setup | commit-and-cleanup"
+license: MIT
+metadata:
+  author: Onezone
+  version: "1.0"
 ---
 
 # Git Worktree Management

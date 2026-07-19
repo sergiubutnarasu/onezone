@@ -4,10 +4,18 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePathname } from 'next/navigation';
 import { io } from 'socket.io-client';
-import { EventCommands, type Task, type Terminal } from '@onezone/shared';
+import { EventCommands, type Notification, type Task, type Terminal } from '@onezone/shared';
 import { API_BASE as SERVER_URL } from "@/constants";
 import { useAuth } from '../lib/auth-context';
 import { attachSocketAuthRefresh } from '../lib/socket-auth';
+import { requestNotificationPermission, showSystemNotification } from '../lib/push-notifications';
+
+const NOTIFICATION_TITLES: Record<Notification['type'], string> = {
+  TASK_COMPLETED: 'Task completed',
+  COMMAND_START: 'Command started',
+  COMMAND_EXIT_SUCCESS: 'Command finished',
+  COMMAND_EXIT_FAILURE: 'Command failed',
+};
 
 function updateTerminalConnectionState(
   qc: ReturnType<typeof useQueryClient>,
@@ -53,6 +61,8 @@ export function useGlobalSocket() {
     // session on a non-public route.
     if (isLoading || !user || isPublicRoute) return;
 
+    requestNotificationPermission();
+
     const socket = io(`${SERVER_URL}/chat`, {
       auth: { role: 'user' },
       withCredentials: true,
@@ -60,9 +70,15 @@ export function useGlobalSocket() {
 
     const detachSocketAuthRefresh = attachSocketAuthRefresh(socket);
 
-    socket.on(EventCommands.NotificationCreated, () => {
+    socket.on(EventCommands.NotificationCreated, (notif: Notification) => {
       qc.invalidateQueries({ queryKey: ['notifications'] });
       qc.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+      void showSystemNotification(NOTIFICATION_TITLES[notif.type] ?? 'Onezone', {
+        body: notif.message,
+        icon: '/icon-192.png',
+        tag: notif.id,
+        data: { taskId: notif.taskId, projectId: notif.projectId },
+      });
     });
 
     socket.on(
