@@ -8,6 +8,10 @@ function getDisplayContent(content: string): string {
   return payload?.kanbanColumnName ?? content;
 }
 
+function isCommandLifecycleMessage(message: RoomMessage): boolean {
+  return message.messageType === 'COMMAND_START' || message.exitCode != null;
+}
+
 export function MessageLine({ message }: { message: RoomMessage }) {
   const isAgent = message.role === 'terminal';
   const isSystem = message.role === 'system';
@@ -18,6 +22,7 @@ export function MessageLine({ message }: { message: RoomMessage }) {
   if (isSystem) {
     const hasExitCode = message.exitCode != null;
     const isSuccess = message.exitCode === 0;
+    const displayContent = getDisplayContent(message.content);
 
     return (
       <div className="text-xs text-muted-foreground/60 italic py-0.5 px-4 flex items-center gap-2">
@@ -40,7 +45,13 @@ export function MessageLine({ message }: { message: RoomMessage }) {
             {message.terminalName || message.terminalId}
           </span>
         )}
-        <span className="font-mono">{getDisplayContent(message.content)}</span>
+        {isCommandLifecycleMessage(message) ? (
+          <code className="not-italic rounded border border-border/60 bg-muted/60 px-1.5 py-0.5 font-mono text-[11px] text-foreground/80">
+            {displayContent}
+          </code>
+        ) : (
+          <span className="font-mono">{displayContent}</span>
+        )}
       </div>
     );
   }

@@ -17,6 +17,8 @@ function handleCommandGroup(
   if (existing) {
     // Output lines arrived before CommandStart — update metadata in place
     existing.command = msg.command ?? msg.content;
+    existing.roomId = msg.roomId;
+    existing.terminalId = msg.terminalId;
     existing.terminalName = msg.terminalName;
     existing.agentName = msg.agentName;
     existing.model = msg.model;
@@ -24,7 +26,9 @@ function handleCommandGroup(
   } else {
     const group: CommandGroupData = {
       jobId: msg.jobId,
+      roomId: msg.roomId,
       command: msg.command ?? msg.content,
+      terminalId: msg.terminalId,
       terminalName: msg.terminalName,
       agentName: msg.agentName,
       model: msg.model,
@@ -53,7 +57,9 @@ function handleOutputLine(
   if (!group) {
     group = {
       jobId: msg.jobId,
+      roomId: msg.roomId,
       command: msg.command ?? "(unknown)",
+      terminalId: msg.terminalId,
       terminalName: msg.terminalName,
       startTs: msg.ts,
       lines: [],
@@ -83,18 +89,28 @@ function handleCommandExit(
   if (!group) {
     group = {
       jobId: msg.jobId,
+      roomId: msg.roomId,
       command: msg.command ?? msg.content,
+      terminalId: msg.terminalId,
       terminalName: msg.terminalName,
       agentName: msg.agentName,
       model: msg.model,
       startTs: msg.ts,
+      endTs: msg.ts,
       exitCode: code,
+      inputTokens: msg.inputTokens,
+      outputTokens: msg.outputTokens,
+      totalCostUsd: msg.totalCostUsd,
       lines: [],
     };
     groupMap.set(msg.jobId, group);
     items.push({ type: "command", group });
   } else {
     group.exitCode = code;
+    group.endTs = msg.ts;
+    group.inputTokens = msg.inputTokens;
+    group.outputTokens = msg.outputTokens;
+    group.totalCostUsd = msg.totalCostUsd;
   }
   items.push({
     type: "message",

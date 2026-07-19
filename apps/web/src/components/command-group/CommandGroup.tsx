@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight, Loader2, Square } from "lucide-react";
 import { SetupLogBlock } from "./SetupLogBlock";
 import { AgentOutputLine } from "./AgentOutputLine";
+import { CommandGroupMetadata } from "./CommandGroupMetadata";
 import { getDisplayCommand, groupSetupLines } from "./utils";
 import type { CommandGroupProps } from "./types";
 
@@ -85,6 +86,7 @@ export function CommandGroup({ group, onStop }: CommandGroupProps) {
       {/* Output lines */}
       {open && group.lines.length > 0 && (
         <div className="bg-background/80 py-2 px-3 space-y-1">
+          <CommandGroupMetadata group={group} />
           <div className="flex justify-end gap-2 pb-1 border-b border-border/30 mb-1">
             <button
               onClick={() => {
@@ -140,8 +142,11 @@ export function CommandGroup({ group, onStop }: CommandGroupProps) {
       )}
 
       {open && group.lines.length === 0 && isDone && (
-        <div className="bg-background/80 px-3 py-2 text-xs text-muted-foreground/60 italic">
-          no output
+        <div className="bg-background/80 py-2 space-y-2">
+          <CommandGroupMetadata group={group} />
+          <div className="px-3 text-xs text-muted-foreground/60 italic">
+            no output
+          </div>
         </div>
       )}
     </div>

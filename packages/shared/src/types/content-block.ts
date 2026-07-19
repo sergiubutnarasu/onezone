@@ -6,4 +6,6 @@ export type UnifiedContentBlock =
   | { kind: "thinking"; text: string }
   | { kind: "tool_use"; name: string; input: Record<string, unknown> }
   | { kind: "tool_result"; text: string }
+  | { kind: "command"; command: string; language?: string; title?: string }
+  | { kind: "diff"; diff: string; title?: string }
   | { kind: "raw"; text: string };
