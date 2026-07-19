@@ -60,7 +60,7 @@ export const register = (email: string, password: string, name: string) =>
 
 export const logout = () => authRequest<void>("/auth/logout", { method: "POST" });
 
-export const getMe = () => authRequest<import("@onezone/shared").AuthUser>("/auth/me");
+export const getMe = () => httpClient.get<import("@onezone/shared").AuthUser>("/auth/me");
 
 export const activateDevice = (user_code: string) =>
   httpClient.post<{ approved: boolean }>("/auth/activate", { user_code });

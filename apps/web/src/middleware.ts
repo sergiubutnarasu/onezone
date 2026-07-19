@@ -11,10 +11,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for access_token cookie
+  // Check for auth cookies
   const accessToken = request.cookies.get('access_token')?.value;
+  const refreshToken = request.cookies.get('refresh_token')?.value;
 
-  if (!accessToken) {
+  if (!accessToken && !refreshToken) {
     const loginUrl = new URL('/auth/login', request.url);
     loginUrl.searchParams.set('returnTo', pathname);
     return NextResponse.redirect(loginUrl);
