@@ -17,6 +17,7 @@ interface Props {
   terminals: Terminal[];
   agents: Agent[];
   columns: KanbanColumn[];
+  iconOnly?: boolean;
 }
 
 export function SchedulesButton({
@@ -25,17 +26,20 @@ export function SchedulesButton({
   terminals,
   agents,
   columns,
+  iconOnly,
 }: Props) {
   const [open, setOpen] = useState(false);
   return (
     <>
       <Button
         variant="outline"
+        size={iconOnly ? "icon" : "default"}
         onClick={() => setOpen(true)}
         title="Manage task schedules"
+        aria-label={iconOnly ? "Manage task schedules" : undefined}
       >
-        <CalendarClock className="size-4 mr-1" />
-        Schedules
+        <CalendarClock className={iconOnly ? "size-4" : "size-4 mr-1"} />
+        {!iconOnly && "Schedules"}
       </Button>
       <SchedulesDialog
         projectId={projectId}

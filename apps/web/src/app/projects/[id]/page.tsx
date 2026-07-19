@@ -63,7 +63,7 @@ export default function ProjectPage() {
     <TooltipProvider>
       <div className="flex flex-col h-full gap-4 overflow-hidden">
         {/* Page header */}
-        <div className="px-8 pt-6">
+        <div className="px-4 pt-6 sm:px-8">
           {/* Breadcrumb */}
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
             <Link
@@ -81,16 +81,16 @@ export default function ProjectPage() {
             )}
           </div>
 
-          <div className="flex items-baseline gap-4 justify-between">
+          <div className="flex items-start gap-4 justify-between">
             {projectLoading ? (
               <Skeleton className="h-7 w-48" />
             ) : (
-              <h1 className="text-display text-balance">
+              <h1 className="min-w-0 text-display text-balance">
                 {project?.name}
               </h1>
             )}
 
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               {projectLoading ? (
                 <>
                   <Skeleton className="h-8 w-28" />
@@ -98,20 +98,41 @@ export default function ProjectPage() {
                 </>
               ) : (
                 <>
-                  <CreateTaskButton
-                    projectId={id}
-                    project={project ?? null}
-                    terminals={terminals}
-                    agents={agents}
-                  />
+                  <div className="flex items-center gap-2 sm:hidden">
+                    <CreateTaskButton
+                      projectId={id}
+                      project={project ?? null}
+                      terminals={terminals}
+                      agents={agents}
+                      iconOnly
+                    />
 
-                  <SchedulesButton
-                    projectId={id}
-                    project={project ?? null}
-                    terminals={terminals}
-                    agents={agents}
-                    columns={columns}
-                  />
+                    <SchedulesButton
+                      projectId={id}
+                      project={project ?? null}
+                      terminals={terminals}
+                      agents={agents}
+                      columns={columns}
+                      iconOnly
+                    />
+                  </div>
+
+                  <div className="hidden items-center gap-2 sm:flex">
+                    <CreateTaskButton
+                      projectId={id}
+                      project={project ?? null}
+                      terminals={terminals}
+                      agents={agents}
+                    />
+
+                    <SchedulesButton
+                      projectId={id}
+                      project={project ?? null}
+                      terminals={terminals}
+                      agents={agents}
+                      columns={columns}
+                    />
+                  </div>
 
                   {project && (
                     <Link

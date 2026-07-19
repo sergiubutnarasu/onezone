@@ -135,22 +135,32 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter((n) => n.readAt === null).length;
 
   return (
-    <div className="p-8 max-w-2xl">
+    <div className="max-w-2xl p-4 sm:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 gap-4">
-        <div className="flex items-center gap-2.5">
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
           <h1 className="text-display">Notifications</h1>
           {!showRead && unreadCount > 0 && (
             <Badge variant="secondary">{unreadCount}</Badge>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowRead((v) => !v)}
           >
-            {showRead ? "Show unread" : "Show all"}
+            {showRead ? (
+              <>
+                <span className="sm:hidden">Unread</span>
+                <span className="hidden sm:inline">Show unread</span>
+              </>
+            ) : (
+              <>
+                <span className="sm:hidden">All</span>
+                <span className="hidden sm:inline">Show all</span>
+              </>
+            )}
           </Button>
           {!showRead && unreadCount > 0 && (
             <Button
@@ -158,9 +168,10 @@ export default function NotificationsPage() {
               size="sm"
               onClick={() => markAllRead.mutate()}
               disabled={markAllRead.isPending}
+              aria-label="Mark all read"
             >
               <CheckCheck className="size-3.5 mr-1.5" />
-              Mark all read
+              <span className="hidden sm:inline">Mark all read</span>
             </Button>
           )}
         </div>

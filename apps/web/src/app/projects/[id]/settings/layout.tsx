@@ -198,7 +198,7 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
         className={cn(
           "flex-1 min-h-0",
           activeTab === "memory"
-            ? "overflow-hidden"
+            ? "overflow-y-auto md:overflow-hidden"
             : "overflow-y-auto px-8 py-6",
         )}
       >

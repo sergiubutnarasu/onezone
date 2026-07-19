@@ -141,7 +141,7 @@ export function MemoryManager({ projectId }: MemoryManagerProps) {
   const displayContent = isDirty ? content : currentFileContent;
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background md:flex-row">
+    <div className="flex min-h-full flex-col bg-background md:h-full md:min-h-0 md:flex-row md:overflow-hidden">
       <aside className="flex min-h-48 shrink-0 flex-col border-b border-border bg-card/30 md:min-h-0 md:w-60 md:border-b-0 md:border-r">
         <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2">
           <div className="min-w-0">
@@ -186,7 +186,7 @@ export function MemoryManager({ projectId }: MemoryManagerProps) {
         )}
       </aside>
 
-      <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <section className="flex min-h-0 min-w-0 flex-1 flex-col md:overflow-hidden">
         <div className="border-b border-border/60 bg-card/50 backdrop-blur-sm">
           <div className="flex min-h-16 items-center justify-between gap-3 px-5 py-4">
             <div className="min-w-0">
@@ -230,7 +230,7 @@ export function MemoryManager({ projectId }: MemoryManagerProps) {
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 p-5">
+        <div className="min-h-112 flex-1 p-5 md:min-h-0">
           {activeKey ? (
             isLoadingFile ? (
               <Skeleton className="h-full min-h-80 w-full" />

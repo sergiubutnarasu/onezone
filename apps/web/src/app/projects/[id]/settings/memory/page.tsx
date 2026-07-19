@@ -7,7 +7,7 @@ export default function ProjectMemorySettingsPage() {
   const { id } = useParams<{ id: string }>();
 
   return (
-    <div className="h-full min-h-0">
+    <div className="min-h-full md:h-full md:min-h-0">
       <MemoryManager projectId={id} />
     </div>
   );
