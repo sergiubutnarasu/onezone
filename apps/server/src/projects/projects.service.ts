@@ -8,6 +8,7 @@ import { ProjectStatistics, ProjectStatisticsRow } from "@onezone/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { TerminalRegistryService } from "../gateways/terminal-registry.service";
 import { KanbanColumnsService } from "./kanban-columns.service";
+import type { ProjectStatusValue } from "./projects.dto";
 
 @Injectable()
 export class ProjectsService {
@@ -32,6 +33,21 @@ export class ProjectsService {
     this.logger.log(
       `Created project ${project.id} with default kanban columns`,
     );
+    return project;
+  }
+
+  async createPending(data: {
+    name: string;
+    description?: string;
+    repository?: string;
+    defaultAgentId: string;
+    defaultModel: string;
+    userId: string;
+  }) {
+    const project = await this.prisma.project.create({
+      data: { ...data, status: "pending" },
+    });
+    this.logger.log(`Created pending project ${project.id}`);
     return project;
   }
 
@@ -148,8 +164,34 @@ export class ProjectsService {
     return project;
   }
 
+  async updateStatus(
+    id: string,
+    status: ProjectStatusValue,
+    userId: string,
+    notification?: { commandId?: string; terminalId?: string; terminalName?: string },
+  ) {
+    const previousProject = await this.findOne(id, userId);
+    const project = await this.prisma.project.update({ where: { id }, data: { status } });
+    if (
+      status !== previousProject.status &&
+      (status === "ready" || status === "failed")
+    ) {
+      this.terminalRegistry.notifyProjectBuilderCommandFinished(userId, {
+        ...notification,
+        projectId: id,
+        status,
+      });
+    }
+    this.logger.log(`Updated project ${id} status to ${status}`);
+    return project;
+  }
+
   async remove(id: string, userId: string) {
-    await this.findOne(id, userId);
+    const existing = await this.findOne(id, userId);
+
+    if (existing.status === "pending") {
+      this.terminalRegistry.stopProjectBuilderCommand(id, { projectId: id });
+    }
 
     const tasks = await this.prisma.task.findMany({
       where: { projectId: id },

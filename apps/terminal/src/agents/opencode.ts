@@ -137,6 +137,16 @@ export const setup = ({
     let done = false;
     let lastAssistantContent = "";
     let lastUsageTokens: { inputTokens?: number; outputTokens?: number } = {};
+    const abort = () => {
+      done = true;
+      resolveEvent?.();
+      void client.session.abort({
+        path: { id: sessionId },
+        query: { directory: cwd },
+      }).catch(() => undefined);
+    };
+    signal.addEventListener("abort", abort, { once: true });
+    if (signal.aborted) abort();
 
     const enqueue = (event: AgentEvent) => {
       eventQueue.push(event);
@@ -387,6 +397,7 @@ export const setup = ({
     }
 
     // Clean up: abort the session
+    signal.removeEventListener("abort", abort);
     try {
       await client.session.abort({
         path: { id: sessionId },

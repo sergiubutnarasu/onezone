@@ -52,6 +52,31 @@ export interface RunSkillCommandPayload {
   agentCode: AgentTag;
 }
 
+export interface ProjectBuilderCommandPayload {
+  commandId: string;
+  terminalId: string;
+  projectId: string;
+  projectName: string;
+  projectDescription?: string | null;
+  repository?: string | null;
+  boardPrompt: string;
+  agent: Pick<Agent, "id" | "name" | "tag">;
+  model: string;
+}
+
+export interface ProjectBuilderCommandStopPayload {
+  commandId?: string;
+  projectId: string;
+}
+
+export interface ProjectBuilderCommandFinishedPayload {
+  commandId?: string;
+  terminalId?: string;
+  terminalName?: string;
+  projectId: string;
+  status: ProjectInfo["status"];
+}
+
 export interface Terminal {
   id: string;
   name: string;

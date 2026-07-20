@@ -193,6 +193,12 @@ export function createLobbySocket(
   socket.on(EventCommands.AssignTask, (payload: unknown) =>
     callbacks.onMessage(EventCommands.AssignTask, payload),
   );
+  socket.on(EventCommands.ProjectBuilderCommand, (payload: unknown) =>
+    callbacks.onMessage(EventCommands.ProjectBuilderCommand, payload),
+  );
+  socket.on(EventCommands.ProjectBuilderCommandStop, (payload: unknown) =>
+    callbacks.onMessage(EventCommands.ProjectBuilderCommandStop, payload),
+  );
 
   socket.on('connect_error', (err) => {
     if (closed) return;

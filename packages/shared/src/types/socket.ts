@@ -1,5 +1,5 @@
 import type { EventCommands, MessageStream, MessageType } from "./enums.js";
-import type { AssignTaskPayload, TaskDetails } from "./task.js";
+import type { AssignTaskPayload, ProjectBuilderCommandFinishedPayload, ProjectBuilderCommandPayload, ProjectBuilderCommandStopPayload, TaskDetails } from "./task.js";
 
 export interface CommandStartPayload {
   roomId: string;
@@ -42,6 +42,9 @@ export interface ServerToClientEvents {
     terminalId: string;
   }) => void;
   [EventCommands.AssignTask]: (payload: AssignTaskPayload) => void;
+  [EventCommands.ProjectBuilderCommand]: (payload: ProjectBuilderCommandPayload) => void;
+  [EventCommands.ProjectBuilderCommandStop]: (payload: ProjectBuilderCommandStopPayload) => void;
+  [EventCommands.ProjectBuilderCommandFinished]: (payload: ProjectBuilderCommandFinishedPayload) => void;
   [EventCommands.TaskDeleted]: (payload: { taskId: string }) => void;
   [EventCommands.TaskColumnUpdated]: (task: TaskDetails) => void;
   [EventCommands.TerminalCommandStop]: (payload: { jobId: string }) => void;
@@ -51,6 +54,7 @@ export interface ClientToServerEvents {
   [EventCommands.TerminalCommandStart]: (payload: CommandStartPayload) => void;
   [EventCommands.OutputLine]: (payload: OutputLinePayload) => void;
   [EventCommands.TerminalCommandExit]: (payload: CommandExitPayload) => void;
+  [EventCommands.ProjectBuilderCommandFinished]: (payload: ProjectBuilderCommandFinishedPayload) => void;
   [EventCommands.TerminalHeartbeat]: () => void;
 }
 

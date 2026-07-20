@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePathname } from 'next/navigation';
 import { io } from 'socket.io-client';
-import { EventCommands, type Notification, type Task, type Terminal } from '@onezone/shared';
+import { EventCommands, type Notification, type ProjectBuilderCommandFinishedPayload, type Task, type Terminal } from '@onezone/shared';
 import { API_BASE as SERVER_URL } from "@/constants";
 import { useAuth } from '../lib/auth-context';
 import { attachSocketAuthRefresh } from '../lib/socket-auth';
@@ -94,6 +94,13 @@ export function useGlobalSocket() {
         updateTerminalConnectionState(qc, payload.terminalId, false);
       },
     );
+
+    socket.on(EventCommands.ProjectBuilderCommandFinished, (payload: ProjectBuilderCommandFinishedPayload) => {
+      qc.invalidateQueries({ queryKey: ['projects'] });
+      qc.invalidateQueries({ queryKey: ['project', payload.projectId] });
+      qc.invalidateQueries({ queryKey: ['kanban-columns', payload.projectId] });
+      qc.invalidateQueries({ queryKey: ['tasks', payload.projectId] });
+    });
 
     return () => {
       detachSocketAuthRefresh();

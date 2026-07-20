@@ -16,6 +16,7 @@ import { SocketAuthGuard } from './socket-auth.guard';
 import { parseWebOrigins } from '../lib/web-origins';
 import {
   EventCommands,
+  type ProjectBuilderCommandFinishedPayload,
   SocketAuthSchema,
   createTaskRoomId,
   createProjectRoomId,
@@ -506,5 +507,47 @@ export class ChatGateway
     const meta = this.socketMeta.get(client.id);
     if (meta?.role !== 'user' || meta.taskId !== data.taskId) return;
     this.terminalRegistry.forwardStopCommandToTerminal(data.taskId, data.jobId);
+  }
+
+  @SubscribeMessage(EventCommands.ProjectBuilderCommandFinished)
+  async handleProjectBuilderCommandFinished(
+    @MessageBody() data: ProjectBuilderCommandFinishedPayload,
+    @ConnectedSocket() client: Socket,
+  ) {
+    await this.awaitConnectionReady(client);
+    const meta = this.socketMeta.get(client.id);
+    if (meta?.role !== 'terminal' || meta.terminalId !== data.terminalId) {
+      return this.rejectEvent(client, 'Unauthorized terminal');
+    }
+
+    try {
+      await this.projectsService.findOne(data.projectId, meta.userId);
+    } catch (error) {
+      this.logger.warn(
+        `Rejected project builder completion for project ${data.projectId} from terminal ${meta.terminalId}`,
+        error,
+      );
+      return this.rejectEvent(client, 'Project not found');
+    }
+
+    if (!data.commandId) {
+      return this.rejectEvent(client, 'Project builder command id is required');
+    }
+
+    if (data.status !== 'ready' && data.status !== 'failed') {
+      return this.rejectEvent(client, 'Invalid project builder completion status');
+    }
+
+    await this.projectsService.updateStatus(data.projectId, data.status, meta.userId, {
+      commandId: data.commandId,
+      terminalId: meta.terminalId,
+      terminalName: meta.terminalName,
+    });
+
+    this.logger.log(
+      `Forwarded project builder completion ${data.commandId} for project ${data.projectId} with status ${data.status}`,
+    );
+
+    return { status: 'ok' };
   }
 }

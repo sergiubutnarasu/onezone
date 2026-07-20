@@ -1,5 +1,8 @@
-import { IsArray, IsNotEmpty, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator';
+import { IsArray, IsIn, IsNotEmpty, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+
+export const PROJECT_STATUSES = ['pending', 'ready', 'failed'] as const;
+export type ProjectStatusValue = (typeof PROJECT_STATUSES)[number];
 
 export class InstallSkillDto {
   @IsString()
@@ -50,6 +53,11 @@ export class UpdateProjectDto {
   @IsOptional()
   @IsString()
   defaultModel?: string;
+}
+
+export class UpdateProjectStatusDto {
+  @IsIn(PROJECT_STATUSES)
+  status!: ProjectStatusValue;
 }
 
 export class ImportColumnDto {

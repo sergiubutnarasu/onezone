@@ -10,7 +10,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
-import { CreateProjectDto, ImportProjectDto, InstallSkillDto, UpdateProjectDto } from './projects.dto';
+import { CreateProjectDto, ImportProjectDto, InstallSkillDto, UpdateProjectDto, UpdateProjectStatusDto } from './projects.dto';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 
 @Controller('projects')
@@ -36,6 +36,11 @@ export class ProjectsController {
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.projectsService.findOne(id, user.id);
+  }
+
+  @Patch(':id/status')
+  updateStatus(@Param('id') id: string, @Body() body: UpdateProjectStatusDto, @CurrentUser() user: AuthUser) {
+    return this.projectsService.updateStatus(id, body.status, user.id);
   }
 
   @Patch(':id')

@@ -80,6 +80,13 @@ export const setup = ({
       const eventQueue: AgentEvent[] = [];
       let resolveEvent: (() => void) | undefined;
       let done = false;
+      const abort = () => {
+        done = true;
+        resolveEvent?.();
+        void session.abort().catch(() => undefined);
+      };
+      signal.addEventListener("abort", abort, { once: true });
+      if (signal.aborted) abort();
 
       const enqueue = (event: AgentEvent) => {
         eventQueue.push(event);
@@ -250,6 +257,7 @@ export const setup = ({
         if (signal.aborted) break;
       }
 
+      signal.removeEventListener("abort", abort);
       await session.disconnect();
     } finally {
       await client.stop();

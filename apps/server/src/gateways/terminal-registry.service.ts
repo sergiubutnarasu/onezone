@@ -3,9 +3,13 @@ import {
   AssignTaskPayload,
   ChatMessage,
   EventCommands,
+  ProjectBuilderCommandFinishedPayload,
+  ProjectBuilderCommandPayload,
+  ProjectBuilderCommandStopPayload,
   TaskDetails,
   createTaskRoomId,
   createProjectRoomId,
+  createUserRoomId,
 } from "@onezone/shared";
 import { Server } from "socket.io";
 
@@ -20,6 +24,7 @@ import { Server } from "socket.io";
 export class TerminalRegistryService {
   private readonly logger = new Logger(TerminalRegistryService.name);
   private readonly terminalSocketIds = new Map<string, string>();
+  private readonly projectBuilderTerminalIds = new Map<string, string>();
   /** taskId → socketId of the terminal currently assigned to that task */
   private readonly taskTerminalSockets = new Map<string, string>();
   /** taskId → jobIds requested to stop while the task terminal socket reconnects */
@@ -36,6 +41,11 @@ export class TerminalRegistryService {
 
   deregister(terminalId: string): void {
     this.terminalSocketIds.delete(terminalId);
+    for (const [projectId, builderTerminalId] of this.projectBuilderTerminalIds) {
+      if (builderTerminalId === terminalId) {
+        this.projectBuilderTerminalIds.delete(projectId);
+      }
+    }
   }
 
   disconnectTerminal(terminalId: string): void {
@@ -47,6 +57,11 @@ export class TerminalRegistryService {
       this.server.to(socketId).disconnectSockets(true);
     }
     this.terminalSocketIds.delete(terminalId);
+    for (const [projectId, builderTerminalId] of this.projectBuilderTerminalIds) {
+      if (builderTerminalId === terminalId) {
+        this.projectBuilderTerminalIds.delete(projectId);
+      }
+    }
   }
 
   registerTaskSocket(taskId: string, socketId: string): void {
@@ -112,6 +127,47 @@ export class TerminalRegistryService {
     this.server.to(socketId).emit(EventCommands.AssignTask, payload);
     this.logger.log(`Assigned task ${task.id} to terminal ${terminalId}`);
     return true;
+  }
+
+  runProjectBuilderCommand(terminalId: string, payload: ProjectBuilderCommandPayload): boolean {
+    const socketId = this.terminalSocketIds.get(terminalId);
+    if (!socketId || !this.server) {
+      this.logger.warn(`runProjectBuilderCommand: terminal ${terminalId} is not connected`);
+      return false;
+    }
+    this.projectBuilderTerminalIds.set(payload.projectId, terminalId);
+    this.server.to(socketId).emit(EventCommands.ProjectBuilderCommand, payload);
+    this.logger.log(`Sent project builder command ${payload.commandId} to terminal ${terminalId}`);
+    return true;
+  }
+
+  stopProjectBuilderCommand(projectId: string, payload: ProjectBuilderCommandStopPayload): boolean {
+    const terminalId = this.projectBuilderTerminalIds.get(projectId);
+    const socketId = terminalId ? this.terminalSocketIds.get(terminalId) : undefined;
+    this.projectBuilderTerminalIds.delete(projectId);
+    if (!socketId || !this.server) {
+      this.logger.warn(`stopProjectBuilderCommand: no connected terminal for project ${projectId}`);
+      return false;
+    }
+    this.server.to(socketId).emit(EventCommands.ProjectBuilderCommandStop, payload);
+    this.logger.log(`Sent project builder stop for project ${projectId} to terminal ${terminalId}`);
+    return true;
+  }
+
+  notifyProjectBuilderCommandFinished(userId: string, payload: ProjectBuilderCommandFinishedPayload): void {
+    if (!this.server) return;
+    this.projectBuilderTerminalIds.delete(payload.projectId);
+    this.server.to(createUserRoomId(userId)).emit(
+      EventCommands.ProjectBuilderCommandFinished,
+      payload,
+    );
+    this.server.to(createProjectRoomId(payload.projectId)).emit(
+      EventCommands.ProjectBuilderCommandFinished,
+      payload,
+    );
+    this.logger.log(
+      `Notified project builder completion for project ${payload.projectId} with status ${payload.status}`,
+    );
   }
 
   notifyTaskColumnUpdated(taskId: string, message: ChatMessage): void {

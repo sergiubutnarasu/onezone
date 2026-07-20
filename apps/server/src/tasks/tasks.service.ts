@@ -3,6 +3,7 @@ import {
   ChatMessage,
   KanbanColumn,
   MessageRole,
+  ProjectInfo,
   TaskDetails,
 } from "@onezone/shared";
 import { MessageType, NotificationType } from "@prisma/client";
@@ -53,6 +54,7 @@ export class TasksService {
       name: string;
       description?: string | null;
       repository?: string | null;
+      status: ProjectInfo["status"];
       defaultAgentId: string;
       defaultAgent?: { id: string; name: string; tag: string } | null;
       createdAt: string;
@@ -106,6 +108,7 @@ export class TasksService {
         name: project.name,
         description: project.description,
         repository: project.repository,
+        status: project.status,
         defaultAgentId: project.defaultAgentId,
         defaultAgent: project.defaultAgent
           ? {

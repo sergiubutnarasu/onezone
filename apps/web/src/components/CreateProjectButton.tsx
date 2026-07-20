@@ -18,11 +18,16 @@ import type { Agent, Terminal } from "@onezone/shared";
 interface CreateProjectButtonProps {
   agents: Agent[];
   terminals: Terminal[];
+  onProjectBuilderStarted?: (pending: {
+    name: string;
+    terminalName?: string;
+  }) => void;
 }
 
 export function CreateProjectButton({
   agents,
   terminals,
+  onProjectBuilderStarted,
 }: CreateProjectButtonProps) {
   const [open, setOpen] = useState(false);
   const noTerminals = terminals.length === 0;
@@ -94,7 +99,13 @@ export function CreateProjectButton({
         </Tooltip>
       </div>
 
-      <CreateProjectDialog agents={agents} open={open} onOpenChange={setOpen} />
+      <CreateProjectDialog
+        agents={agents}
+        terminals={terminals}
+        open={open}
+        onOpenChange={setOpen}
+        onProjectBuilderStarted={onProjectBuilderStarted}
+      />
     </>
   );
 }

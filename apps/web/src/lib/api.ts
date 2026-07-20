@@ -135,6 +135,18 @@ export const createTask = (
   },
 ) => httpClient.post<Task>(`/projects/${projectId}/tasks`, data);
 
+export const runProjectBuilder = (
+  terminalId: string,
+  data: {
+    name: string;
+    description?: string;
+    repository?: string;
+    boardPrompt: string;
+    agentId: string;
+    model: string;
+  },
+) => httpClient.post<{ terminalId: string; commandId: string; project: ProjectInfo }>(`/terminals/${terminalId}/project-builder`, data);
+
 export const assignTaskTerminal = (taskId: string, terminalId: string) =>
   httpClient.patch<Task>(`/tasks/${taskId}/terminal`, { terminalId });
 

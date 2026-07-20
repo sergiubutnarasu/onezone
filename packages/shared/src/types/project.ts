@@ -23,6 +23,7 @@ export interface ProjectInfo {
   name: string;
   description?: string | null;
   repository?: string | null;
+  status: "pending" | "ready" | "failed";
   defaultAgentId: string;
   defaultAgent?: Pick<Agent, "id" | "name" | "tag"> | null;
   defaultModel: string;

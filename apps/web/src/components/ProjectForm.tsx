@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createProject } from "@/lib/api";
-import type { ProjectInfo as Project } from "@onezone/shared";
+import { createProject, runProjectBuilder } from "@/lib/api";
+import type { ProjectInfo as Project, Terminal } from "@onezone/shared";
 import { Input } from "@/components/ui/input";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -22,27 +23,43 @@ interface ProjectFormValues {
   repository: string;
   defaultAgentId: string;
   defaultModel: string;
+  terminalId: string;
+  boardPrompt: string;
 }
 
 interface ProjectFormProps {
   agents: Agent[];
+  terminals?: Terminal[];
+  enableBoardGeneration?: boolean;
   /** id attribute used to connect an external submit button via `form="..."`. */
   formId: string;
   /** Reset the form when this becomes true (e.g. dialog opening). */
   resetSignal?: unknown;
-  onSuccess?: (project: Project) => void;
+  onSuccess?: (project?: Project) => void;
+  onProjectBuilderStarted?: (pending: {
+    name: string;
+    terminalName?: string;
+  }) => void;
   /** Renders the submit button. Placed by the caller (DialogFooter, step footer, …). */
   renderFooter?: (state: { isSubmitting: boolean }) => ReactNode;
 }
 
 export function ProjectForm({
   agents,
+  terminals = [],
+  enableBoardGeneration = false,
   formId,
   resetSignal,
   onSuccess,
+  onProjectBuilderStarted,
   renderFooter,
 }: ProjectFormProps) {
   const qc = useQueryClient();
+  const [generateBoard, setGenerateBoard] = useState(false);
+  const connectedTerminals = terminals.filter((terminal) => terminal.isConnected);
+  const firstConnectedTerminalId = connectedTerminals[0]?.id ?? "";
+  const canGenerateBoard = enableBoardGeneration && connectedTerminals.length > 0;
+  const showBoardGenerator = canGenerateBoard && generateBoard;
 
   const {
     register,
@@ -59,10 +76,13 @@ export function ProjectForm({
       repository: "",
       defaultAgentId: agents[0]?.id ?? "",
       defaultModel: agents[0]?.model ?? "",
+      terminalId: firstConnectedTerminalId,
+      boardPrompt: "",
     },
   });
 
   const defaultAgentId = watch("defaultAgentId");
+  const terminalId = watch("terminalId");
 
   useEffect(() => {
     if (agents.length > 0) {
@@ -72,24 +92,72 @@ export function ProjectForm({
         repository: "",
         defaultAgentId: agents[0].id,
         defaultModel: agents[0].model,
+        terminalId: firstConnectedTerminalId,
+        boardPrompt: "",
       });
     }
     // Reset whenever the caller signals (e.g. dialog reopening) or agents load.
-  }, [resetSignal, agents, reset]);
+  }, [resetSignal, agents, firstConnectedTerminalId, reset]);
+
+  useEffect(() => {
+    if (resetSignal) setGenerateBoard(false);
+  }, [resetSignal]);
+
+  useEffect(() => {
+    if (!canGenerateBoard && generateBoard) setGenerateBoard(false);
+  }, [canGenerateBoard, generateBoard]);
+
+  const buildBoardBuilderDescription = (prompt: string) =>
+    [
+      "Use the onezone-project-builder skill to create this project and generate its kanban board.",
+      "The skill must create the project by calling the onezone-terminal project new command.",
+      "Generate focused columns for this request:",
+      prompt.trim(),
+    ].join("\n\n");
 
   const mutation = useMutation({
-    mutationFn: (data: ProjectFormValues) =>
-      createProject({
+    mutationFn: async (data: ProjectFormValues) => {
+      if (showBoardGenerator) {
+        const result = await runProjectBuilder(data.terminalId, {
+          name: data.name,
+          description: data.description || undefined,
+          repository: data.repository || undefined,
+          boardPrompt: buildBoardBuilderDescription(data.boardPrompt),
+          agentId: data.defaultAgentId,
+          model: data.defaultModel,
+        });
+        return result.project;
+      }
+
+      return createProject({
         name: data.name,
         description: data.description,
         repository: data.repository || undefined,
         defaultAgentId: data.defaultAgentId,
         defaultModel: data.defaultModel,
-      }),
-    onSuccess: (project) => {
+      });
+    },
+    onSuccess: (project, data) => {
+      if (project) {
+        qc.setQueryData<Project[]>(["projects"], (current = []) => {
+          if (current.some((item) => item.id === project.id)) return current;
+          return [project, ...current];
+        });
+      }
       qc.invalidateQueries({ queryKey: ["projects"] });
+      if (showBoardGenerator) {
+        onProjectBuilderStarted?.({
+          name: data.name,
+          terminalName: connectedTerminals.find((terminal) => terminal.id === data.terminalId)?.name,
+        });
+        [3000, 8000, 15000].forEach((delay) => {
+          window.setTimeout(() => {
+            qc.invalidateQueries({ queryKey: ["projects"] });
+          }, delay);
+        });
+      }
       reset();
-      onSuccess?.(project);
+      onSuccess?.(project ?? undefined);
     },
   });
 
@@ -102,6 +170,33 @@ export function ProjectForm({
         onSubmit={handleSubmit((data) => mutation.mutate(data))}
         className="flex flex-col gap-3 py-1"
       >
+        {canGenerateBoard && (
+          <div className="grid grid-cols-2 gap-1 rounded-lg border border-border/60 bg-muted/30 p-1">
+            <button
+              type="button"
+              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                !generateBoard
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              onClick={() => setGenerateBoard(false)}
+            >
+              Manual
+            </button>
+            <button
+              type="button"
+              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                generateBoard
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              onClick={() => setGenerateBoard(true)}
+            >
+              Generate with AI
+            </button>
+          </div>
+        )}
+
         <Input
           {...register("name", { required: "Name is required" })}
           placeholder="Project name"
@@ -157,6 +252,64 @@ export function ProjectForm({
           <p className="text-xs text-destructive">
             {errors.defaultModel.message}
           </p>
+        )}
+
+        {showBoardGenerator && (
+          <>
+            <Select
+              value={terminalId}
+              onValueChange={(v) =>
+                v != null && setValue("terminalId", v, { shouldValidate: true })
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue>
+                  {(v: string) =>
+                    v ? (
+                      (connectedTerminals.find((t) => t.id === v)?.name ?? v)
+                    ) : (
+                      <span className="text-muted-foreground">
+                        Select a terminal
+                      </span>
+                    )
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {connectedTerminals.length === 0 ? (
+                  <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                    No connected terminals
+                  </div>
+                ) : (
+                  connectedTerminals.map((t) => (
+                    <SelectItem key={t.id} value={t.id} label={t.name}>
+                      <span className="mr-1.5 text-emerald-400">●</span>
+                      {t.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            {errors.terminalId && (
+              <p className="text-xs text-destructive">
+                {errors.terminalId.message}
+              </p>
+            )}
+
+            <Textarea
+              {...register("boardPrompt", {
+                validate: (value) =>
+                  value.trim().length > 0 || "Describe the board you want",
+              })}
+              placeholder="Describe the board you want AI to generate"
+              className="min-h-28 resize-none"
+            />
+            {errors.boardPrompt && (
+              <p className="text-xs text-destructive">
+                {errors.boardPrompt.message}
+              </p>
+            )}
+          </>
         )}
 
         <Controller
