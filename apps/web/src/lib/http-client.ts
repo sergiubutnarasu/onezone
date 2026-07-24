@@ -24,9 +24,15 @@ async function request<T>(
         return request<T>(path, options, true);
       }
     }
-    // Redirect to login on auth failure (only in browser)
+    // Redirect protected pages to login on auth failure (only in browser).
+    // Public auth pages call /auth/me during startup too, where 401 is expected.
     if (typeof window !== "undefined") {
-      window.location.href = "/auth/login";
+      const isPublicAuthPage =
+        window.location.pathname === "/auth/login" ||
+        window.location.pathname === "/auth/register";
+      if (!isPublicAuthPage) {
+        window.location.href = "/auth/login";
+      }
     }
     throw new Error("Unauthorized");
   }
