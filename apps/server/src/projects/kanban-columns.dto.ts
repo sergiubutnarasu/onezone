@@ -1,13 +1,16 @@
-import { IsArray, IsInt, IsOptional, IsString, IsUUID, Min, ValidateIf, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsArray, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Min, ValidateIf, ValidateNested } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 
 export class CreateKanbanColumnDto {
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
   @IsString()
+  @IsNotEmpty()
   name!: string;
 
-  @IsOptional()
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
   @IsString()
-  instructions?: string;
+  @IsNotEmpty()
+  instructions!: string;
 
   @IsOptional()
   @ValidateIf((o) => o.agentId !== null)
@@ -22,11 +25,15 @@ export class CreateKanbanColumnDto {
 
 export class UpdateKanbanColumnDto {
   @IsOptional()
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
   @IsString()
+  @IsNotEmpty()
   name?: string;
 
   @IsOptional()
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
   @IsString()
+  @IsNotEmpty()
   instructions?: string;
 
   @IsOptional()

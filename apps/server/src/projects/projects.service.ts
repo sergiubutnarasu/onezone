@@ -7,7 +7,11 @@ import {
 import { ProjectStatistics, ProjectStatisticsRow } from "@onezone/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { TerminalRegistryService } from "../gateways/terminal-registry.service";
-import { KanbanColumnsService } from "./kanban-columns.service";
+import {
+  KanbanColumnsService,
+  sanitizeKanbanColumnInstructions,
+  sanitizeKanbanColumnName,
+} from "./kanban-columns.service";
 import type { ProjectStatusValue } from "./projects.dto";
 
 @Injectable()
@@ -334,7 +338,7 @@ export class ProjectsService {
       repository?: string | null;
       defaultAgent: string;
       defaultModel: string;
-      columns: { name: string; instructions?: string; agent?: string | null; model?: string | null }[];
+      columns: { name: string; instructions: string; agent?: string | null; model?: string | null }[];
       skills?: { source: string; skillName: string }[];
     },
     userId: string,
@@ -369,8 +373,8 @@ export class ProjectsService {
         await tx.kanbanColumn.createMany({
           data: data.columns.map((col, index) => ({
             projectId: created.id,
-            name: col.name,
-            instructions: col.instructions ?? '',
+            name: sanitizeKanbanColumnName(col.name),
+            instructions: sanitizeKanbanColumnInstructions(col.instructions, true),
             index,
             agentId: col.agent ? (agentMap.get(col.agent) ?? null) : null,
             model: col.model ?? null,

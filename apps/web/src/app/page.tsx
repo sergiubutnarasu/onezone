@@ -7,10 +7,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { deleteProject, fetchAgents, fetchProjects, fetchTerminals } from "@/lib/api";
+import {
+  deleteProject,
+  fetchAgents,
+  fetchProjects,
+  fetchTerminals,
+} from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUpRight, Calendar, FolderOpen, Layers, Loader2, Trash2 } from "lucide-react";
+import {
+  ArrowUpRight,
+  Calendar,
+  FolderOpen,
+  Layers,
+  Loader2,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -44,7 +56,9 @@ function ProjectCardSkeleton() {
 export default function ProjectsPage() {
   const router = useRouter();
   const qc = useQueryClient();
-  const [pendingCreations, setPendingCreations] = useState<PendingProjectCreation[]>([]);
+  const [pendingCreations, setPendingCreations] = useState<
+    PendingProjectCreation[]
+  >([]);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
 
   const { data: projects = [], isLoading } = useQuery({
@@ -82,9 +96,15 @@ export default function ProjectsPage() {
     });
   }, [projects, pendingCreations.length]);
 
-  const pendingProjects = projects.filter((project) => project.status === "pending");
-  const failedProjects = projects.filter((project) => project.status === "failed");
-  const readyProjects = projects.filter((project) => project.status !== "pending" && project.status !== "failed");
+  const pendingProjects = projects.filter(
+    (project) => project.status === "pending",
+  );
+  const failedProjects = projects.filter(
+    (project) => project.status === "failed",
+  );
+  const readyProjects = projects.filter(
+    (project) => project.status !== "pending" && project.status !== "failed",
+  );
 
   const deleteMutation = useMutation({
     mutationFn: (projectId: string) => deleteProject(projectId),
@@ -161,7 +181,6 @@ export default function ProjectsPage() {
                 >
                   <CardContent className="p-0">
                     <div className="flex">
-                      <div className="w-1 bg-primary/60" />
                       <div className="flex-1 p-5 min-w-0">
                         <div className="flex items-center gap-3">
                           <div className="shrink-0 flex items-center justify-center size-8 rounded-lg bg-primary/15 text-primary">
@@ -173,13 +192,19 @@ export default function ProjectsPage() {
                             </h3>
                             <p className="mt-1 text-xs text-muted-foreground">
                               Generating project and board
-                              {pending.terminalName ? ` on ${pending.terminalName}` : ""}...
+                              {pending.terminalName
+                                ? ` on ${pending.terminalName}`
+                                : ""}
+                              ...
                             </p>
                           </div>
                         </div>
                         <div className="mt-4 pt-3 border-t border-border/30">
                           <span className="text-xs text-muted-foreground">
-                            Started {formatDate(new Date(pending.startedAt).toISOString())}
+                            Started{" "}
+                            {formatDate(
+                              new Date(pending.startedAt).toISOString(),
+                            )}
                           </span>
                         </div>
                       </div>
@@ -195,7 +220,6 @@ export default function ProjectsPage() {
                 >
                   <CardContent className="p-0">
                     <div className="flex">
-                      <div className="w-1 bg-primary/60" />
                       <div className="flex-1 p-5 min-w-0">
                         <div className="flex items-center gap-3">
                           <div className="shrink-0 flex items-center justify-center size-8 rounded-lg bg-primary/15 text-primary">
@@ -214,7 +238,10 @@ export default function ProjectsPage() {
                             variant="destructive"
                             size="icon-sm"
                             aria-label={`Delete ${project.name}`}
-                            disabled={deleteMutation.isPending && deleteMutation.variables === project.id}
+                            disabled={
+                              deleteMutation.isPending &&
+                              deleteMutation.variables === project.id
+                            }
                             onClick={() => setProjectToDelete(project.id)}
                           >
                             <Trash2 className="size-4" />

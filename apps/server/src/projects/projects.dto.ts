@@ -1,5 +1,5 @@
 import { IsArray, IsIn, IsNotEmpty, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 
 export const PROJECT_STATUSES = ['pending', 'ready', 'failed'] as const;
 export type ProjectStatusValue = (typeof PROJECT_STATUSES)[number];
@@ -61,13 +61,15 @@ export class UpdateProjectStatusDto {
 }
 
 export class ImportColumnDto {
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
   @IsString()
   @IsNotEmpty()
   name!: string;
 
-  @IsOptional()
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
   @IsString()
-  instructions?: string;
+  @IsNotEmpty()
+  instructions!: string;
 
   @IsOptional()
   @IsString()

@@ -15,6 +15,8 @@ interface SkillInput {
   skillName: string;
 }
 
+const RESERVED_COLUMN_NAMES = new Set(["backlog", "completed"]);
+
 function parseColumns(value: unknown): BoardColumnInput[] {
   if (!Array.isArray(value)) {
     throw new Error("Board config must be a JSON array of columns.");
@@ -30,10 +32,20 @@ function parseColumns(value: unknown): BoardColumnInput[] {
       throw new Error(`Column ${index + 1} needs a non-empty name.`);
     }
 
+    const name = raw.name.trim();
+    if (RESERVED_COLUMN_NAMES.has(name.toLowerCase())) {
+      throw new Error(
+        `Column ${index + 1} uses reserved name "${name}". Use a workflow-specific name instead.`,
+      );
+    }
+
+    if (typeof raw.instructions !== "string" || raw.instructions.trim().length === 0) {
+      throw new Error(`Column ${index + 1} needs non-empty instructions.`);
+    }
+
     return {
-      name: raw.name.trim(),
-      instructions:
-        typeof raw.instructions === "string" ? raw.instructions.trim() : undefined,
+      name,
+      instructions: raw.instructions.trim(),
       agentId:
         typeof raw.agentId === "string" || raw.agentId === null
           ? raw.agentId

@@ -124,16 +124,18 @@ export function KanbanColumnDialog({
     mutationFn: (data: FormValues) => {
       const agentId = data.agentId === NONE_AGENT_VALUE ? null : data.agentId;
       const model = agentId ? data.model || null : null;
+      const name = data.name.trim();
+      const instructions = data.instructions.trim();
       return isEdit
         ? updateKanbanColumn(projectId, column!.id, {
-            name: data.name,
-            instructions: data.instructions || undefined,
+            name,
+            instructions,
             agentId,
             model,
           })
         : createKanbanColumn(projectId, {
-            name: data.name,
-            instructions: data.instructions || undefined,
+            name,
+            instructions,
             agentId,
             model,
           });
@@ -163,7 +165,17 @@ export function KanbanColumnDialog({
             <Input
               id="col-name"
               placeholder="e.g. In Progress"
-              {...register("name", { required: "Name is required" })}
+              {...register("name", {
+                required: "Name is required",
+                validate: (value) => {
+                  const name = value.trim();
+                  if (name.length === 0) return "Name is required";
+                  if (["backlog", "completed"].includes(name.toLowerCase())) {
+                    return "Use a workflow-specific column name";
+                  }
+                  return true;
+                },
+              })}
             />
             {errors.name && (
               <p className="text-xs text-destructive">{errors.name.message}</p>
@@ -223,6 +235,10 @@ export function KanbanColumnDialog({
             <Controller
               name="instructions"
               control={control}
+              rules={{
+                validate: (value) =>
+                  value.trim().length > 0 || "Instructions are required",
+              }}
               render={({ field }) => (
                 <RichTextEditor
                   key={editorKey}
@@ -232,6 +248,9 @@ export function KanbanColumnDialog({
                 />
               )}
             />
+            {errors.instructions && (
+              <p className="text-xs text-destructive">{errors.instructions.message}</p>
+            )}
           </div>
 
           </form>
