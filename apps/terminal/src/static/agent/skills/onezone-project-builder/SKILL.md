@@ -18,13 +18,17 @@ The prompt includes the project name, optional description/repository, selected 
 ## Workflow
 
 1. Read the user's board request and infer the project workflow.
-2. Design 3 to 8 useful kanban columns. Each column must have:
+2. Run `npx skills find [query]` with one or more short queries derived from the user's request and project domain.
+   - Use the search results only when a suggestion clearly helps the generated project.
+   - For each useful suggestion, keep its package/source and skill name so it can be passed to the CLI as `--skill '<source> --skill <name>'`.
+   - If no suggestion is clearly useful, continue without skills.
+3. Design 3 to 8 useful kanban columns. Each column must have:
     - `name`: short, action-oriented column name.
     - `instructions`: concrete instructions for the agent working in that column, including that it must not wait for user interaction, response, confirmation, or feedback.
   - Do not use reserved Onezone column names or sentinel IDs, including `backlog` and `completed` in any capitalization.
-3. Write the columns as a JSON array to a temporary file. Use only `name` and `instructions`; the CLI will apply the selected project-builder agent and model to every column.
-4. Run the exact `onezone-terminal project new ...` command from the prompt, replacing `<columns-json-file>` with your JSON file path.
-5. If the command fails, inspect the JSON and command arguments, fix the issue, and retry once.
-6. Finish with the created project ID and the column names.
+4. Write the columns as a JSON array to a temporary file. Use only `name` and `instructions`; the CLI will apply the selected project-builder agent and model to every column.
+5. Run the exact `onezone-terminal project new ...` command from the prompt, replacing `<columns-json-file>` with your JSON file path and adding one `--skill '<source> --skill <name>'` argument for each useful skill suggestion.
+6. If the command fails, inspect the JSON, skill arguments, and command arguments, fix the issue, and retry once.
+7. Finish with the created project ID, the column names, and any skills added.
 
 Do not ask follow-up questions. Do not create tasks. The CLI command is the only supported way to create the project.

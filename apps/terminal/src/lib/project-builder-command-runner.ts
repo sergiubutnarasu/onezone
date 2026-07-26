@@ -31,6 +31,7 @@ function buildPrompt(payload: ProjectBuilderCommandPayload, serverUrl: string): 
 
   return [
     "Use the onezone-project-builder skill to create a new Onezone project and generate its kanban board.",
+    "Search for relevant skills with `npx skills find [query]`. If useful suggestions exist, add one `--skill '<source> --skill <name>'` argument per suggestion before `--server` in the terminal command. If no useful suggestions exist, omit `--skill`.",
     "Create practical board columns from the user's request, write them to a JSON config file, then run this terminal command:",
     "```sh",
     `onezone-terminal project new --project ${shellQuote(payload.projectId)} --name ${shellQuote(payload.projectName)}${optionalSegment} --agent ${shellQuote(payload.agent.id)} --model ${shellQuote(payload.model)} --config <columns-json-file> --server ${shellQuote(serverUrl)}`,

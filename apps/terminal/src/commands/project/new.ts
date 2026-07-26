@@ -10,6 +10,11 @@ interface BoardColumnInput {
   model?: string | null;
 }
 
+interface SkillInput {
+  source: string;
+  skillName: string;
+}
+
 function parseColumns(value: unknown): BoardColumnInput[] {
   if (!Array.isArray(value)) {
     throw new Error("Board config must be a JSON array of columns.");
@@ -37,6 +42,33 @@ function parseColumns(value: unknown): BoardColumnInput[] {
         typeof raw.model === "string" || raw.model === null ? raw.model : undefined,
     };
   });
+}
+
+function parseSkill(value: string): SkillInput {
+  const match = value.match(
+    /^(?:npx\s+(?:--yes\s+)?skills\s+add\s+)?(\S+)\s+--skill\s+(.+)$/,
+  );
+  if (!match) {
+    throw new Error(
+      `Invalid skill "${value}". Use '<source> --skill <name>' or 'npx skills add <source> --skill <name>'.`,
+    );
+  }
+
+  const skillName = match[2].trim().replace(/^(["'])(.*)\1$/, "$2");
+  if (skillName.length === 0) {
+    throw new Error(`Invalid skill "${value}". Skill name cannot be empty.`);
+  }
+
+  return { source: match[1], skillName };
+}
+
+function parseSkills(values: string[] | undefined): SkillInput[] {
+  if (!values || values.length === 0) return [];
+
+  const skills = values.map(parseSkill);
+  return Array.from(
+    new Map(skills.map((skill) => [skill.skillName, skill])).values(),
+  );
 }
 
 async function updateProjectStatus(
@@ -67,6 +99,7 @@ export default class ProjectNew extends Command {
     '<%= config.bin %> project new --name "My project" --agent <agentUuid> --model <model> --config ./board.json',
     '<%= config.bin %> project new --project <projectUuid> --name "My project" --agent <agentUuid> --model <model> --config ./board.json',
     '<%= config.bin %> project new --name "My project" --agent <agentUuid> --model <model> --columns \'[{"name":"Plan","instructions":"Clarify scope"}]\'',
+    '<%= config.bin %> project new --name "My project" --agent <agentUuid> --model <model> --config ./board.json --skill "vercel-labs/agent-skills --skill nextjs"',
   ];
 
   static flags = {
@@ -102,6 +135,12 @@ export default class ProjectNew extends Command {
       description: "Inline JSON array of columns",
       required: false,
     }),
+    skill: Flags.string({
+      description:
+        "Skill to add to the project. Repeatable. Format: '<source> --skill <name>' or 'npx skills add <source> --skill <name>'.",
+      multiple: true,
+      required: false,
+    }),
     server: Flags.string({
       description: "Server URL",
       default: "http://localhost:5026",
@@ -121,11 +160,13 @@ export default class ProjectNew extends Command {
     }
 
     let columns: BoardColumnInput[];
+    let skills: SkillInput[];
     try {
       const json = flags.config
         ? await readFile(flags.config, "utf8")
         : flags.columns!;
       columns = parseColumns(JSON.parse(json));
+      skills = parseSkills(flags.skill);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       this.error(message, { exit: 1 });
@@ -239,8 +280,29 @@ export default class ProjectNew extends Command {
         createdColumns.push((await createResponse.json()) as KanbanColumn);
       }
 
+      for (const skill of skills) {
+        const skillResponse = await authenticatedFetch(
+          `${baseUrl}/projects/${project.id}/skills`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(skill),
+          },
+          baseUrl,
+        );
+        if (!skillResponse.ok && skillResponse.status !== 409) {
+          this.error(
+            `Failed to add skill "${skill.skillName}": ${skillResponse.status} ${skillResponse.statusText}`,
+            { exit: 1 },
+          );
+        }
+      }
+
       this.log(`Created project: ${project.id}`);
       this.log(`Created board with ${createdColumns.length} column(s).`);
+      if (skills.length > 0) {
+        this.log(`Added ${skills.length} skill(s).`);
+      }
       for (const column of createdColumns) {
         this.log(`${column.index}: ${column.name} (${column.id})`);
       }
