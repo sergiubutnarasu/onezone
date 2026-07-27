@@ -17,6 +17,12 @@ interface SkillInput {
 
 const RESERVED_COLUMN_NAMES = new Set(["backlog", "completed"]);
 
+// AI-generated board columns must always tell the working agent not to wait
+// on the user, regardless of whether the generating LLM remembered to
+// include it. Enforced here so it can't be dropped by a non-compliant prompt.
+const NO_WAIT_SENTENCE =
+  "Do not wait for user interaction, response, confirmation, or feedback; complete the column work autonomously.";
+
 function parseColumns(value: unknown): BoardColumnInput[] {
   if (!Array.isArray(value)) {
     throw new Error("Board config must be a JSON array of columns.");
@@ -43,9 +49,14 @@ function parseColumns(value: unknown): BoardColumnInput[] {
       throw new Error(`Column ${index + 1} needs non-empty instructions.`);
     }
 
+    const trimmedInstructions = raw.instructions.trim();
+    const instructions = trimmedInstructions.includes(NO_WAIT_SENTENCE)
+      ? trimmedInstructions
+      : `${trimmedInstructions} ${NO_WAIT_SENTENCE}`;
+
     return {
       name,
-      instructions: raw.instructions.trim(),
+      instructions,
       agentId:
         typeof raw.agentId === "string" || raw.agentId === null
           ? raw.agentId

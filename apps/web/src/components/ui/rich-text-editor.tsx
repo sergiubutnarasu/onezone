@@ -8,6 +8,7 @@ import {
   ListItemNode,
   ListNode,
 } from "@lexical/list";
+import { CodeNode } from "@lexical/code";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import {
   $convertFromMarkdownString,
@@ -46,6 +47,7 @@ const editorTheme = {
     strikethrough: "line-through",
     code: "font-mono bg-muted px-1 rounded text-xs",
   },
+  code: "block font-mono bg-muted px-3 py-2 rounded text-xs whitespace-pre-wrap my-1",
   paragraph: "mb-1 last:mb-0",
 };
 
@@ -190,7 +192,7 @@ export function RichTextEditor({
     namespace: "RichTextEditor",
     theme: editorTheme,
     onError: (error: Error) => console.error(error),
-    nodes: [ListNode, ListItemNode, HeadingNode, QuoteNode, LinkNode, AutoLinkNode],
+    nodes: [ListNode, ListItemNode, HeadingNode, QuoteNode, LinkNode, AutoLinkNode, CodeNode],
     editorState: () =>
       $convertFromMarkdownString(value ?? "", TRANSFORMERS),
   };

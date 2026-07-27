@@ -85,19 +85,37 @@ export function ProjectForm({
   const terminalId = watch("terminalId");
 
   useEffect(() => {
-    if (agents.length > 0) {
-      reset({
-        name: "",
-        description: "",
-        repository: "",
-        defaultAgentId: agents[0].id,
-        defaultModel: agents[0].model,
-        terminalId: firstConnectedTerminalId,
-        boardPrompt: "",
-      });
+    reset({
+      name: "",
+      description: "",
+      repository: "",
+      defaultAgentId: agents[0]?.id ?? "",
+      defaultModel: agents[0]?.model ?? "",
+      terminalId: firstConnectedTerminalId,
+      boardPrompt: "",
+    });
+    // Reset only when the caller signals (e.g. dialog reopening). Must NOT
+    // also depend on agents/terminals — if that data loads or refreshes
+    // while the dialog is open, re-running this would silently wipe out
+    // whatever the user has already typed (name, description, etc.).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetSignal, reset]);
+
+  // Backfill the default agent once its data loads, without touching fields
+  // the user may have already started typing.
+  useEffect(() => {
+    if (!defaultAgentId && agents[0]) {
+      setValue("defaultAgentId", agents[0].id);
+      setValue("defaultModel", agents[0].model);
     }
-    // Reset whenever the caller signals (e.g. dialog reopening) or agents load.
-  }, [resetSignal, agents, firstConnectedTerminalId, reset]);
+  }, [agents, defaultAgentId, setValue]);
+
+  // Same idea for the terminal selector.
+  useEffect(() => {
+    if (!terminalId && firstConnectedTerminalId) {
+      setValue("terminalId", firstConnectedTerminalId);
+    }
+  }, [firstConnectedTerminalId, terminalId, setValue]);
 
   useEffect(() => {
     if (resetSignal) setGenerateBoard(false);
