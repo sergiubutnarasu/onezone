@@ -1,6 +1,21 @@
 # Onezone
 
-Onezone is a production-minded AI agent orchestration platform for running coding agents from a central web workspace. It combines a Next.js dashboard, a NestJS API, a Socket.io real-time layer, and a terminal worker CLI so users can create projects, assign tasks, stream command output, monitor cost, and move work through kanban-style automation.
+**Stop babysitting one terminal at a time. Onezone turns Claude Code, GitHub Copilot CLI, and Opencode into a fleet of coding agents you run, watch, and automate from a single web workspace.**
+
+Describe what you want built, and a connected agent turns it into a full kanban board of tasks — complete with the skills it needs to do the job. From there, spin up as many terminals as you want, running in Docker for a clean sandbox, and let them work your backlog in parallel while you watch every command stream live. Every project keeps a living memory wiki so agents get smarter about *your* codebase instead of starting from zero on every run, and skills you install once are shared across every terminal that picks up the work. Need something to happen automatically? Schedule it. Need it to happen right now, without following the board? Bypass it.
+
+## Why Onezone
+
+- 🧠 **Generate a project board from a description.** Tell a connected agent what you're building, and it plans the columns, tasks, and skills for you through the `onezone-project-builder` skill — the project sits in `pending` until the board is ready to work.
+- 📦 **Terminals run sandboxed, in Docker.** Point agents at real work without pointing them at your host machine. The bundled Docker terminal isolates the filesystem, credentials, and SSH keys per worker.
+- ⚡ **Parallel by design.** Connect one terminal or twenty. Every terminal pulls from the same board, streams output over Socket.io, and works its own task without stepping on the others.
+- 🗂️ **Project memory that compounds.** A Karpathy-style wiki (raw facts → compiled topic articles → a navigable index) is stored remotely via Garage/S3 and read at the start of every task, so lessons learned on Monday still apply on Friday.
+- 🔁 **Skills and memory are shared, not siloed.** Any terminal working a project sees the same skills and the same memory wiki — install a skill once, every worker benefits.
+- 🌐 **Global skills for every project, plus per-project skills.** Install a skill at the account level and it's automatically available across all of your projects, no per-project setup required — or install a skill on just one project when it's only relevant there.
+- 🤖 **Pick your agent, per task.** Claude Code, GitHub Copilot CLI, and Opencode are all first-class. Choose a default globally, then override the agent and model per user, per task, per kanban column, or per schedule.
+- ⏰ **Scheduled tasks, cron or one-shot.** Recurring workflows run on cron expressions with time zone support; ad-hoc automation runs once and stops.
+- 🚦 **Bypass mode for one-off runs.** Skip the kanban board entirely and run a task's own name/description in isolation when you just need a quick, self-contained job done.
+- 🚀 **RTK installed automatically.** The Docker terminal image ships with [RTK](https://github.com/rtk-ai/rtk) preinstalled and wired into agent hooks, cutting token usage on every command without any manual setup.
 
 ## What You Get
 
@@ -9,7 +24,8 @@ Onezone is a production-minded AI agent orchestration platform for running codin
 - Task assignment to connected terminals with real-time chat, stdout/stderr streaming, command lifecycle events, and stop signals.
 - Bypass mode for tasks and schedules that runs a task's own name/description in isolation, ignoring kanban column instructions and completing immediately when the run finishes.
 - Agent registry for Claude Code, GitHub Copilot CLI, and Opencode style runners, with global defaults and per-user model overrides.
-- Project memory backed by self-hosted Garage (S3-compatible) storage for key-value reads and writes scoped to each project.
+- Project memory backed by self-hosted Garage (S3-compatible) storage for key-value reads and writes scoped to each project, shared by every terminal that works on it.
+- Global skills that apply across all of a user's projects, alongside project-level skills shared by every terminal assigned to that project.
 - Scheduled tasks powered by cron expressions, time zones, optional one-shot runs, bypass mode, and terminal/agent/model selection.
 - Authentication with email/password, HTTP-only cookies, JWT access tokens, refresh tokens, and CLI device-code login.
 - Notifications for command starts, command exits, failures, and completed tasks, mirrored as OS-level system notifications through the web app's service worker.
@@ -19,11 +35,14 @@ Onezone is a production-minded AI agent orchestration platform for running codin
 ## Pros
 
 - **Bring your own terminals**: run agents on your laptop, a workstation, a Docker worker, or a remote runner while managing them from one UI.
+- **Sandboxed by default**: the bundled Docker terminal image runs agents in an isolated container, with RTK preinstalled and configured out of the box.
+- **Parallel-first**: connect as many terminals as you need and let them pick up tasks from the same board simultaneously.
 - **Real-time by default**: Socket.io events keep the board, task chat, terminal state, notifications, and command output live.
 - **Multi-user ready**: projects, tasks, terminals, messages, notifications, skills, schedules, and agent settings are scoped by user.
 - **Production-shaped stack**: PostgreSQL persistence, Redis-backed WebSockets, Prisma migrations, Docker images, health checks, and explicit environment configuration.
 - **Agent flexible**: Claude Code, GitHub Copilot CLI, and Opencode are first-class, and model values are configurable globally, per user, per task, per column, and per schedule where supported.
-- **Automation friendly**: recurring schedules and kanban column instructions let users turn repeated development workflows into repeatable agent runs.
+- **Automation friendly**: recurring schedules, one-time scheduled runs, and kanban column instructions let users turn repeated development workflows into repeatable agent runs — or bypass the board for a quick one-off task.
+- **Memory that travels with the project**: a shared, remotely-stored wiki keeps every terminal working from the same up-to-date knowledge of the codebase.
 - **Type-safe contracts**: shared enums, payload types, room helpers, constants, and validation schemas reduce drift between packages.
 
 ## Architecture
