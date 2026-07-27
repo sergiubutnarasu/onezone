@@ -16,10 +16,13 @@ Describe what you want built, and a connected agent turns it into a full kanban 
 - ⏰ **Scheduled tasks, cron or one-shot.** Recurring workflows run on cron expressions with time zone support; ad-hoc automation runs once and stops.
 - 🚦 **Bypass mode for one-off runs.** Skip the kanban board entirely and run a task's own name/description in isolation when you just need a quick, self-contained job done.
 - 🚀 **RTK installed automatically.** The Docker terminal image ships with [RTK](https://github.com/rtk-ai/rtk) preinstalled and wired into agent hooks, cutting token usage on every command without any manual setup.
+- 📤 **Export a project, import it anywhere.** A project's board, columns, default agent/model, and skills export as a single portable config — clone a proven workflow into a new project or a new environment in one import.
+- 🔒 **Your projects, your data.** Every project, task, terminal, skill, schedule, and notification is scoped to your account.
 
 ## What You Get
 
 - Project workspaces with kanban columns, backlog, completion state, project import/export, and project-level skills.
+- Portable project configs: export a project's columns, default agent/model, and skills as a single JSON blueprint, then import it to spin up a new project with the same setup.
 - AI-assisted project generation: describe a workflow and a connected terminal generates the project's kanban board (and optional skills) through the `onezone-project-builder` skill while the project sits in a `pending` status until the board is ready.
 - Task assignment to connected terminals with real-time chat, stdout/stderr streaming, command lifecycle events, and stop signals.
 - Bypass mode for tasks and schedules that runs a task's own name/description in isolation, ignoring kanban column instructions and completing immediately when the run finishes.
@@ -38,7 +41,8 @@ Describe what you want built, and a connected agent turns it into a full kanban 
 - **Sandboxed by default**: the bundled Docker terminal image runs agents in an isolated container, with RTK preinstalled and configured out of the box.
 - **Parallel-first**: connect as many terminals as you need and let them pick up tasks from the same board simultaneously.
 - **Real-time by default**: Socket.io events keep the board, task chat, terminal state, notifications, and command output live.
-- **Multi-user ready**: projects, tasks, terminals, messages, notifications, skills, schedules, and agent settings are scoped by user.
+- **Multi-user ready**: projects, tasks, terminals, messages, notifications, skills, schedules, and agent settings are scoped by user, so each teammate works their own isolated set of projects on a shared deployment.
+- **Portable project setups**: export a project's board, agent/model defaults, and skills to JSON and import it into a new project to reuse a proven workflow instantly.
 - **Production-shaped stack**: PostgreSQL persistence, Redis-backed WebSockets, Prisma migrations, Docker images, health checks, and explicit environment configuration.
 - **Agent flexible**: Claude Code, GitHub Copilot CLI, and Opencode are first-class, and model values are configurable globally, per user, per task, per column, and per schedule where supported.
 - **Automation friendly**: recurring schedules, one-time scheduled runs, and kanban column instructions let users turn repeated development workflows into repeatable agent runs — or bypass the board for a quick one-off task.
