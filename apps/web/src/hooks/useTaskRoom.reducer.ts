@@ -42,6 +42,9 @@ function buildSyntheticExits(
 
 export function reducer(state: State, action: Action): State {
   switch (action.type) {
+    case 'RESET':
+      return initialState;
+
     case 'SET_MESSAGES':
       return { ...state, messages: action.messages, liveMessages: [] };
 

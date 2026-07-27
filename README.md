@@ -5,12 +5,14 @@ Onezone is a production-minded AI agent orchestration platform for running codin
 ## What You Get
 
 - Project workspaces with kanban columns, backlog, completion state, project import/export, and project-level skills.
+- AI-assisted project generation: describe a workflow and a connected terminal generates the project's kanban board (and optional skills) through the `onezone-project-builder` skill while the project sits in a `pending` status until the board is ready.
 - Task assignment to connected terminals with real-time chat, stdout/stderr streaming, command lifecycle events, and stop signals.
+- Bypass mode for tasks and schedules that runs a task's own name/description in isolation, ignoring kanban column instructions and completing immediately when the run finishes.
 - Agent registry for Claude Code, GitHub Copilot CLI, and Opencode style runners, with global defaults and per-user model overrides.
-- Project memory backed by S3-compatible storage for key-value reads and writes scoped to each project.
-- Scheduled tasks powered by cron expressions, time zones, optional one-shot runs, and terminal/agent/model selection.
+- Project memory backed by self-hosted Garage (S3-compatible) storage for key-value reads and writes scoped to each project.
+- Scheduled tasks powered by cron expressions, time zones, optional one-shot runs, bypass mode, and terminal/agent/model selection.
 - Authentication with email/password, HTTP-only cookies, JWT access tokens, refresh tokens, and CLI device-code login.
-- Notifications for command starts, command exits, failures, and completed tasks.
+- Notifications for command starts, command exits, failures, and completed tasks, mirrored as OS-level system notifications through the web app's service worker.
 - Usage statistics for tasks, command outcomes, token counts, and estimated project costs.
 - Shared TypeScript contracts and Zod schemas used across the server, web app, and terminal CLI.
 
@@ -20,7 +22,7 @@ Onezone is a production-minded AI agent orchestration platform for running codin
 - **Real-time by default**: Socket.io events keep the board, task chat, terminal state, notifications, and command output live.
 - **Multi-user ready**: projects, tasks, terminals, messages, notifications, skills, schedules, and agent settings are scoped by user.
 - **Production-shaped stack**: PostgreSQL persistence, Redis-backed WebSockets, Prisma migrations, Docker images, health checks, and explicit environment configuration.
-- **Agent flexible**: Claude Code and Github Copilot CLI are first-class, and model values are configurable globally, per user, per task, per column, and per schedule where supported.
+- **Agent flexible**: Claude Code, GitHub Copilot CLI, and Opencode are first-class, and model values are configurable globally, per user, per task, per column, and per schedule where supported.
 - **Automation friendly**: recurring schedules and kanban column instructions let users turn repeated development workflows into repeatable agent runs.
 - **Type-safe contracts**: shared enums, payload types, room helpers, constants, and validation schemas reduce drift between packages.
 
@@ -34,9 +36,10 @@ onezone/
 |   |-- server/     # NestJS REST API, auth, Prisma, schedules, Socket.io gateway on port 5026
 |   |-- web/        # Next.js dashboard UI on port 5025
 |   `-- terminal/   # oclif CLI that registers terminals and executes assigned agent tasks
-`-- packages/
-    |-- shared/     # Shared TypeScript types, Zod schemas, constants, and Socket.io event contracts
-    `-- tsconfig/   # Shared TypeScript configuration
+|-- packages/
+|   |-- shared/     # Shared TypeScript types, Zod schemas, constants, and Socket.io event contracts
+|   `-- tsconfig/   # Shared TypeScript configuration
+`-- docker/         # Self-hosted Garage (S3-compatible) storage image and config
 ```
 
 Runtime services:
@@ -47,6 +50,7 @@ Runtime services:
 | Server | `5026` | REST API, auth, WebSocket gateway, schedule runner, and health endpoint |
 | PostgreSQL | `5432` | Persistent application data through Prisma |
 | Redis | `6379` | Socket.io Redis adapter for real-time fan-out and horizontal scaling |
+| Garage | `3900-3903` | Self-hosted S3-compatible object storage for project memory (built from `docker/garage.Dockerfile`) |
 | Terminal worker | n/a | Authenticates with the server, listens for assignments, and runs agent CLIs |
 
 ## Prerequisites
@@ -75,7 +79,7 @@ Open the app at [http://localhost:5025](http://localhost:5025). The API health c
 Use this when you want fast app reloads but still want Postgres and Redis from Docker.
 
 ```bash
-docker compose up postgres redis -d
+docker compose up postgres redis garage -d
 pnpm install
 pnpm --filter @onezone/server exec prisma migrate deploy
 pnpm --filter @onezone/server exec prisma db seed
@@ -133,9 +137,14 @@ Root Docker Compose reads variables from `.env`. Individual apps can also read t
 | `COPILOT_PROVIDER_BASE_URL` | Terminal agent runtime | none | No | Optional custom model provider base URL for Copilot CLI. |
 | `COPILOT_PROVIDER_API_KEY` | Terminal agent runtime | none | No | Optional custom model provider API key for Copilot CLI. |
 | `COPILOT_PROVIDER_TYPE` | Terminal agent runtime | none | No | Optional custom model provider type for Copilot CLI (`openai`, `azure`, `anthropic`). |
-| `S3_ENDPOINT` | Server | none | Yes | S3-compatible endpoint for project memory storage |
-| `S3_ACCESS_KEY_ID` | Server | none | Yes | S3 access key for project memory storage |
-| `S3_SECRET_ACCESS_KEY` | Server | none | Yes | S3 secret key for project memory storage |
+| `OPENCODE_PROVIDER_ID` | Terminal agent runtime | `default` | No | Optional model provider ID for Opencode. |
+| `OPENCODE_PROVIDER_BASE_URL` | Terminal agent runtime | none | No | Optional custom model provider base URL for Opencode. |
+| `OPENCODE_PROVIDER_API_KEY` | Terminal agent runtime | none | No | Optional custom model provider API key for Opencode. |
+| `S3_ENDPOINT` | Server | `http://garage:3900` in Compose | Yes | S3-compatible endpoint for project memory storage (the bundled Garage service by default) |
+| `S3_REGION` | Server | `garage` | No | S3-compatible region name, required by some S3 clients even for single-region setups |
+| `S3_ACCESS_KEY_ID` | Server | `GKonezone` in Compose | Yes | S3 access key for project memory storage |
+| `S3_SECRET_ACCESS_KEY` | Server | generated value in Compose | Yes | S3 secret key for project memory storage |
+| `S3_BUCKET_NAME` | Server | `onezone` | No | S3 bucket name for project memory storage |
 
 Example local `.env`:
 
@@ -148,9 +157,11 @@ REDIS_URL=redis://localhost:6379
 WEB_ORIGINS=http://localhost:5025
 NEXT_PUBLIC_API_URL=http://localhost:5026
 JWT_SECRET=replace-with-a-long-random-secret
-S3_ENDPOINT=http://localhost:9000
-S3_ACCESS_KEY_ID=minio
-S3_SECRET_ACCESS_KEY=minio123
+S3_ENDPOINT=http://garage:3900
+S3_REGION=garage
+S3_ACCESS_KEY_ID=GKonezone
+S3_SECRET_ACCESS_KEY=3a2a8c6903c5e28fe7468494c5d73d64dfd88581e166cb25cce043ff8eb11410
+S3_BUCKET_NAME=onezone
 JWT_EXPIRES_IN=15m
 REFRESH_TOKEN_EXPIRES_IN=30d
 ADMIN_EMAILS=admin@example.com
@@ -168,7 +179,7 @@ pnpm --filter @onezone/server exec prisma studio
 
 Use `migrate deploy` for production and CI. Use `migrate dev --name <name>` only when creating a new local migration.
 
-Key persisted resources include users, refresh tokens, device codes, agents, per-user agent settings, projects, project skills, kanban columns, tasks, task-terminal assignments, messages, terminals, notifications, and task schedules.
+Key persisted resources include users, refresh tokens, device codes, agents, per-user agent settings, projects (with a `pending`/`ready`/`failed` status used by AI-assisted project generation), project skills, kanban columns, tasks and task schedules (both with a `bypass` flag), task-terminal assignments, messages, terminals, and notifications.
 
 ## Monorepo Commands
 

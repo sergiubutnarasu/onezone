@@ -65,6 +65,7 @@ The listener registers the terminal, joins the lobby, receives `terminal:assign-
 | `onezone-terminal task view` | Show task details |
 | `onezone-terminal task move` | Move a task to another kanban column |
 | `onezone-terminal task delete` | Delete a task |
+| `onezone-terminal project new` | Create (or complete a pending) project and generate its kanban board from a JSON column config, optionally installing skills |
 | `onezone-terminal memory list` | List project memory keys |
 | `onezone-terminal memory read` | Read a project memory entry |
 | `onezone-terminal memory write` | Write a project memory entry |
@@ -85,6 +86,8 @@ When a task is assigned, the terminal selects a runner from the task agent tag.
 | `github-copilot-cli` | GitHub Copilot CLI |
 | `opencode` | Opencode CLI |
 
+The web app can also dispatch a one-off AI-assisted project generation run to a connected terminal (a "Generate project" action). The terminal runs the `onezone-project-builder` skill, which designs kanban columns from a natural-language request, optionally installs relevant skills, and calls `onezone-terminal project new` to create the board.
+
 In Docker, `docker-entrypoint.sh` installs `uv` and RTK when missing, initializes RTK's Claude hook config, prepares SSH defaults, authenticates to Onezone if needed, and starts `onezone-terminal listen`.
 
 Useful runtime variables for the Docker terminal include:
@@ -100,6 +103,9 @@ Useful runtime variables for the Docker terminal include:
 | `COPILOT_PROVIDER_BASE_URL` | none | Optional custom model provider base URL for Copilot CLI |
 | `COPILOT_PROVIDER_API_KEY` | none | Optional custom model provider API key for Copilot CLI |
 | `COPILOT_PROVIDER_TYPE` | none | Optional custom model provider type for Copilot CLI (`openai`, `azure`, `anthropic`) |
+| `OPENCODE_PROVIDER_ID` | `default` | Optional model provider ID for Opencode |
+| `OPENCODE_PROVIDER_BASE_URL` | none | Optional custom model provider base URL for Opencode |
+| `OPENCODE_PROVIDER_API_KEY` | none | Optional custom model provider API key for Opencode |
 
 ## Development
 

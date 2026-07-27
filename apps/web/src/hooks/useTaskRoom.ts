@@ -31,6 +31,12 @@ export function useTaskRoom(
     onTaskDeletedRef.current = options?.onTaskDeleted;
   });
 
+  // Reset room state when the task identity changes so stale messages from the
+  // previous task are not shown while the new task's history is loading.
+  useEffect(() => {
+    dispatch({ type: "RESET" });
+  }, [taskId]);
+
   useEffect(() => {
     const socket = io(`${API_BASE}/chat`, {
       auth: { taskId, role: "user" },

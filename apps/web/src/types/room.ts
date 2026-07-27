@@ -30,6 +30,7 @@ export interface ConnectedTerminal {
 }
 
 export type Action =
+  | { type: "RESET" }
   | { type: "SET_MESSAGES"; messages: RoomMessage[] }
   | { type: "APPEND_MESSAGE"; message: RoomMessage }
   | { type: "TERMINAL_CONNECTED"; info: ConnectedTerminal & { ts: number } }

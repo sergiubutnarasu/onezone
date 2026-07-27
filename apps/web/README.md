@@ -18,15 +18,16 @@ The Onezone web app is a Next.js dashboard for managing projects, kanban task fl
 
 - Register, log in, refresh sessions, log out, and activate CLI device-code logins.
 - Create projects with default agent/model settings and optional repository metadata.
+- Generate a project's kanban board with AI: describe the desired workflow and dispatch it to a connected terminal, which builds the board (and optional skills) while the project shows a `pending` status.
 - Import and export projects.
 - Manage global and project-scoped skills.
 - Configure agents including Claude Code, GitHub Copilot CLI, and Opencode, with user-specific model overrides.
-- Create, edit, assign, reorder, complete, and delete tasks.
+- Create, edit, assign, reorder, complete, and delete tasks, including a bypass mode that runs a task's own instructions in isolation.
 - Move tasks through backlog, custom kanban columns, and completed state.
 - Assign terminals to tasks and monitor connection state.
 - Chat inside tasks while streaming terminal command output in real time.
-- Create and run recurring schedules for automated task creation/execution.
-- View notifications and unread counts for command and task events.
+- Create and run recurring schedules for automated task creation/execution, including bypass mode.
+- View notifications and unread counts for command and task events, with OS-level system notifications through the installed PWA's service worker.
 - View and manage project memory entries backed by S3-compatible storage.
 
 ## Routes
@@ -54,7 +55,7 @@ The Onezone web app is a Next.js dashboard for managing projects, kanban task fl
 From the repository root:
 
 ```bash
-docker compose up postgres redis -d
+docker compose up postgres redis garage -d
 pnpm install
 pnpm --filter @onezone/server exec prisma migrate deploy
 pnpm --filter @onezone/server exec prisma db seed

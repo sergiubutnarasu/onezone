@@ -198,6 +198,8 @@ flowchart LR
     Registry -->|forwardCommandRun| TerminalTask
     Registry -->|forwardStopCommand| TerminalTask
     Registry -->|forwardPingCommand| TerminalTask
+    Registry -->|runProjectBuilderCommand| TerminalLobby
+    Registry -->|notifyProjectBuilderCommandFinished| UserSocket
 ```
 
 ### Socket Event Commands
@@ -213,6 +215,9 @@ flowchart LR
 | Terminal → Server | `output:line` | Stream stdout/stderr line |
 | Terminal → Server | `terminal:command:start` | Notify command started |
 | Terminal → Server | `terminal:command:exit` | Notify command exited |
+| Server → Terminal | `terminal:project-builder-command` | Dispatch AI-assisted project/kanban board generation to a terminal |
+| Server → Terminal | `terminal:project-builder-command:stop` | Cancel an in-progress project generation run |
+| Terminal → Server | `terminal:project-builder-command:finished` | Notify project generation completed (also triggered server-side when the CLI PATCHes project status) |
 | Server → All | `task:column-updated` | Kanban column change |
 | Server → All | `notification:created` | New notification |
 | Server → All | `project:cost-updated` | Cost stats update |
@@ -289,6 +294,27 @@ erDiagram
         int inputTokens
         int outputTokens
         float totalCostUsd
+    }
+
+    PROJECT {
+        string id
+        string name
+        string repository
+        ProjectStatus status "pending | ready | failed"
+    }
+
+    TASK {
+        string id
+        string name
+        boolean bypass "skip kanban column instructions, complete on run finish"
+        datetime completedAt
+    }
+
+    TASK_SCHEDULE {
+        string id
+        string cronExpression
+        boolean bypass
+        boolean runOnce
     }
 ```
 
@@ -373,6 +399,39 @@ sequenceDiagram
     Server-->>Web: task:column-updated
     Server-->>Web: notification:created
     Server-->>Web: project:cost-updated
+```
+
+## Request Flow Example: AI-Assisted Project Generation
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Web as Next.js Web
+    participant Server as NestJS Server
+    participant DB as PostgreSQL
+    participant Terminal as Terminal Worker
+    participant Agent as claude / copilot / opencode
+
+    User->>Web: Describe desired project + board, pick terminal/agent/model
+    Web->>Server: POST /terminals/:terminalId/project-builder
+    Server->>DB: Create Project (status=pending)
+    Server->>Terminal: terminal:project-builder-command
+    Server-->>Web: {terminalId, commandId, project (pending)}
+
+    Terminal->>Agent: run onezone-project-builder skill (prompt + board request)
+    Agent->>Agent: npx skills find [query] (optional)
+    Agent->>Agent: design kanban columns + skill usage
+    Agent->>Terminal: onezone-terminal project new --project <id> --config <file>
+
+    Terminal->>Server: PATCH /projects/:id (name/description/repository)
+    Terminal->>Server: DELETE existing kanban columns
+    Terminal->>Server: POST kanban-columns (one per generated column)
+    Terminal->>Server: POST project skills (one per suggested skill)
+    Terminal->>Server: PATCH /projects/:id/status {status: ready}
+    Note over Terminal,Server: On any failure, PATCH status {status: failed} instead
+
+    Server->>DB: Update project status
+    Server-->>Web: terminal:project-builder-command:finished {projectId, status}
 ```
 
 ## Deployment Notes

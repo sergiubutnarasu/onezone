@@ -10,29 +10,29 @@ The Onezone backend is a NestJS service that owns authentication, REST resources
 - Nest Schedule and `cron` for recurring task schedules.
 - HTTP-only auth cookies, bearer-token CLI auth, refresh tokens, and device-code login.
 - `class-validator`, `class-transformer`, and shared Zod contracts for payload validation.
-- S3-compatible storage for project-level memory reads and writes.
+- Self-hosted Garage (S3-compatible) storage for project-level memory reads and writes.
 
 ## Runtime Responsibilities
 
 | Area | What it does |
 |---|---|
 | Auth | Signup, login, refresh, logout, current user, CLI device-code activation, admin email lookup |
-| Projects | Project CRUD, import/export, skills, kanban columns, project statistics, project cost stats |
-| Tasks | Task CRUD, reorder, complete, move between columns, assign terminal, task details |
+| Projects | Project CRUD, status updates (`pending`/`ready`/`failed`) for AI-assisted generation, import/export, skills, kanban columns, project statistics, project cost stats |
+| Tasks | Task CRUD, reorder, complete, move between columns, assign terminal, bypass mode, task details |
 | Messages | Chat history, command start/exit records, streamed terminal output |
-| Terminals | Register workers, track connection status, assign tasks, disconnect/delete terminals |
+| Terminals | Register workers, track connection status, assign tasks, dispatch project-builder generation commands, disconnect/delete terminals |
 | Agents | Agent registry and per-user/global model settings |
-| Schedules | Create, update, enable, run, and delete cron-based task schedules |
+| Schedules | Create, update, enable, run, and delete cron-based task schedules, including bypass mode |
 | Notifications | List, count, mark read, and create task/command notifications |
 | Memory | List, read, write, and delete project-scoped key-value entries backed by S3 |
-| S3 | Internal S3-compatible storage service for project memory |
+| S3 | Internal S3-compatible storage service for project memory, talking to the bundled Garage service by default |
 
 ## Development
 
 From the repository root:
 
 ```bash
-docker compose up postgres redis -d
+docker compose up postgres redis garage -d
 pnpm install
 pnpm --filter @onezone/server exec prisma migrate deploy
 pnpm --filter @onezone/server exec prisma db seed
@@ -64,9 +64,11 @@ The server listens on port `5026` by default. The health endpoint is `GET /healt
 | `JWT_EXPIRES_IN` | `15m` in Compose | Yes | Access-token cookie lifetime, for example `15m` or `1h` |
 | `REFRESH_TOKEN_EXPIRES_IN` | `30d` in Compose | Yes | Refresh-token lifetime in days, for example `30d` |
 | `ADMIN_EMAILS` | empty | No | Comma-separated list of emails treated as admins |
-| `S3_ENDPOINT` | none | Yes | S3-compatible endpoint for project memory storage |
+| `S3_ENDPOINT` | none | Yes | S3-compatible endpoint for project memory storage (the bundled Garage service in Compose) |
+| `S3_REGION` | `garage` | No | S3-compatible region name |
 | `S3_ACCESS_KEY_ID` | none | Yes | S3 access key for project memory storage |
 | `S3_SECRET_ACCESS_KEY` | none | Yes | S3 secret key for project memory storage |
+| `S3_BUCKET_NAME` | `onezone` | No | S3 bucket name for project memory storage |
 
 ## API Surface
 
@@ -75,13 +77,13 @@ All routes except explicitly public auth routes are protected by the global JWT 
 | Resource | Routes |
 |---|---|
 | Auth | `POST /auth/signup`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/me`, `POST /auth/device`, `POST /auth/token`, `POST /auth/activate` |
-| Projects | `GET /projects`, `POST /projects`, `GET /projects/statistics`, `GET /projects/:id`, `PATCH /projects/:id`, `DELETE /projects/:id`, `GET /projects/:id/export`, `POST /projects/import`, `GET /projects/:id/cost-stats` |
+| Projects | `GET /projects`, `POST /projects`, `GET /projects/statistics`, `GET /projects/:id`, `PATCH /projects/:id/status`, `PATCH /projects/:id`, `DELETE /projects/:id`, `GET /projects/:id/export`, `POST /projects/import`, `GET /projects/:id/cost-stats` |
 | Project skills | `GET /skills`, `POST /skills`, `DELETE /skills/:skillId`, plus project-scoped skill routes under `/projects/:id/skills` |
 | Kanban columns | `GET/POST /projects/:projectId/kanban-columns`, `GET/PATCH/DELETE /projects/:projectId/kanban-columns/:columnId`, `PUT /projects/:projectId/kanban-columns/reorder` |
 | Tasks | `GET /tasks/:taskId`, `PATCH /tasks/:taskId`, `PATCH /tasks/:taskId/column`, `PATCH /tasks/:taskId/complete`, `PATCH /tasks/:taskId/terminal`, `DELETE /tasks/:taskId` |
 | Project tasks | `GET/POST /projects/:projectId/tasks`, `GET /projects/:projectId/tasks/:taskId`, `PUT /projects/:projectId/tasks/reorder` |
 | Messages | `GET /tasks/:taskId/messages` |
-| Terminals | `GET /terminals`, `POST /terminals/register`, `POST /terminals/:terminalId/disconnect`, `POST /terminals/:terminalId/assign-task`, `DELETE /terminals/:terminalId` |
+| Terminals | `GET /terminals`, `POST /terminals/register`, `POST /terminals/:terminalId/disconnect`, `POST /terminals/:terminalId/assign-task`, `POST /terminals/:terminalId/project-builder`, `DELETE /terminals/:terminalId` |
 | Agents | `GET /agents`, `GET /agents/:id`, `PATCH /agents/:id`, `PATCH /agents/:id/global` |
 | Schedules | `GET/POST /projects/:projectId/schedules`, `GET/PATCH/DELETE /schedules/:id`, `POST /schedules/:id/run` |
 | Memory | `GET /projects/:projectId/memory`, `GET /projects/:projectId/memory/:key`, `POST /projects/:projectId/memory/:key`, `DELETE /projects/:projectId/memory/:key` |
@@ -97,7 +99,10 @@ Socket contracts are defined in `@onezone/shared`. Important events include:
 - `terminal:command:start`, `terminal:command:exit`, `terminal:command:run`, and `terminal:command:stop` for command lifecycle.
 - `terminal:heartbeat` for worker liveness.
 - `terminal:assign-task` for dispatching work to a connected worker.
+- `terminal:project-builder-command`, `terminal:project-builder-command:stop`, and `terminal:project-builder-command:finished` for dispatching, cancelling, and completing AI-assisted project generation on a connected worker.
 - `task:deleted`, `task:column-updated`, `notification:created`, and `project:cost-updated` for live UI updates.
+
+Terminal presence, room membership, and event dispatch are centralized in `TerminalRegistryService` (`src/gateways/terminal-registry.service.ts`), used by both the Socket.io gateway and the `TerminalsController` REST routes.
 
 ## Database
 

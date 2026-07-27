@@ -66,11 +66,17 @@ function SidebarContent({
   agents: Agent[];
 }) {
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ["tasks", projectId, { orderBy: "createdAt", order: "desc" }],
-    queryFn: () => fetchTasks(projectId, { orderBy: "createdAt", order: "desc" }),
+    // Use the same query key as the board page and mutations so the sidebar
+    // stays in sync when tasks are created, edited, moved, or deleted.
+    queryKey: ["tasks", projectId],
+    queryFn: () => fetchTasks(projectId),
   });
 
-  const sortedTasks = tasks;
+  // Keep the sidebar's newest-first ordering while sharing the board's cache.
+  const sortedTasks = [...tasks].sort(
+    (a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
 
   return (
     <>

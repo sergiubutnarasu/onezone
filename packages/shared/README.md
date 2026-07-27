@@ -16,11 +16,12 @@ Shared TypeScript contracts for the Onezone server, web app, and terminal CLI. T
 ## Core Types And Enums
 
 - `AuthUser` for authenticated user identity and admin status.
-- `EventCommands` for Socket.io event names, including chat, terminal command lifecycle, heartbeats, assignment, notifications, and project cost updates.
+- `EventCommands` for Socket.io event names, including chat, terminal command lifecycle, heartbeats, assignment, project-builder generation, notifications, and project cost updates.
 - `MessageRole`, `MessageStream`, and `MessageType` for chat and command output records.
 - `AgentTag` for supported runner tags: `claude-code`, `github-copilot-cli`, and `opencode`.
 - `UnifiedContentBlock` and `ContentBlockKind` for normalized agent output consumed by the web frontend.
-- `Agent`, `ProjectInfo`, `KanbanColumn`, `ProjectSkill`, `Task`, `TaskDetails`, and `Terminal` for the main app resources.
+- `Agent`, `ProjectInfo` (including its `pending`/`ready`/`failed` `status`), `KanbanColumn`, `ProjectSkill`, `Task` and `TaskSchedule` (both with a `bypass` flag), `TaskDetails`, and `Terminal` for the main app resources.
+- `ProjectBuilderCommandPayload`, `ProjectBuilderCommandStopPayload`, and `ProjectBuilderCommandFinishedPayload` for dispatching AI-assisted project/kanban board generation to a terminal.
 - `TaskSchedule` and `CRON_PRESETS` for recurring task automation.
 - `Notification` and `NotificationType` for notification inbox data.
 - `ProjectStatistics` and related summary/row types for usage reporting.
