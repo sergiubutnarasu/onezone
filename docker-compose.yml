@@ -11,6 +11,12 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-onezone} -d ${POSTGRES_DB:-onezone}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     restart: unless-stopped
 
   redis:
@@ -53,7 +59,8 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-onezone}:${POSTGRES_PASSWORD:-onezone}@postgres:5432/${POSTGRES_DB:-onezone}}
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     # One-shot init container: apply pending migrations then seed reference data.
     # `prisma db seed` reads the "prisma.seed" script from package.json.
     # Seed is idempotent (upsert with empty update), so re-runs are safe.
