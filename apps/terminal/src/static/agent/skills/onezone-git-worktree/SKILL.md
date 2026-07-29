@@ -1,11 +1,11 @@
 ---
 name: onezone-git-worktree
-description: "Manage git worktree lifecycle for task isolation. Invoke in 'setup' mode at session start when the project has a repository; invoke in 'commit-and-cleanup' mode before completing the final column to commit, push, and remove the worktree."
+description: "Manage git worktree lifecycle for task isolation. Invoke in 'setup' mode at session start for every task, regardless of whether a repository is configured — it initializes a git repo with `git init` if one doesn't already exist, verifies you're in the correct worktree/branch for this task before reusing one, and syncs from the default branch before creating a new one. Invoke in 'commit-and-cleanup' mode before completing the final column to commit, push, and remove the worktree."
 argument-hint: "setup | commit-and-cleanup"
 license: MIT
 metadata:
   author: Onezone
-  version: "1.0"
+  version: "1.2"
 ---
 
 # Git Worktree Management
@@ -24,35 +24,28 @@ The `taskId` and `taskName` values come from the onezone-runner session input.
 
 ## `setup` Mode
 
-**Goal:** Create an isolated worktree for this task so all file edits happen on a dedicated branch.
+**Goal:** Create an isolated worktree for this task so all file edits happen on a dedicated branch — never leaving work uncommitted in a directory with no version control.
 
-### Step 0: Check if Already in a Worktree
+### Step 0: Ensure a Git Repository Exists
 
-```bash
-GIT_DIR=$(cd "$(git rev-parse --git-dir)" 2>/dev/null && pwd -P)
-GIT_COMMON=$(cd "$(git rev-parse --git-common-dir)" 2>/dev/null && pwd -P)
-git rev-parse --show-superproject-working-tree 2>/dev/null
-```
-
-- If `GIT_DIR != GIT_COMMON` **and** not a submodule: already in a linked worktree — skip to **Step 4** and record the current path as the working directory.
-- Otherwise: continue to Step 1.
-
-### Step 1: Ensure `.worktrees` Is Ignored
-
-Before creating any worktree directory, verify it is in `.gitignore`:
+Work must never happen outside version control. Check whether the current directory is already inside a git repo, and initialize one if not:
 
 ```bash
-grep -qxF '.worktrees' .gitignore 2>/dev/null || echo '.worktrees' >> .gitignore
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 || git init
 ```
 
-If `.gitignore` was modified, commit the change immediately on the current branch:
+A freshly initialized repo has no commits yet, so `git worktree add` has nothing to branch from. Create an initial commit in that case:
 
 ```bash
-git add .gitignore
-git commit -m "chore: ignore .worktrees directory"
+git rev-parse HEAD >/dev/null 2>&1 || {
+  git add -A
+  git commit -m "chore: initial commit" --allow-empty
+}
 ```
 
-### Step 2: Derive the Branch Name
+This step must run unconditionally, whether or not the task's `repository` field is set — a missing `repository` field only means there is no remote configured yet, not that git should be skipped.
+
+### Step 1: Determine This Task's Expected Worktree Path and Branch
 
 Choose a Conventional Commits type based on the task context (`taskName`, `taskDescription`, `kanbanColumnInstructions`):
 
@@ -74,18 +67,62 @@ BRANCH="<type>/<taskId[0:8]>-<slug>"  # e.g. feat/a1b2c3d4-add-user-authenticati
 WORKTREE_PATH=".worktrees/<taskId>"
 ```
 
-### Step 3: Create the Worktree
+### Step 2: Verify You're Already in the Correct Worktree/Branch
+
+Never assume the current directory is right for this task — check it explicitly:
+
+```bash
+TOPLEVEL=$(git rev-parse --show-toplevel 2>/dev/null)
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+```
+
+- If `basename "$TOPLEVEL"` equals `<taskId>`, its parent directory is named `.worktrees`, **and** `$CURRENT_BRANCH` contains the `<taskId[0:8]>` slug: you're already in the correct place — skip straight to **Step 5** and report the current path.
+- Otherwise (main workdir root, or a *different* task's leftover worktree): move back to the main workdir root before continuing, so the remaining steps run from a known location:
+
+```bash
+MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+cd "$MAIN_ROOT"
+```
+
+### Step 3: Ensure `.worktrees` Is Ignored
+
+Before creating any worktree directory, verify it is in `.gitignore`:
+
+```bash
+grep -qxF '.worktrees' .gitignore 2>/dev/null || echo '.worktrees' >> .gitignore
+```
+
+If `.gitignore` was modified, commit the change immediately on the current branch:
+
+```bash
+git add .gitignore
+git commit -m "chore: ignore .worktrees directory"
+```
+
+### Step 4: Create the Worktree (Syncing the Default Branch First)
 
 ```bash
 if [ -d "$WORKTREE_PATH" ]; then
   echo "Worktree already exists at $WORKTREE_PATH — reusing."
 else
-  git worktree add -b "$BRANCH" "$WORKTREE_PATH" 2>/dev/null || \
-    git worktree add -B "$BRANCH" "$WORKTREE_PATH"
+  # No worktree/branch for this task yet — sync the default branch before branching off
+  # it, so the new branch starts from the latest upstream code, not a stale local HEAD.
+  git fetch origin --prune 2>/dev/null
+  DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+  [ -z "$DEFAULT_BRANCH" ] && DEFAULT_BRANCH=$(git remote show origin 2>/dev/null | sed -n '/HEAD branch/s/.*: //p')
+
+  if [ -n "$DEFAULT_BRANCH" ] && git rev-parse --verify "origin/$DEFAULT_BRANCH" >/dev/null 2>&1; then
+    BASE_REF="origin/$DEFAULT_BRANCH"
+  else
+    BASE_REF="HEAD"  # no remote configured yet — branch off the local repo as-is
+  fi
+
+  git worktree add -b "$BRANCH" "$WORKTREE_PATH" "$BASE_REF" 2>/dev/null || \
+    git worktree add -B "$BRANCH" "$WORKTREE_PATH" "$BASE_REF"
 fi
 ```
 
-### Step 4: Switch All Work to the Worktree
+### Step 5: Switch All Work to the Worktree
 
 Change the working directory into the worktree **immediately**:
 
@@ -157,12 +194,14 @@ git worktree remove ".worktrees/<taskId>" --force
 ## Red Flags
 
 **Never:**
-- Skip Step 0 — always detect existing isolation before creating a worktree
+- Skip Step 0 — never do file work in a directory that isn't a git repository; `git init` it first
+- Skip Step 2 — never assume an already-checked-out worktree or branch belongs to this task; verify the path and branch name match `taskId` before reusing it
+- Create a *new* worktree/branch without first fetching and branching off the default branch (Step 4) — stale local state must never be the base for new work
 - Create a worktree without first ensuring `.worktrees` is in `.gitignore`
 - Perform Step 3 (Remove the Worktree) from inside the worktree directory — always `cd` to the main workdir root first
 
 **Always:**
 - Include the first 8 chars of `taskId` as suffix in the branch name for uniqueness
 - Use the same Conventional Commits type for both the branch name and the commit message
-- Treat push failures as non-fatal — cleanup must still proceed
+- Treat push failures as non-fatal — cleanup must still proceed (there may be no remote configured yet)
 - Work exclusively in `.worktrees/<taskId>/` after setup is complete

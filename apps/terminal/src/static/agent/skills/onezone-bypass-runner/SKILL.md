@@ -42,7 +42,7 @@ You **MUST** follow the steps below in order:
    ```
    Use `projectId` and `serverUrl` from the input when running any memory CLI commands requested by the skill. If memory read fails after the skill's retry guidance, continue with the task and mention the failure in your completion summary.
 
-3. **Set up git worktree (if applicable).** If the input contains a non-empty `repository` field, invoke the `onezone-git-worktree` skill in `setup` mode before doing any file work:
+3. **Set up git worktree.** Invoke the `onezone-git-worktree` skill in `setup` mode before doing any file work, regardless of whether a `repository` field is present — the skill runs `git init` first if the project has no git repo yet, so no work is ever lost:
    ```
    onezone-git-worktree setup
    ```
@@ -56,11 +56,11 @@ You **MUST** follow the steps below in order:
    ```
    Record only durable facts learned during this run: commands that worked, bug causes and fixes, architecture patterns, configuration changes, and decisions. Do not write secrets or speculative guesses. If the write fails after the skill's retry guidance, mention the failure in your completion summary.
 
-6. **Commit and clean up (if applicable).** If a git worktree was set up in step 3, invoke the `onezone-git-worktree` skill in `commit-and-cleanup` mode before finishing:
+6. **Commit and clean up.** Invoke the `onezone-git-worktree` skill in `commit-and-cleanup` mode before finishing:
    ```
    onezone-git-worktree commit-and-cleanup
    ```
-   This commits all changes, pushes the branch, and removes the worktree.
+   This commits all changes, pushes the branch (if a remote is configured), and removes the worktree.
 
 7. **Report completion.** Provide a detailed summary of the work done, including any relevant findings or decisions made.
 
