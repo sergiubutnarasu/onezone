@@ -23,13 +23,17 @@
     "build": "tsc && tsc -p tsconfig.cjs.json && echo '{\"type\":\"module\"}' > dist/esm/package.json && echo '{\"type\":\"commonjs\"}' > dist/cjs/package.json",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@onezone/tsconfig": "workspace:*",
-    "typescript": "^5.5.4"
+    "@vitest/coverage-v8": "^3.0.0",
+    "typescript": "^5.5.4",
+    "vitest": "^3.0.0"
   }
 }
