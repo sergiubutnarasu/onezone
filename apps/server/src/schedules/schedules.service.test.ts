@@ -98,6 +98,16 @@ describe('SchedulesService', () => {
       await service.onModuleInit();
       expect(schedulerRegistry.addCronJob).not.toHaveBeenCalled();
     });
+
+    it('replaces an already-registered cron job for the same schedule id', async () => {
+      prisma.taskSchedule.findMany.mockResolvedValue([
+        { id: 'sched-1', cronExpression: '0 9 * * *', enabled: true },
+        { id: 'sched-1', cronExpression: '0 10 * * *', enabled: true },
+      ]);
+      await service.onModuleInit();
+      expect(schedulerRegistry.deleteCronJob).toHaveBeenCalledWith('schedule:sched-1');
+      expect(schedulerRegistry.addCronJob).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('findAllByProject', () => {
@@ -182,6 +192,109 @@ describe('SchedulesService', () => {
       expect(schedulerRegistry.addCronJob).toHaveBeenCalled();
     });
 
+    it('registered cron job calls fire() on tick and logs on failure', async () => {
+      prisma.project.findUnique.mockResolvedValue({ id: 'proj-1' });
+      prisma.terminal.findUnique.mockResolvedValue({ id: 'term-1' });
+      prisma.kanbanColumn.findUnique.mockResolvedValue({
+        id: 'col-1',
+        projectId: 'proj-1',
+        userId: 'user-1',
+      });
+      prisma.taskSchedule.create.mockResolvedValue({
+        id: 'sched-1',
+        enabled: true,
+        cronExpression: '0 9 * * *',
+        timezone: 'UTC',
+      });
+      prisma.taskSchedule.findUnique.mockResolvedValue({
+        id: 'sched-1',
+        userId: 'user-1',
+        name: 'Daily',
+      });
+
+      await service.create('proj-1', {
+        name: 'Daily',
+        cronExpression: '0 9 * * *',
+        timezone: 'UTC',
+        startColumnId: 'col-1',
+        terminalId: 'term-1',
+      } as any, 'user-1');
+
+      const job = schedulerRegistry.getCronJob('schedule:sched-1') as any;
+      const fireSpy = vi.spyOn(service as any, 'fire').mockRejectedValue(new Error('boom'));
+      job.onTick();
+      expect(fireSpy).toHaveBeenCalledWith('sched-1');
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    it('applies defaults for optional flags and timezone when omitted', async () => {
+      prisma.project.findUnique.mockResolvedValue({ id: 'proj-1' });
+      prisma.terminal.findUnique.mockResolvedValue({ id: 'term-1' });
+      prisma.kanbanColumn.findUnique.mockResolvedValue({
+        id: 'col-1',
+        projectId: 'proj-1',
+        userId: 'user-1',
+      });
+      prisma.taskSchedule.create.mockResolvedValue({
+        id: 'sched-1',
+        enabled: true,
+        cronExpression: '0 9 * * *',
+      });
+      prisma.taskSchedule.findUnique.mockResolvedValue({
+        id: 'sched-1',
+        userId: 'user-1',
+        name: 'Daily',
+      });
+
+      await service.create('proj-1', {
+        name: 'Daily',
+        description: 'Daily task',
+        cronExpression: '0 9 * * *',
+        startColumnId: 'col-1',
+        terminalId: 'term-1',
+      } as any, 'user-1');
+
+      expect(prisma.taskSchedule.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            useScheduleAgentAndModel: false,
+            bypass: false,
+            enabled: true,
+            runOnce: false,
+          }),
+        }),
+      );
+    });
+
+    it('throws NotFoundException when terminal is not owned', async () => {
+      prisma.project.findUnique.mockResolvedValue({ id: 'proj-1' });
+      prisma.terminal.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.create('proj-1', {
+          name: 'Daily',
+          cronExpression: '0 9 * * *',
+          startColumnId: 'col-1',
+          terminalId: 'missing-term',
+        } as any, 'user-1'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws BadRequestException for an invalid cron expression', async () => {
+      prisma.project.findUnique.mockResolvedValue({ id: 'proj-1' });
+      prisma.terminal.findUnique.mockResolvedValue({ id: 'term-1' });
+
+      await expect(
+        service.create('proj-1', {
+          name: 'Daily',
+          cronExpression: 'invalid',
+          startColumnId: 'col-1',
+          terminalId: 'term-1',
+        } as any, 'user-1'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
     it('throws BadRequestException when column does not belong to project', async () => {
       prisma.project.findUnique.mockResolvedValue({ id: 'proj-1' });
       prisma.terminal.findUnique.mockResolvedValue({ id: 'term-1' });
@@ -252,6 +365,71 @@ describe('SchedulesService', () => {
         service.update('sched-1', { startColumnId: 'col-2' }, 'user-1'),
       ).rejects.toThrow(BadRequestException);
     });
+
+    it('updates startColumnId when the new column belongs to the project', async () => {
+      prisma.taskSchedule.findUnique.mockResolvedValue({
+        id: 'sched-1',
+        userId: 'user-1',
+        projectId: 'proj-1',
+        startColumnId: 'col-1',
+        enabled: true,
+        cronExpression: '0 9 * * *',
+        timezone: 'UTC',
+      });
+      prisma.kanbanColumn.findUnique.mockResolvedValue({
+        id: 'col-2',
+        projectId: 'proj-1',
+        userId: 'user-1',
+      });
+      prisma.taskSchedule.update.mockResolvedValue({
+        id: 'sched-1',
+        enabled: true,
+        cronExpression: '0 9 * * *',
+      });
+
+      const result = await service.update('sched-1', { startColumnId: 'col-2' }, 'user-1');
+      expect(result).toBeDefined();
+    });
+
+    it('falls back to the existing timezone when validating an updated cron expression without one', async () => {
+      prisma.taskSchedule.findUnique.mockResolvedValue({
+        id: 'sched-1',
+        userId: 'user-1',
+        projectId: 'proj-1',
+        startColumnId: 'col-1',
+        enabled: true,
+        cronExpression: '0 9 * * *',
+        timezone: 'UTC',
+      });
+      prisma.taskSchedule.update.mockResolvedValue({
+        id: 'sched-1',
+        enabled: true,
+        cronExpression: '0 10 * * *',
+      });
+
+      const result = await service.update('sched-1', { cronExpression: '0 10 * * *' }, 'user-1');
+      expect(result).toBeDefined();
+    });
+
+    it('registers the cron job without a timezone when neither schedule has one', async () => {
+      prisma.taskSchedule.findUnique.mockResolvedValue({
+        id: 'sched-1',
+        userId: 'user-1',
+        projectId: 'proj-1',
+        startColumnId: 'col-1',
+        enabled: true,
+        cronExpression: '0 9 * * *',
+      });
+      prisma.taskSchedule.update.mockResolvedValue({
+        id: 'sched-1',
+        enabled: true,
+        cronExpression: '0 10 * * *',
+      });
+
+      const result = await service.update('sched-1', { cronExpression: '0 10 * * *' }, 'user-1');
+      expect(result).toBeDefined();
+      expect(schedulerRegistry.addCronJob).toHaveBeenCalled();
+    });
   });
 
   describe('remove', () => {
@@ -298,6 +476,28 @@ describe('SchedulesService', () => {
 
       await service.runNow('sched-1', 'user-1');
       expect(tasksService.create).toHaveBeenCalled();
+    });
+
+    it('does not create a task and unregisters the cron job when the schedule is disabled by the time it fires', async () => {
+      schedulerRegistry.addCronJob('schedule:sched-1', { stop: vi.fn() } as any);
+      prisma.taskSchedule.findUnique
+        .mockResolvedValueOnce({
+          id: 'sched-1',
+          userId: 'user-1',
+          name: 'Daily',
+          enabled: true,
+          projectId: 'proj-1',
+        })
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({
+          id: 'sched-1',
+          userId: 'user-1',
+          name: 'Daily',
+        });
+
+      await service.runNow('sched-1', 'user-1');
+      expect(tasksService.create).not.toHaveBeenCalled();
+      expect(schedulerRegistry.deleteCronJob).toHaveBeenCalledWith('schedule:sched-1');
     });
 
     it('unregisters cron job when runOnce schedule fires', async () => {

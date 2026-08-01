@@ -206,4 +206,62 @@ describe('AllExceptionsFilter', () => {
       message: 'An unexpected error occurred',
     });
   });
+
+  it('handles non-Error exceptions (logs String(exception) instead of stack)', () => {
+    const res = createMockResponse();
+    const req = { method: 'GET', url: '/test' } as Request;
+    const host = createMockArgumentsHost(req, res);
+
+    filter.catch('a plain string exception', host);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+  });
+
+  it('falls back to exception.message when HttpException response object has no message', () => {
+    const res = createMockResponse();
+    const req = { method: 'POST', url: '/test' } as Request;
+    const host = createMockArgumentsHost(req, res);
+    const exception = new HttpException({ error: 'Bad Request' }, HttpStatus.BAD_REQUEST);
+
+    filter.catch(exception, host);
+
+    expect(res.json).toHaveBeenCalledWith({
+      statusCode: 400,
+      error: 'BAD_REQUEST',
+      message: exception.message,
+    });
+  });
+
+  it('falls back to "Error" when the status code has no HttpStatus name', () => {
+    const res = createMockResponse();
+    const req = { method: 'GET', url: '/test' } as Request;
+    const host = createMockArgumentsHost(req, res);
+    const exception = new HttpException('Custom', 499);
+
+    filter.catch(exception, host);
+
+    expect(res.json).toHaveBeenCalledWith({
+      statusCode: 499,
+      error: 'Error',
+      message: 'Custom',
+    });
+  });
+
+  it('handles Prisma P2002 error without meta.target', () => {
+    const res = createMockResponse();
+    const req = { method: 'POST', url: '/test' } as Request;
+    const host = createMockArgumentsHost(req, res);
+    const exception = new Prisma.PrismaClientKnownRequestError('P2002 error', {
+      clientVersion: '5.0.0',
+      code: 'P2002',
+    });
+
+    filter.catch(exception, host);
+
+    expect(res.json).toHaveBeenCalledWith({
+      statusCode: 409,
+      error: 'Conflict',
+      message: 'Duplicate value for field',
+    });
+  });
 });

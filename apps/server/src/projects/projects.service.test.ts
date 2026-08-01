@@ -161,6 +161,45 @@ describe('ProjectsService', () => {
       expect(result.totals.totalTasks).toBe(0);
       expect(result.projects).toHaveLength(0);
     });
+
+    it('skips messages for unknown projects and null exit codes, and defaults null token/cost fields to 0', async () => {
+      prisma.project.findMany.mockResolvedValue([
+        {
+          id: 'proj-1',
+          name: 'Project 1',
+          tasks: [],
+        },
+      ]);
+      prisma.message.findMany.mockResolvedValue([
+        {
+          exitCode: null,
+          inputTokens: null,
+          outputTokens: null,
+          totalCostUsd: null,
+          task: { projectId: 'proj-1' },
+        },
+        {
+          exitCode: 0,
+          inputTokens: null,
+          outputTokens: null,
+          totalCostUsd: null,
+          task: { projectId: 'unknown-proj' },
+        },
+        {
+          exitCode: 0,
+          inputTokens: null,
+          outputTokens: null,
+          totalCostUsd: null,
+          task: { projectId: 'proj-1' },
+        },
+      ]);
+
+      const result = await service.getStatistics('user-1');
+      expect(result.projects[0].jobsSucceeded).toBe(1);
+      expect(result.projects[0].inputTokens).toBe(0);
+      expect(result.projects[0].outputTokens).toBe(0);
+      expect(result.projects[0].costUsd).toBe(0);
+    });
   });
 
   describe('findOne', () => {
@@ -203,6 +242,14 @@ describe('ProjectsService', () => {
       prisma.project.update.mockResolvedValue({ id: 'proj-1', status: 'ready' });
       await service.updateStatus('proj-1', 'ready', 'user-1');
       expect(terminalRegistry.notifyProjectBuilderCommandFinished).not.toHaveBeenCalled();
+    });
+
+    it('notifies when transitioning to failed', async () => {
+      prisma.project.findUnique.mockResolvedValue({ id: 'proj-1', status: 'pending' });
+      prisma.project.update.mockResolvedValue({ id: 'proj-1', status: 'failed' });
+      const result = await service.updateStatus('proj-1', 'failed', 'user-1');
+      expect(result.status).toBe('failed');
+      expect(terminalRegistry.notifyProjectBuilderCommandFinished).toHaveBeenCalled();
     });
   });
 
@@ -338,6 +385,22 @@ describe('ProjectsService', () => {
       prisma.project.findUnique.mockResolvedValue(null);
       await expect(service.exportConfig('proj-1', 'user-1')).rejects.toThrow(NotFoundException);
     });
+
+    it('defaults description and repository to null when missing', async () => {
+      prisma.project.findUnique.mockResolvedValue({
+        id: 'proj-1',
+        name: 'Project 1',
+        description: null,
+        repository: null,
+        defaultModel: 'claude-3',
+        defaultAgent: { name: 'Claude' },
+        kanbanColumns: [],
+        skills: [],
+      });
+      const result = await service.exportConfig('proj-1', 'user-1');
+      expect(result.description).toBeNull();
+      expect(result.repository).toBeNull();
+    });
   });
 
   describe('importConfig', () => {
@@ -408,6 +471,52 @@ describe('ProjectsService', () => {
       );
       expect(result).toHaveProperty('id', 'proj-1');
       expect(kanbanColumnsService.createDefaults).toHaveBeenCalledWith('proj-1', 'user-1', expect.anything());
+    });
+
+    it('resolves column agents that are already mapped, newly found, or missing from the DB', async () => {
+      prisma.agent.findFirst.mockImplementation(async ({ where }: any) => {
+        if (where.name === 'Claude') return { id: 'agent-1', name: 'Claude' };
+        if (where.name === 'Other') return { id: 'agent-2', name: 'Other' };
+        return null;
+      });
+      prisma.project.create.mockResolvedValue({ id: 'proj-1' });
+      const createManyMock = vi.fn();
+      prisma.$transaction.mockImplementation(async (fn) => {
+        const tx = {
+          ...prisma,
+          $transaction: undefined,
+          kanbanColumn: { ...prisma.kanbanColumn, createMany: createManyMock },
+          projectSkill: { ...prisma.projectSkill, createMany: vi.fn() },
+        };
+        return await fn(tx);
+      });
+
+      await service.importConfig(
+        {
+          version: '1',
+          name: 'Imported Project',
+          defaultAgent: 'Claude',
+          defaultModel: 'claude-3',
+          columns: [
+            { name: 'Claude Col', instructions: 'do it', agent: 'Claude' },
+            { name: 'Other Col', instructions: 'do it', agent: 'Other', model: 'gpt-4' },
+            { name: 'Missing Col', instructions: 'do it', agent: 'Missing' },
+            { name: 'No Agent Col', instructions: 'do it' },
+          ],
+        },
+        'user-1',
+      );
+
+      expect(createManyMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.arrayContaining([
+            expect.objectContaining({ name: 'Claude Col', agentId: 'agent-1' }),
+            expect.objectContaining({ name: 'Other Col', agentId: 'agent-2', model: 'gpt-4' }),
+            expect.objectContaining({ name: 'Missing Col', agentId: null }),
+            expect.objectContaining({ name: 'No Agent Col', agentId: null }),
+          ]),
+        }),
+      );
     });
   });
 

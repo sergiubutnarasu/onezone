@@ -3,6 +3,16 @@ import { KanbanColumnsService, sanitizeKanbanColumnName, sanitizeKanbanColumnIns
 import type { PrismaService } from '../prisma/prisma.service.js';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 
+// Includes a column with no agent/model and one with an agent missing from the DB,
+// so both the found/not-found and present/absent branches are exercised.
+vi.mock('./constants.js', () => ({
+  DEFAULT_KANBAN_COLUMNS: [
+    { name: 'Plan', instructions: 'Plan it', index: 0, agent: 'Claude Code', model: 'model-a' },
+    { name: 'Backlog Review', instructions: 'Review it', index: 1, agent: 'Missing Agent', model: 'model-b' },
+    { name: 'Done', instructions: 'Finish it', index: 2 },
+  ],
+}));
+
 const createMockPrisma = () => {
   const m = {
     kanbanColumn: {
@@ -146,15 +156,34 @@ describe('KanbanColumnsService', () => {
         service.create('proj-1', { name: 'backlog', instructions: 'instructions' }, 'user-1'),
       ).rejects.toThrow(BadRequestException);
     });
+
+    it('defaults index to 0 when no existing columns', async () => {
+      prisma.kanbanColumn.aggregate.mockResolvedValue({ _max: { index: null } });
+      prisma.kanbanColumn.create.mockResolvedValue({ id: 'col-1' });
+      await service.create('proj-1', { name: 'First', instructions: 'do it' }, 'user-1');
+      expect(prisma.kanbanColumn.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ index: 0 }) }),
+      );
+    });
   });
 
   describe('createDefaults', () => {
-    it('creates default columns', async () => {
-      prisma.agent.findFirst.mockResolvedValue({ id: 'agent-1' });
-      prisma.kanbanColumn.createMany.mockResolvedValue({ count: 2 });
+    it('creates default columns, resolving found/missing agents and missing model', async () => {
+      prisma.agent.findFirst.mockImplementation(async ({ where }: any) =>
+        where.name === 'Claude Code' ? { id: 'agent-1' } : null,
+      );
+      prisma.kanbanColumn.createMany.mockResolvedValue({ count: 3 });
       prisma.kanbanColumn.findMany.mockResolvedValue([]);
       const result = await service.createDefaults('proj-1', 'user-1');
-      expect(prisma.kanbanColumn.createMany).toHaveBeenCalled();
+      expect(prisma.kanbanColumn.createMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.arrayContaining([
+            expect.objectContaining({ name: 'Plan', agentId: 'agent-1', model: 'model-a' }),
+            expect.objectContaining({ name: 'Backlog Review', agentId: null, model: 'model-b' }),
+            expect.objectContaining({ name: 'Done', agentId: null, model: null }),
+          ]),
+        }),
+      );
       expect(result).toEqual([]);
     });
 
@@ -188,6 +217,16 @@ describe('KanbanColumnsService', () => {
     it('throws NotFoundException when column not found', async () => {
       prisma.kanbanColumn.findUnique.mockResolvedValue(null);
       await expect(service.update('col-1', { name: 'Done' }, 'proj-1', 'user-1')).rejects.toThrow(NotFoundException);
+    });
+
+    it('updates column agentId and model', async () => {
+      prisma.kanbanColumn.findUnique.mockResolvedValue({ id: 'col-1', projectId: 'proj-1', userId: 'user-1' });
+      prisma.kanbanColumn.update.mockResolvedValue({ id: 'col-1', agentId: 'agent-2', model: 'model-x' });
+      const result = await service.update('col-1', { agentId: 'agent-2', model: 'model-x' }, 'proj-1', 'user-1');
+      expect(prisma.kanbanColumn.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { agentId: 'agent-2', model: 'model-x' } }),
+      );
+      expect(result.agentId).toBe('agent-2');
     });
   });
 

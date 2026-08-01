@@ -43,6 +43,7 @@ const createMockPrisma = () =>
     kanbanColumn: {
       findUnique: vi.fn(),
       findMany: vi.fn().mockResolvedValue([]),
+      aggregate: vi.fn(),
     },
     projectSkill: {
       findMany: vi.fn().mockResolvedValue([]),
@@ -203,6 +204,78 @@ describe('TasksService', () => {
         userId: 'user-1',
       });
     });
+
+    it('resolves project defaultAgent, skills, and column agent when building the chat message', async () => {
+      const columnWithAgent = {
+        id: 'col-1',
+        name: 'To Do',
+        projectId: 'proj-1',
+        userId: 'user-1',
+        instructions: '',
+        index: 0,
+        agentId: 'agent-2',
+        model: 'gpt-4',
+        createdAt: new Date(),
+      };
+      prisma.project.findUnique.mockResolvedValue({
+        id: 'proj-1',
+        defaultAgentId: 'agent-1',
+        defaultModel: 'claude-3',
+      });
+      prisma.terminal.findUnique.mockResolvedValue({ id: 'term-1' });
+      prisma.kanbanColumn.findUnique.mockResolvedValue(columnWithAgent);
+      prisma.kanbanColumn.findMany.mockResolvedValue([columnWithAgent]);
+      prisma.agent.findUnique.mockResolvedValue({ id: 'agent-2', name: 'GPT', tag: 'GPT4' });
+      prisma.task.count.mockResolvedValue(0);
+      prisma.task.findUnique.mockResolvedValue({
+        id: 'task-1',
+        name: 'Task 1',
+        agent: null,
+        columnAssignment: { column: columnWithAgent },
+        terminalAssignment: { terminal: { id: 'term-1', name: 'Terminal 1' } },
+        completedAt: null,
+        project: {
+          id: 'proj-1',
+          name: 'Project 1',
+          status: 'active',
+          defaultAgentId: 'agent-1',
+          defaultAgent: { id: 'agent-1', name: 'Claude', tag: 'ClaudeCode' },
+          defaultModel: 'claude-3',
+          createdAt: new Date().toISOString(),
+          skills: [{ id: 'skill-1', source: 'npm', skillName: 'react' }],
+          kanbanColumns: [],
+        },
+      });
+
+      const txMock = {
+        task: {
+          create: vi.fn().mockResolvedValue({ id: 'task-1' }),
+          findUniqueOrThrow: vi.fn().mockResolvedValue({
+            id: 'task-1',
+            name: 'Task 1',
+            terminalAssignment: { terminal: { id: 'term-1', name: 'Terminal 1' } },
+            columnAssignment: { column: columnWithAgent },
+            agent: null,
+          }),
+        },
+        taskTerminal: { create: vi.fn() },
+        taskColumn: { create: vi.fn() },
+      };
+      prisma.$transaction.mockImplementation(async (fn: any) => {
+        if (typeof fn === 'function') return await fn(txMock);
+        return Promise.resolve();
+      });
+
+      await service.create('proj-1', {
+        name: 'Task 1',
+        terminalId: 'term-1',
+        columnId: 'col-1',
+        userId: 'user-1',
+      });
+      expect(prisma.agent.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'agent-2' } }),
+      );
+    });
   });
 
   describe('findAllByProject', () => {
@@ -225,6 +298,15 @@ describe('TasksService', () => {
       prisma.task.findMany.mockResolvedValue([]);
       const result = await service.findAllByProject('proj-1', 'user-1');
       expect(result).toHaveLength(0);
+    });
+
+    it('orders by createdAt when requested', async () => {
+      prisma.project.findUnique.mockResolvedValue({ id: 'proj-1' });
+      prisma.task.findMany.mockResolvedValue([]);
+      await service.findAllByProject('proj-1', 'user-1', { orderBy: 'createdAt', order: 'asc' });
+      expect(prisma.task.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ orderBy: [{ createdAt: 'asc' }, { createdAt: 'desc' }] }),
+      );
     });
   });
 
@@ -253,6 +335,39 @@ describe('TasksService', () => {
     it('throws NotFoundException when task not found', async () => {
       prisma.task.findUnique.mockResolvedValue(null);
       await expect(service.findOne('task-1', 'user-1')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('findOneDetails', () => {
+    it('returns task details with resolved columns and skills', async () => {
+      prisma.task.findUnique.mockResolvedValue({
+        id: 'task-1',
+        name: 'Task 1',
+        agent: { id: 'agent-1', name: 'Claude', tag: 'ClaudeCode' },
+        columnAssignment: {
+          column: { id: 'col-1', name: 'To Do', createdAt: new Date(), agent: null },
+        },
+        project: {
+          id: 'proj-1',
+          name: 'Project 1',
+          status: 'active',
+          defaultAgentId: 'agent-1',
+          defaultAgent: { id: 'agent-1', name: 'Claude', tag: 'ClaudeCode' },
+          defaultModel: 'claude-3',
+          createdAt: new Date().toISOString(),
+          skills: [{ id: 'skill-1', source: 'npm', skillName: 'react' }],
+          kanbanColumns: [{ id: 'col-1', name: 'To Do', createdAt: new Date() }],
+        },
+      });
+      prisma.projectSkill.findMany.mockResolvedValue([]);
+      const result = await service.findOneDetails('task-1', 'user-1');
+      expect(result.id).toBe('task-1');
+      expect(result.column?.id).toBe('col-1');
+    });
+
+    it('throws NotFoundException when task not found', async () => {
+      prisma.task.findUnique.mockResolvedValue(null);
+      await expect(service.findOneDetails('task-1', 'user-1')).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -453,9 +568,162 @@ describe('TasksService', () => {
       prisma.task.findUnique.mockResolvedValue(null);
       await expect(service.setCompleted('task-1', true, 'user-1')).rejects.toThrow(NotFoundException);
     });
+
+    it('reassigns the active terminal instead of notifying when marking incomplete', async () => {
+      const task = {
+        id: 'task-1',
+        name: 'Task 1',
+        agent: null,
+        columnAssignment: null,
+        terminalAssignment: { terminal: { id: 'term-1', name: 'Terminal 1' } },
+        completedAt: null,
+        project: {
+          id: 'proj-1',
+          name: 'Project 1',
+          status: 'active',
+          defaultAgentId: 'agent-1',
+          defaultModel: 'claude-3',
+          createdAt: new Date().toISOString(),
+          skills: [],
+          kanbanColumns: [],
+        },
+      };
+      prisma.task.findUnique.mockResolvedValue(task);
+      prisma.task.update.mockResolvedValue({ id: 'task-1', completedAt: null });
+
+      const result = await service.setCompleted('task-1', false, 'user-1');
+      expect(result).toBeDefined();
+      expect(notificationsService.create).not.toHaveBeenCalled();
+      expect(terminalRegistry.assignTask).toHaveBeenCalled();
+      expect(terminalRegistry.disconnectTaskTerminal).not.toHaveBeenCalled();
+    });
+
+    it('logs a warning without failing when the completion notification fails', async () => {
+      const baseTask = {
+        id: 'task-1',
+        name: 'Task 1',
+        agent: null,
+        columnAssignment: null,
+        project: {
+          id: 'proj-1',
+          name: 'Project 1',
+          status: 'active',
+          defaultAgentId: 'agent-1',
+          defaultModel: 'claude-3',
+          createdAt: new Date().toISOString(),
+          skills: [],
+          kanbanColumns: [],
+        },
+      };
+      prisma.task.findUnique
+        .mockResolvedValueOnce(baseTask)
+        .mockResolvedValueOnce({ ...baseTask, completedAt: new Date() });
+      prisma.task.update.mockResolvedValue({ id: 'task-1', completedAt: new Date() });
+      prisma.message.findMany.mockResolvedValue([]);
+      notificationsService.create.mockRejectedValue(new Error('notification failed'));
+
+      const result = await service.setCompleted('task-1', true, 'user-1');
+      expect(result).toHaveProperty('completedAt');
+      expect(notificationsService.create).toHaveBeenCalled();
+    });
+
+    it('closes open commands for a completed task, skipping already-closed and missing jobs', async () => {
+      const baseTask = {
+        id: 'task-1',
+        name: 'Task 1',
+        agent: null,
+        columnAssignment: null,
+        project: {
+          id: 'proj-1',
+          name: 'Project 1',
+          status: 'active',
+          defaultAgentId: 'agent-1',
+          defaultModel: 'claude-3',
+          createdAt: new Date().toISOString(),
+          skills: [],
+          kanbanColumns: [],
+        },
+      };
+      prisma.task.findUnique
+        .mockResolvedValueOnce(baseTask)
+        .mockResolvedValueOnce({ ...baseTask, completedAt: new Date() });
+      prisma.task.update.mockResolvedValue({ id: 'task-1', completedAt: new Date() });
+      prisma.message.findMany.mockResolvedValue([
+        { jobId: null, messageType: MessageType.COMMAND_START, exitCode: null, roomId: 'room-1' },
+        {
+          jobId: 'job-1',
+          messageType: MessageType.COMMAND_START,
+          exitCode: null,
+          roomId: 'room-1',
+          terminalId: 'term-1',
+          terminalName: 'Terminal 1',
+          command: 'ls',
+          agentId: 'agent-1',
+          model: 'claude-3',
+        },
+        {
+          jobId: 'job-2',
+          messageType: MessageType.COMMAND_START,
+          exitCode: null,
+          roomId: 'room-1',
+          terminalId: null,
+          terminalName: null,
+          command: null,
+          agentId: null,
+          model: null,
+        },
+        {
+          jobId: 'job-2',
+          messageType: MessageType.COMMAND_EXIT,
+          exitCode: 0,
+          roomId: 'room-1',
+        },
+      ]);
+      prisma.message.create.mockResolvedValue({});
+
+      const result = await service.setCompleted('task-1', true, 'user-1');
+      expect(result).toHaveProperty('completedAt');
+      expect(prisma.message.create).toHaveBeenCalledTimes(1);
+      expect(terminalRegistry.notifyCommandExit).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('updateColumn', () => {
+    it('clears the column assignment when columnId is null', async () => {
+      const taskWithColumn = {
+        id: 'task-1',
+        name: 'Task 1',
+        agent: null,
+        columnAssignment: { column: { id: 'col-1', name: 'To Do' } },
+        completedAt: null,
+        project: {
+          id: 'proj-1',
+          name: 'Project 1',
+          status: 'active',
+          defaultAgentId: 'agent-1',
+          defaultModel: 'claude-3',
+          createdAt: new Date().toISOString(),
+          skills: [],
+          kanbanColumns: [],
+        },
+      };
+      prisma.task.findUnique
+        .mockResolvedValueOnce(taskWithColumn)
+        .mockResolvedValueOnce({ ...taskWithColumn, columnAssignment: null });
+      const txMock = {
+        task: { update: vi.fn() },
+        taskColumn: { deleteMany: vi.fn(), upsert: vi.fn() },
+      };
+      prisma.$transaction.mockImplementation(async (fn: any) => {
+        if (typeof fn === 'function') return await fn(txMock);
+        return Promise.resolve();
+      });
+
+      const result = await service.updateColumn('task-1', null, 'user-1');
+      expect(txMock.taskColumn.deleteMany).toHaveBeenCalledWith({ where: { taskId: 'task-1' } });
+      expect(result).toBeDefined();
+    });
+
     it('updates task column', async () => {
       prisma.task.findUnique.mockResolvedValue({
         id: 'task-1',
@@ -535,6 +803,45 @@ describe('TasksService', () => {
     });
   });
 
+  describe('isTaskOnLastColumn', () => {
+    it('returns true when task has no column assignment', async () => {
+      prisma.task.findUnique.mockResolvedValue({
+        id: 'task-1',
+        projectId: 'proj-1',
+        columnAssignment: null,
+      });
+      const result = await service.isTaskOnLastColumn('task-1', 'user-1');
+      expect(result).toBe(true);
+    });
+
+    it('returns true when the column is the last by index', async () => {
+      prisma.task.findUnique.mockResolvedValue({
+        id: 'task-1',
+        projectId: 'proj-1',
+        columnAssignment: { column: { index: 2 } },
+      });
+      prisma.kanbanColumn.aggregate.mockResolvedValue({ _max: { index: 2 } });
+      const result = await service.isTaskOnLastColumn('task-1', 'user-1');
+      expect(result).toBe(true);
+    });
+
+    it('returns false when a later column exists', async () => {
+      prisma.task.findUnique.mockResolvedValue({
+        id: 'task-1',
+        projectId: 'proj-1',
+        columnAssignment: { column: { index: 0 } },
+      });
+      prisma.kanbanColumn.aggregate.mockResolvedValue({ _max: { index: 2 } });
+      const result = await service.isTaskOnLastColumn('task-1', 'user-1');
+      expect(result).toBe(false);
+    });
+
+    it('throws NotFoundException when task not found', async () => {
+      prisma.task.findUnique.mockResolvedValue(null);
+      await expect(service.isTaskOnLastColumn('task-1', 'user-1')).rejects.toThrow(NotFoundException);
+    });
+  });
+
   describe('reorder', () => {
     it('reorders tasks', async () => {
       prisma.project.findUnique.mockResolvedValue({ id: 'proj-1' });
@@ -600,6 +907,32 @@ describe('TasksService', () => {
       await expect(
         service.reorder('proj-1', [{ id: 'task-1', order: 0, columnId: null }], 'user-1'),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('notifies with a null column when the target column lookup returns nothing', async () => {
+      prisma.project.findUnique.mockResolvedValue({ id: 'proj-1' });
+      prisma.task.findMany.mockResolvedValue([
+        { id: 'task-1', order: 0, columnAssignment: null },
+      ]);
+      prisma.task.findUnique.mockResolvedValue({
+        id: 'task-1', name: 'Task 1', agent: null, columnAssignment: null,
+        project: { id: 'proj-1', name: 'Project 1', status: 'active', defaultAgentId: 'agent-1', defaultModel: 'claude-3', createdAt: new Date().toISOString(), skills: [], kanbanColumns: [] },
+      });
+      prisma.kanbanColumn.findMany.mockResolvedValue([{ id: 'col-1' }]);
+      prisma.kanbanColumn.findUnique.mockResolvedValue(null);
+      const txMock = {
+        task: { update: vi.fn() },
+        taskColumn: { deleteMany: vi.fn(), upsert: vi.fn() },
+      };
+      prisma.$transaction.mockImplementation(async (fn: any) => {
+        if (typeof fn === 'function') return await fn(txMock);
+        return Promise.resolve();
+      });
+
+      await service.reorder('proj-1', [{ id: 'task-1', order: 0, columnId: 'col-1' }], 'user-1');
+      expect(prisma.kanbanColumn.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'col-1' } }),
+      );
     });
 
     it('throws when columnIds do not belong to project', async () => {
@@ -673,6 +1006,31 @@ describe('TasksService', () => {
       const result = await service.findByTerminal('term-1');
       expect(result).toHaveLength(1);
       expect(result[0].column).toBeNull();
+    });
+
+    it('defaults project skills to an empty array when missing', async () => {
+      prisma.taskTerminal.findMany.mockResolvedValue([
+        {
+          task: {
+            id: 'task-1',
+            name: 'Task 1',
+            userId: 'user-1',
+            columnAssignment: null,
+            project: {
+              id: 'proj-1',
+              name: 'Project 1',
+              defaultAgent: null,
+              kanbanColumns: [],
+              createdAt: new Date(),
+            },
+            agent: null,
+          },
+        },
+      ]);
+      prisma.projectSkill.findMany.mockResolvedValue([{ id: 'skill-1', source: 'npm', skillName: 'react' }]);
+      const result = await service.findByTerminal('term-1');
+      expect(result).toHaveLength(1);
+      expect(result[0].project.skills).toHaveLength(1);
     });
 
     it('maps column agent in findByTerminal', async () => {
