@@ -40,9 +40,26 @@ export async function createAcpClient(opts: {
   );
 
   const updateHandlers = new Set<(update: Record<string, unknown>) => void>();
+  const chunks: string[] = [];
+
+  let rejectInit: (err: Error) => void;
+  const spawnError = new Promise<never>((_, reject) => {
+    rejectInit = reject;
+  });
+  child.on('error', (err) => {
+    rejectInit(new Error(`Failed to spawn ACP agent: ${err.message}`));
+  });
+
   const app = acpClient({ name: 'onezone-terminal' })
     .onNotification(methods.client.session.update, (ctx) => {
-      for (const h of updateHandlers) h(ctx.params.update as Record<string, unknown>);
+      const update = ctx.params.update as Record<string, unknown>;
+      if (update?.sessionUpdate === 'agent_message_chunk') {
+        const text = (update as any).content?.text;
+        if (typeof text === 'string') {
+          chunks.push(text);
+        }
+      }
+      for (const h of updateHandlers) h(update);
     })
     // Auto-approve every permission request, mirroring today's allow-list.
     .onRequest(methods.client.session.requestPermission, (ctx) => {
@@ -56,16 +73,16 @@ export async function createAcpClient(opts: {
 
   const agent = app.agent;
 
-  await agent.request(methods.agent.initialize, {
+  await Promise.race([spawnError, agent.request(methods.agent.initialize, {
     protocolVersion: PROTOCOL_VERSION,
     clientCapabilities: {
       fs: { readTextFile: true, writeTextFile: true },
       terminal: false,
     },
     clientInfo: { name: 'onezone-terminal', version: '0.0.1' },
-  });
+  })]);
 
-  const session = await agent.request(methods.agent.session.new, {
+  const session = await Promise.race([spawnError, agent.request(methods.agent.session.new, {
     cwd: opts.cwd,
     additionalDirectories: [opts.configPath],
     mcpServers: [],
@@ -76,10 +93,9 @@ export async function createAcpClient(opts: {
         },
       },
     },
-  });
+  })]);
 
   const sessionId = session.sessionId;
-  const chunks: string[] = [];
 
   return {
     sessionId,
