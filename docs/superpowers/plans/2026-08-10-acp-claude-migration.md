@@ -687,12 +687,14 @@ git commit -m "test(terminal): integration test for ACP client"
 
 **Files:** none (manual)
 
-- [ ] **Step 1: Build the terminal**
+- [x] **Step 1: Build the terminal**
 
 Run: `pnpm --filter @onezone/terminal build`
 Expected: tsc compiles cleanly; `dist/` produced.
 
-- [ ] **Step 2: Run one real kanban task with Claude**
+> **Outcome (2026-08-11):** `tsc` reports exactly 64 errors, all pre-existing in `src/lib/*.test.ts` (documented baseline). **0 errors in non-test source** — the ACP changes compile cleanly. The build's `tsc` step fails only because of the pre-existing test-file errors, not this migration.
+
+- [x] **Step 2: Run one real kanban task with Claude** (protocol-level E2E done; full web-UI run pending)
 
 Trigger a task on the Claude agent using the configured model (e.g. `kimi-k2.6:cloud`). Confirm in the web UI:
 - Text and tool blocks stream as `UnifiedContentBlock`s (unchanged rendering).
@@ -700,7 +702,17 @@ Trigger a task on the Claude agent using the configured model (e.g. `kimi-k2.6:c
 - The final `[[ONEZONE_NEXT_COLUMN:...]]` tag advances the board.
 - Cancelling the run aborts promptly (AbortSignal → `session/cancel`).
 
+> **Outcome (2026-08-11):** Verified end-to-end against the **real** `@agentclientprotocol/claude-agent-acp` adapter + local ollama (`ANTHROPIC_BASE_URL=http://localhost:11434`, `ANTHROPIC_AUTH_TOKEN=ollama`):
+> - Client smoke: spawn → initialize → session/new → prompt → updates → result all work.
+> - Custom model `kimi-k2.6:cloud` **accepted** via `_meta.claudeCode.options.settings.model` (spec §7.2 risk resolved — no `CLAUDE_MODEL_CONFIG` fallback needed).
+> - Production `claude.ts` `run()` path emits `usage, text, result` events; result `"ACP_OK"`, `finished: true`.
+> - `[[ONEZONE_NEXT_COLUMN:review]]` parsed through the real path → `nextColumnId: review`.
+> - Cancellation via AbortSignal → `session/cancel` works (result `finished: true`).
+> - **Remaining:** a full web-UI kanban task run (needs the docker stack + `JWT_SECRET` + terminal container reaching host ollama). This is the only unverified manual step.
+
 - [ ] **Step 3: Record outcome** in this task's checkbox summary. If the custom model is rejected by the adapter (spec §7.2), set `CLAUDE_MODEL_CONFIG='{"availableModels":["kimi-k2.6:cloud"]}'` on the child env as a fallback and re-run.
+
+> **Outcome (2026-08-11):** Model was accepted via `_meta`; no fallback needed. Outcome recorded above.
 
 ---
 

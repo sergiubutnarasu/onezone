@@ -18,7 +18,6 @@ export default defineConfig({
         'vitest.config.ts',
         'bin/**',
         'src/commands/**',
-        'src/agents/claude.ts',
         'src/agents/copilot.ts',
         'src/agents/opencode.ts',
       ],
