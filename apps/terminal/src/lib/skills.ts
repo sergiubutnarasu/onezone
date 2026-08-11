@@ -10,7 +10,7 @@ import { runProcess, terminateTree } from "./process-runner.js";
 import { getEffectiveTaskAgentCode } from "./effective-task-agent.js";
 import {
   getAllInstalledSkills,
-  getProjectConfigFolder,
+  getProjectWorkDir,
   removeSkill,
 } from "./project-paths.js";
 import { AGENT_TAG_MAPPINGS } from "./constants.js";
@@ -19,31 +19,31 @@ import { AGENT_TAG_MAPPINGS } from "./constants.js";
 const inFlightInstalls = new Map<string, Promise<void>>();
 
 function getSkillDirs(
-  configDir: string,
+  workDir: string,
   agentCode: RunSkillCommandPayload["agentCode"],
   skillName: string,
 ): string[] {
   if (agentCode === "github-copilot-cli") {
     return [
-      path.join(configDir, ".github", "skills", skillName),
-      path.join(configDir, ".agents", "skills", skillName),
+      path.join(workDir, ".github", "skills", skillName),
+      path.join(workDir, ".agents", "skills", skillName),
     ];
   }
   if (agentCode === "opencode") {
     return [
-      path.join(configDir, ".opencode", "skills", skillName),
-      path.join(configDir, ".agents", "skills", skillName),
+      path.join(workDir, ".opencode", "skills", skillName),
+      path.join(workDir, ".agents", "skills", skillName),
     ];
   }
-  return [path.join(configDir, ".claude", "skills", skillName)];
+  return [path.join(workDir, ".claude", "skills", skillName)];
 }
 
 function skillExists(
-  configDir: string,
+  workDir: string,
   agentCode: RunSkillCommandPayload["agentCode"],
   skillName: string,
 ): boolean {
-  return getSkillDirs(configDir, agentCode, skillName).some((dir) =>
+  return getSkillDirs(workDir, agentCode, skillName).some((dir) =>
     fs.existsSync(dir),
   );
 }
@@ -54,8 +54,8 @@ export async function runSkillCommand(
   signal?: AbortSignal,
 ): Promise<void> {
   const { projectId, source, skillName, agentCode } = payload;
-  const configDir = getProjectConfigFolder(projectId);
-  const skillDirs = getSkillDirs(configDir, agentCode, skillName);
+  const workDir = getProjectWorkDir(projectId);
+  const skillDirs = getSkillDirs(workDir, agentCode, skillName);
   const key = `${projectId}:${skillName}`;
 
   // If another setup is already installing this skill, wait for it instead
@@ -79,13 +79,13 @@ export async function runSkillCommand(
 
   const cmd = `npx --yes skills add ${JSON.stringify(source)} --skill ${JSON.stringify(skillName)} -a ${JSON.stringify(AGENT_TAG_MAPPINGS[agentCode])} -y --copy`;
 
-  log(`[skill] Installing "${skillName}" in ${configDir}`);
+  log(`[skill] Installing "${skillName}" in ${workDir}`);
 
   const installPromise = (async () => {
     try {
       const exitCode = await runAbortableShellCommand({
         cmd,
-        cwd: configDir,
+        cwd: workDir,
         signal,
       });
       if (exitCode !== 0) {
@@ -122,7 +122,7 @@ export const setupSkills = async ({
   if (signal?.aborted) return;
 
   const skills = project?.skills ?? [];
-  const configDir = getProjectConfigFolder(project.id);
+  const workDir = getProjectWorkDir(project.id);
   const agentCode = getEffectiveTaskAgentCode(task, project);
 
   if (!agentCode) {
@@ -143,7 +143,7 @@ export const setupSkills = async ({
   }
 
   const uninstalledSkills = skills.filter(
-    (s) => !skillExists(configDir, agentCode, s.skillName),
+    (s) => !skillExists(workDir, agentCode, s.skillName),
   );
 
   if (uninstalledSkills.length > 0) {
