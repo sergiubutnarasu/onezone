@@ -441,6 +441,7 @@ describe('skills', () => {
 
     it('runs npx skills add with cwd = workdir', async () => {
       mockGetProjectWorkDir.mockReturnValue('/test/home/.onezone/projects/proj-1/workdir');
+      mockExistsSync.mockReturnValue(false);
       mockRunProcess.mockImplementation(({ onExit }) => {
         setTimeout(() => onExit?.(0), 0);
         return { pid: 123 };
