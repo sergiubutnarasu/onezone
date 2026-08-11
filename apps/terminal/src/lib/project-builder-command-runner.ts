@@ -1,7 +1,6 @@
 import { AgentTag, type ProjectBuilderCommandPayload } from "@onezone/shared";
 import { agentFactory } from "../agents/setup.js";
 import {
-  createProjectConfigFolder,
   createProjectFolder,
   createProjectWorkDirFolder,
   ensureWorkDirProjectMarker,
@@ -45,7 +44,6 @@ function buildPrompt(payload: ProjectBuilderCommandPayload, serverUrl: string): 
 function ensureBuilderWorkspace(payload: ProjectBuilderCommandPayload): boolean {
   const projectId = PROJECT_BUILDER_WORKSPACE_ID;
   if (!createProjectFolder(projectId)) return false;
-  if (!createProjectConfigFolder(projectId)) return false;
   if (!createProjectWorkDirFolder(projectId)) return false;
   ensureWorkDirProjectMarker(projectId);
 

@@ -4,7 +4,6 @@ import {
   setupClaudeConfig,
   setupCopilotConfig,
   setupOpencodeConfig,
-  createProjectConfigFolder,
   createProjectFolder,
   createProjectWorkDirFolder,
   ensureWorkDirProjectMarker,
@@ -63,15 +62,6 @@ export const setupProject = async (
     return null;
   }
   lines.push(`✔ Project folder ready: ${getProjectFolder(projectId)}`);
-
-  lines.push("Checking config folder...");
-  const hasConfigFolder = createProjectConfigFolder(projectId);
-  if (!hasConfigFolder) {
-    lines.push("✖ Failed to create config folder.");
-    flush();
-    return null;
-  }
-  lines.push("✔ Config folder ready.");
 
   lines.push("Checking workdir...");
   const hasWorkDirFolder = createProjectWorkDirFolder(projectId);

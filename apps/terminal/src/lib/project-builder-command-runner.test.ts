@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AgentTag } from '@onezone/shared';
 
-const mockCreateProjectConfigFolder = vi.fn();
 const mockCreateProjectFolder = vi.fn();
 const mockCreateProjectWorkDirFolder = vi.fn();
 const mockEnsureWorkDirProjectMarker = vi.fn();
@@ -12,7 +11,6 @@ const mockSetupOpencodeConfig = vi.fn();
 const mockAgentFactory = vi.fn();
 
 vi.doMock('./project-paths.js', () => ({
-  createProjectConfigFolder: mockCreateProjectConfigFolder,
   createProjectFolder: mockCreateProjectFolder,
   createProjectWorkDirFolder: mockCreateProjectWorkDirFolder,
   ensureWorkDirProjectMarker: mockEnsureWorkDirProjectMarker,
@@ -31,7 +29,6 @@ describe('runProjectBuilderCommand', () => {
     vi.resetModules();
     vi.clearAllMocks();
     mockCreateProjectFolder.mockReturnValue(true);
-    mockCreateProjectConfigFolder.mockReturnValue(true);
     mockCreateProjectWorkDirFolder.mockReturnValue(true);
     mockSetupClaudeConfig.mockReturnValue(true);
     mockSetupCopilotConfig.mockReturnValue(true);
