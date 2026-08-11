@@ -22,15 +22,6 @@ export const getProjectFolder = (projectId: string): string => {
   return path.join(os.homedir(), ONEZONE_PROJECTS_LOCATION, projectId);
 };
 
-export const getProjectConfigFolder = (projectId: string): string => {
-  return path.join(
-    os.homedir(),
-    ONEZONE_PROJECTS_LOCATION,
-    projectId,
-    "config",
-  );
-};
-
 export const getProjectWorkDir = (projectId: string): string => {
   return path.join(
     os.homedir(),
@@ -67,23 +58,6 @@ export const createProjectWorkDirFolder = (projectId: string): boolean => {
   } catch (err) {
     console.error(
       `Error creating project workdir folder: ${(err as Error).message}`,
-    );
-    return false;
-  }
-};
-
-export const createProjectConfigFolder = (projectId: string): boolean => {
-  try {
-    const configPath = getProjectConfigFolder(projectId);
-
-    if (!fs.existsSync(configPath)) {
-      fs.mkdirSync(configPath, { recursive: true });
-    }
-
-    return true;
-  } catch (err) {
-    console.error(
-      `Error creating project config folder: ${(err as Error).message}`,
     );
     return false;
   }
@@ -155,14 +129,13 @@ export const cloneProjectRepo = (
 
 export const setupClaudeConfig = (projectId: string): boolean => {
   try {
-    const projectConfigFolder = getProjectConfigFolder(projectId);
-    const claudeDir = path.join(projectConfigFolder, ".claude");
+    const workDir = getProjectWorkDir(projectId);
+    const claudeDir = path.join(workDir, ".claude");
 
     if (!fs.existsSync(claudeDir)) {
       fs.mkdirSync(claudeDir, { recursive: true });
     }
 
-    // copy skills folder to the claude config folder
     const skillsSourcePath = path.join(
       __dirname,
       "..",
@@ -194,14 +167,13 @@ export const setupClaudeConfig = (projectId: string): boolean => {
 
 export const setupCopilotConfig = (projectId: string): boolean => {
   try {
-    const projectConfigFolder = getProjectConfigFolder(projectId);
-    const githubDir = path.join(projectConfigFolder, ".github");
+    const workDir = getProjectWorkDir(projectId);
+    const githubDir = path.join(workDir, ".github");
 
     if (!fs.existsSync(githubDir)) {
       fs.mkdirSync(githubDir, { recursive: true });
     }
 
-    // copy skills folder to the copilot skills directories
     const skillsSourcePath = path.join(
       __dirname,
       "..",
@@ -211,7 +183,7 @@ export const setupCopilotConfig = (projectId: string): boolean => {
     );
     const githubSkillsDestPath = path.join(githubDir, "skills");
     const agentsSkillsDestPath = path.join(
-      projectConfigFolder,
+      workDir,
       ".agents",
       "skills",
     );
@@ -243,14 +215,13 @@ export const setupCopilotConfig = (projectId: string): boolean => {
 
 export const setupOpencodeConfig = (projectId: string): boolean => {
   try {
-    const projectConfigFolder = getProjectConfigFolder(projectId);
-    const opencodeDir = path.join(projectConfigFolder, ".opencode");
+    const workDir = getProjectWorkDir(projectId);
+    const opencodeDir = path.join(workDir, ".opencode");
 
     if (!fs.existsSync(opencodeDir)) {
       fs.mkdirSync(opencodeDir, { recursive: true });
     }
 
-    // copy skills folder to the opencode skills directory
     const skillsSourcePath = path.join(
       __dirname,
       "..",
@@ -301,20 +272,20 @@ export const getRulesContent = (): string | undefined => {
 };
 
 const getSkillsDirs = (projectId: string, agentTag?: string): string[] => {
-  const configDir = getProjectConfigFolder(projectId);
+  const workDir = getProjectWorkDir(projectId);
   if (agentTag === "github-copilot-cli") {
     return [
-      path.join(configDir, ".github", "skills"),
-      path.join(configDir, ".agents", "skills"),
+      path.join(workDir, ".github", "skills"),
+      path.join(workDir, ".agents", "skills"),
     ];
   }
   if (agentTag === "opencode") {
     return [
-      path.join(configDir, ".opencode", "skills"),
-      path.join(configDir, ".agents", "skills"),
+      path.join(workDir, ".opencode", "skills"),
+      path.join(workDir, ".agents", "skills"),
     ];
   }
-  return [path.join(configDir, ".claude", "skills")];
+  return [path.join(workDir, ".claude", "skills")];
 };
 
 export const getAllInstalledSkills = (
