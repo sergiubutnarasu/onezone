@@ -218,40 +218,6 @@
         "view.js"
       ]
     },
-    "terminals:list": {
-      "aliases": [],
-      "args": {},
-      "description": "List all terminals registered on the server",
-      "examples": [
-        "<%= config.bin %> terminals list",
-        "<%= config.bin %> terminals list --server http://localhost:5026"
-      ],
-      "flags": {
-        "server": {
-          "description": "Server URL",
-          "name": "server",
-          "default": "http://localhost:5026",
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "terminals:list",
-      "pluginAlias": "@onezone/terminal",
-      "pluginName": "@onezone/terminal",
-      "pluginType": "core",
-      "strict": true,
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "commands",
-        "terminals",
-        "list.js"
-      ]
-    },
     "memory:delete": {
       "aliases": [],
       "args": {},
@@ -464,6 +430,148 @@
         "commands",
         "memory",
         "write.js"
+      ]
+    },
+    "project:new": {
+      "aliases": [],
+      "args": {},
+      "description": "Create a new project with a generated kanban board",
+      "examples": [
+        "<%= config.bin %> project new --name \"My project\" --agent <agentUuid> --model <model> --config ./board.json",
+        "<%= config.bin %> project new --project <projectUuid> --name \"My project\" --agent <agentUuid> --model <model> --config ./board.json",
+        "<%= config.bin %> project new --name \"My project\" --agent <agentUuid> --model <model> --columns '[{\"name\":\"Plan\",\"instructions\":\"Clarify scope\"}]'",
+        "<%= config.bin %> project new --name \"My project\" --agent <agentUuid> --model <model> --config ./board.json --skill \"vercel-labs/agent-skills --skill nextjs\""
+      ],
+      "flags": {
+        "project": {
+          "description": "Existing pending project ID (UUID) to complete",
+          "name": "project",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "name": {
+          "description": "Project name",
+          "name": "name",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "description": {
+          "description": "Project description",
+          "name": "description",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "repository": {
+          "description": "Repository URL",
+          "name": "repository",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "agent": {
+          "description": "Default agent ID (UUID)",
+          "name": "agent",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "model": {
+          "description": "Default model",
+          "name": "model",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "config": {
+          "description": "Path to a JSON file containing an array of columns",
+          "name": "config",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "columns": {
+          "description": "Inline JSON array of columns",
+          "name": "columns",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "skill": {
+          "description": "Skill to add to the project. Repeatable. Format: '<source> --skill <name>' or 'npx skills add <source> --skill <name>'.",
+          "name": "skill",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": true,
+          "type": "option"
+        },
+        "server": {
+          "description": "Server URL",
+          "name": "server",
+          "default": "http://localhost:5026",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "project:new",
+      "pluginAlias": "@onezone/terminal",
+      "pluginName": "@onezone/terminal",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "project",
+        "new.js"
+      ]
+    },
+    "terminals:list": {
+      "aliases": [],
+      "args": {},
+      "description": "List all terminals registered on the server",
+      "examples": [
+        "<%= config.bin %> terminals list",
+        "<%= config.bin %> terminals list --server http://localhost:5026"
+      ],
+      "flags": {
+        "server": {
+          "description": "Server URL",
+          "name": "server",
+          "default": "http://localhost:5026",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "terminals:list",
+      "pluginAlias": "@onezone/terminal",
+      "pluginName": "@onezone/terminal",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "terminals",
+        "list.js"
       ]
     },
     "task:create": {
@@ -725,114 +833,6 @@
         "commands",
         "task",
         "view.js"
-      ]
-    },
-    "project:new": {
-      "aliases": [],
-      "args": {},
-      "description": "Create a new project with a generated kanban board",
-      "examples": [
-        "<%= config.bin %> project new --name \"My project\" --agent <agentUuid> --model <model> --config ./board.json",
-        "<%= config.bin %> project new --project <projectUuid> --name \"My project\" --agent <agentUuid> --model <model> --config ./board.json",
-        "<%= config.bin %> project new --name \"My project\" --agent <agentUuid> --model <model> --columns '[{\"name\":\"Plan\",\"instructions\":\"Clarify scope\"}]'",
-        "<%= config.bin %> project new --name \"My project\" --agent <agentUuid> --model <model> --config ./board.json --skill \"vercel-labs/agent-skills --skill nextjs\""
-      ],
-      "flags": {
-        "project": {
-          "description": "Existing pending project ID (UUID) to complete",
-          "name": "project",
-          "required": false,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "name": {
-          "description": "Project name",
-          "name": "name",
-          "required": true,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "description": {
-          "description": "Project description",
-          "name": "description",
-          "required": false,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "repository": {
-          "description": "Repository URL",
-          "name": "repository",
-          "required": false,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "agent": {
-          "description": "Default agent ID (UUID)",
-          "name": "agent",
-          "required": true,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "model": {
-          "description": "Default model",
-          "name": "model",
-          "required": true,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "config": {
-          "description": "Path to a JSON file containing an array of columns",
-          "name": "config",
-          "required": false,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "columns": {
-          "description": "Inline JSON array of columns",
-          "name": "columns",
-          "required": false,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "skill": {
-          "description": "Skill to add to the project. Repeatable. Format: '<source> --skill <name>' or 'npx skills add <source> --skill <name>'.",
-          "name": "skill",
-          "required": false,
-          "hasDynamicHelp": false,
-          "multiple": true,
-          "type": "option"
-        },
-        "server": {
-          "description": "Server URL",
-          "name": "server",
-          "default": "http://localhost:5026",
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "project:new",
-      "pluginAlias": "@onezone/terminal",
-      "pluginName": "@onezone/terminal",
-      "pluginType": "core",
-      "strict": true,
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "commands",
-        "project",
-        "new.js"
       ]
     }
   },
