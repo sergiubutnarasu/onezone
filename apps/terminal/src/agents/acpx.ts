@@ -8,25 +8,18 @@ import {
   type AgentRunParams,
 } from "../lib/types/index.js";
 
-const AGENT_NAME_BY_TAG: Record<AgentTag, string> = {
-  [AgentTag.ClaudeCode]: "claude",
-  [AgentTag.GithubCopilotCLI]: "copilot",
-  [AgentTag.Opencode]: "opencode",
-};
-
 export const setup = ({
   projectId,
   model,
+  agentName,
 }: {
   projectId: string;
   model: string;
+  agentName: string;
 }): AgentConfig => {
   void projectId;
 
   async function* run({ prompt, cwd, signal }: AgentRunParams): AsyncIterable<AgentEvent> {
-    const agentName = AGENT_NAME_BY_TAG[AgentTag.ClaudeCode]; // replaced per-tag below
-    // NOTE: agentName is resolved by the caller via setup.ts; see Task 5.
-    // For this task, accept the tag via a module-level default and refine in Task 5.
     const args = [agentName, "exec", "--format", "json", "--json-strict", prompt];
     const child = spawn("acpx", args, { cwd, env: process.env });
 
@@ -101,8 +94,17 @@ export const setup = ({
     }
   }
 
-  return { tag: AgentTag.ClaudeCode, run };
+  return { tag: agentNameToTag(agentName), run };
 };
+
+function agentNameToTag(agentName: string): AgentTag {
+  switch (agentName) {
+    case "claude": return AgentTag.ClaudeCode;
+    case "copilot": return AgentTag.GithubCopilotCLI;
+    case "opencode": return AgentTag.Opencode;
+    default: return AgentTag.ClaudeCode;
+  }
+}
 
 function mapMessage(msg: Record<string, unknown>): AgentEvent | null {
   if (msg.method === "session/update") {

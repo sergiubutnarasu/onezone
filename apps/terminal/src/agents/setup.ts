@@ -1,9 +1,13 @@
 import { AgentTag } from "@onezone/shared";
 import type { TaskDetails } from "@onezone/shared";
-import { setup as setupClaude } from "../agents/claude.js";
-import { setup as setupCopilot } from "../agents/copilot.js";
-import { setup as setupOpencode } from "../agents/opencode.js";
+import { setup as setupAcpx } from "../agents/acpx.js";
 import { getEffectiveTaskAgentAndModel } from "../lib/effective-task-agent.js";
+
+const AGENT_NAME_BY_TAG: Record<AgentTag, string> = {
+  [AgentTag.ClaudeCode]: "claude",
+  [AgentTag.GithubCopilotCLI]: "copilot",
+  [AgentTag.Opencode]: "opencode",
+};
 
 export const agentFactory = ({
   projectId,
@@ -18,16 +22,12 @@ export const agentFactory = ({
     return null;
   }
 
-  switch (agent.tag) {
-    case AgentTag.ClaudeCode:
-      return setupClaude({ projectId, model });
-    case AgentTag.GithubCopilotCLI:
-      return setupCopilot({ projectId, model });
-    case AgentTag.Opencode:
-      return setupOpencode({ projectId, model });
-    default:
-      return null;
+  const agentName = AGENT_NAME_BY_TAG[agent.tag];
+  if (!agentName) {
+    return null;
   }
+
+  return setupAcpx({ projectId, model, agentName });
 };
 
 export const setupTerminalAgent = (payload?: unknown) => {
