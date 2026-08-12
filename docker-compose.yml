@@ -146,6 +146,7 @@ services:
       - terminal_claude:/home/agent/.claude
       - terminal_copilot:/home/agent/.copilot
       - terminal_opencode:/home/agent/.opencode
+      - terminal_acpx:/home/agent/.acpx
     depends_on:
       server:
         condition: service_healthy
@@ -161,3 +162,4 @@ volumes:
   terminal_claude:
   terminal_copilot:
   terminal_opencode:
+  terminal_acpx:
