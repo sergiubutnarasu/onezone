@@ -20,7 +20,9 @@ export const setup = ({
   void projectId;
 
   async function* run({ prompt, cwd, signal }: AgentRunParams): AsyncIterable<AgentEvent> {
-    const args = [agentName, "exec", "--format", "json", "--json-strict", prompt];
+    // --format / --json-strict are GLOBAL acpx flags and must precede the
+    // agent subcommand, otherwise acpx rejects them as unknown options.
+    const args = ["--format", "json", "--json-strict", agentName, "exec", prompt];
     const child = spawn("acpx", args, { cwd, env: process.env });
 
     const blocks: UnifiedContentBlock[] = [];

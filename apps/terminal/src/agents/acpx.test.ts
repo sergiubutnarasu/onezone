@@ -65,6 +65,21 @@ describe('acpx adapter', () => {
     }));
   });
 
+  it('places global --format/--json-strict flags before the agent subcommand', async () => {
+    mockSpawn.mockReturnValue(fakeChild([]));
+    const config = setup({ projectId: 'p1', model: 'm', agentName: 'claude' });
+    const ac = new AbortController();
+    const iter = config.run({ prompt: 'hi', cwd: '/w', signal: ac.signal })[Symbol.asyncIterator]();
+    await iter.next();
+    ac.abort();
+    await iter.return?.();
+    expect(mockSpawn).toHaveBeenCalledWith(
+      'acpx',
+      ['--format', 'json', '--json-strict', 'claude', 'exec', 'hi'],
+      expect.objectContaining({ cwd: '/w' }),
+    );
+  });
+
   it('kills the child on abort', async () => {
     const child = fakeChild([]);
     mockSpawn.mockReturnValue(child);
