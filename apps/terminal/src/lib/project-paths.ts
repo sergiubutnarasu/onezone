@@ -271,6 +271,20 @@ export const getRulesContent = (): string | undefined => {
   return fs.readFileSync(rulesSourcePath, "utf8");
 };
 
+export const setupRules = (projectId: string): boolean => {
+  try {
+    const rules = getRulesContent();
+    if (!rules) return true; // no rules to write
+    const workDir = getProjectWorkDir(projectId);
+    fs.writeFileSync(path.join(workDir, "CLAUDE.md"), rules, "utf8");
+    fs.writeFileSync(path.join(workDir, "AGENTS.md"), rules, "utf8");
+    return true;
+  } catch (err) {
+    console.error(`Error setting up rules: ${(err as Error).message}`);
+    return false;
+  }
+};
+
 const getSkillsDirs = (projectId: string, agentTag?: string): string[] => {
   const workDir = getProjectWorkDir(projectId);
   if (agentTag === "github-copilot-cli") {

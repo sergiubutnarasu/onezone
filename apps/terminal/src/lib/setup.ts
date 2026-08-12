@@ -4,6 +4,7 @@ import {
   setupClaudeConfig,
   setupCopilotConfig,
   setupOpencodeConfig,
+  setupRules,
   createProjectFolder,
   createProjectWorkDirFolder,
   ensureWorkDirProjectMarker,
@@ -106,6 +107,7 @@ export const setupProject = async (
     setupClaudeConfig(projectId);
     lines.push("✔ Claude configuration ready.");
   }
+  setupRules(projectId);
   flush();
 
   if (signal?.aborted) return null;

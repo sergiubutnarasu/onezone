@@ -16,6 +16,7 @@ import {
   setupClaudeConfig,
   setupCopilotConfig,
   setupOpencodeConfig,
+  setupRules,
 } from './project-paths.js';
 
 vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -430,6 +431,18 @@ describe('project-paths', () => {
       const result = getAllInstalledSkills('proj-1', AgentTag.Opencode);
       expect(mockReaddirSync).toHaveBeenCalledTimes(2);
       expect(result).toContain('oc-skill');
+    });
+  });
+
+  describe('setupRules', () => {
+    it('writes rules.md content to workdir CLAUDE.md and AGENTS.md', () => {
+      mockReadFileSync.mockReturnValue('# Rules');
+      mockExistsSync.mockReturnValue(true);
+      const result = setupRules('proj-1');
+      expect(result).toBe(true);
+      const workdir = path.join(TEST_HOME, '.onezone', 'projects', 'proj-1', 'workdir');
+      expect(mockWriteFileSync).toHaveBeenCalledWith(path.join(workdir, 'CLAUDE.md'), '# Rules', 'utf8');
+      expect(mockWriteFileSync).toHaveBeenCalledWith(path.join(workdir, 'AGENTS.md'), '# Rules', 'utf8');
     });
   });
 });

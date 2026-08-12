@@ -8,6 +8,7 @@ const mockCloneProjectRepo = vi.fn();
 const mockSetupClaudeConfig = vi.fn();
 const mockSetupCopilotConfig = vi.fn();
 const mockSetupOpencodeConfig = vi.fn();
+const mockSetupRules = vi.fn();
 const mockGetProjectFolder = vi.fn();
 const mockGetProjectWorkDir = vi.fn();
 const mockGetEffectiveTaskAgentCode = vi.fn();
@@ -21,6 +22,7 @@ vi.doMock('./project-paths.js', () => ({
   setupClaudeConfig: mockSetupClaudeConfig,
   setupCopilotConfig: mockSetupCopilotConfig,
   setupOpencodeConfig: mockSetupOpencodeConfig,
+  setupRules: mockSetupRules,
   getProjectFolder: mockGetProjectFolder,
   getProjectWorkDir: mockGetProjectWorkDir,
 }));
@@ -43,6 +45,7 @@ describe('setupProject', () => {
     mockSetupClaudeConfig.mockReturnValue(true);
     mockSetupCopilotConfig.mockReturnValue(true);
     mockSetupOpencodeConfig.mockReturnValue(true);
+    mockSetupRules.mockReturnValue(true);
     mockGetProjectFolder.mockReturnValue('/test/projects/proj-123');
     mockGetProjectWorkDir.mockReturnValue('/test/projects/proj-123/workdir');
     mockGetEffectiveTaskAgentCode.mockReturnValue(AgentTag.ClaudeCode);
