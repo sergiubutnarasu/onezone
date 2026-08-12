@@ -19,11 +19,46 @@ export const setup = ({
 }): AgentConfig => {
   void projectId;
 
+  // Headless runs have no human to approve permission prompts. acpx denies any
+  // tool not explicitly approved, which makes the child agent fail with exit
+  // code 5 (PERMISSION_DENIED). Mirror the old per-SDK allowlist by auto-approving
+  // the tools an agent needs (Bash, edits/reads/writes in the workdir, glob,
+  // grep, web search, etc.) via acpx's --permission-policy.
+  const permissionPolicy = {
+    defaultAction: "approve" as const,
+    autoApprove: [
+      "Bash(*)",
+      "Edit(/*)",
+      "Read(/*)",
+      "Write(/*)",
+      "Glob",
+      "Grep",
+      "WebSearch",
+      "WebFetch(domain:*)",
+      "Agent",
+      "TodoWrite",
+    ],
+  };
+  const permissionPolicyJson = JSON.stringify(permissionPolicy);
+
   async function* run({ prompt, cwd, signal }: AgentRunParams): AsyncIterable<AgentEvent> {
     // --format / --json-strict are GLOBAL acpx flags and must precede the
     // agent subcommand, otherwise acpx rejects them as unknown options.
-    const args = ["--format", "json", "--json-strict", agentName, "exec", prompt];
+    // --model and --permission-policy are also global flags.
+    const args = [
+      "--format", "json", "--json-strict",
+      "--permission-policy", permissionPolicyJson,
+      ...(model ? ["--model", model] : []),
+      agentName, "exec", prompt,
+    ];
+    console.error(`[acpx] spawning: acpx ${args.join(" ")} (cwd=${cwd})`);
     const child = spawn("acpx", args, { cwd, env: process.env });
+    child.on("error", (err) => {
+      // spawn failures (e.g. acpx not on PATH) land here, not on 'close'
+      console.error(`[acpx] spawn error: ${err.message}`);
+      queue.push({ type: AgentEventType.Stderr, content: `acpx spawn error: ${err.message}` });
+      flush();
+    });
 
     const blocks: UnifiedContentBlock[] = [];
     let resultEmitted = false;
@@ -63,7 +98,9 @@ export const setup = ({
     });
 
     child.stderr.setEncoding("utf8");
+    let stderrBuf = "";
     child.stderr.on("data", (chunk: string) => {
+      stderrBuf += chunk;
       queue.push({ type: AgentEventType.Stderr, content: chunk });
       flush();
     });
@@ -77,9 +114,15 @@ export const setup = ({
     signal.addEventListener("abort", abort, { once: true });
     if (signal.aborted) abort();
 
-    child.on("close", (code) => {
+    child.on("close", (code, closeSignal) => {
       done = true;
       if (code !== 0 && !signal.aborted) {
+        // Log the real reason so failures are diagnosable, not just "code 1".
+        const stderr = stderrBuf.trim();
+        console.error(
+          `[acpx] exited with code ${code ?? "null"} signal=${closeSignal ?? "null"}` +
+            (stderr ? `\n[acpx] stderr: ${stderr}` : ""),
+        );
         queue.push({ type: AgentEventType.Stderr, content: `acpx exited with code ${code}` });
       }
       resolveQueue?.();
@@ -156,6 +199,16 @@ function mapMessage(msg: Record<string, unknown>): AgentEvent | null {
       nextColumnId: resultText ? parseNextColumnTag(resultText) : undefined,
       finished: true,
     };
+  }
+  // acpx surfaces failures as JSON-RPC error responses on stdout (not stderr).
+  if (msg.id !== undefined && msg.error !== undefined) {
+    const err = msg.error as Record<string, unknown>;
+    const errText =
+      typeof err.message === "string"
+        ? `acpx error: ${err.message}${typeof err.code !== "undefined" ? ` (code ${err.code})` : ""}`
+        : `acpx error: ${JSON.stringify(err)}`;
+    console.error(`[acpx] ${errText}`);
+    return { type: AgentEventType.Stderr, content: errText };
   }
   return null;
 }
