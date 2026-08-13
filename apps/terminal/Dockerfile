@@ -49,6 +49,9 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
 # Install OpenCode CLI
 RUN npm install -g opencode-ai
 
+# Install acpx (ACP client)
+RUN npm install -g acpx@latest
+
 # Install locally built onezone-terminal (as root)
 COPY --from=builder /deploy /opt/onezone-terminal
 RUN chmod +x /opt/onezone-terminal/bin/run.js \

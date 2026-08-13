@@ -1,14 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as path from 'node:path';
 import { AgentTag } from '@onezone/shared';
+import * as projectPaths from './project-paths.js';
 import {
   isRtkAvailable,
   getProjectFolder,
-  getProjectConfigFolder,
   getProjectWorkDir,
   createProjectFolder,
   createProjectWorkDirFolder,
-  createProjectConfigFolder,
   ensureWorkDirProjectMarker,
   getAllInstalledSkills,
   removeSkill,
@@ -17,6 +16,7 @@ import {
   setupClaudeConfig,
   setupCopilotConfig,
   setupOpencodeConfig,
+  setupRules,
 } from './project-paths.js';
 
 vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -74,10 +74,14 @@ describe('project-paths', () => {
     });
   });
 
-  describe('getProjectConfigFolder', () => {
-    it('returns config subfolder', () => {
-      const result = getProjectConfigFolder('proj-1');
-      expect(result).toBe(path.join(TEST_HOME, '.onezone', 'projects', 'proj-1', 'config'));
+  describe('config folder removed', () => {
+    it('does not export getProjectConfigFolder', () => {
+      // @ts-expect-error - function must be removed
+      expect(projectPaths.getProjectConfigFolder).toBeUndefined();
+    });
+    it('does not export createProjectConfigFolder', () => {
+      // @ts-expect-error - function must be removed
+      expect(projectPaths.createProjectConfigFolder).toBeUndefined();
     });
   });
 
@@ -143,17 +147,7 @@ describe('project-paths', () => {
     });
   });
 
-  describe('createProjectConfigFolder', () => {
-    it('creates config folder', () => {
-      mockExistsSync.mockReturnValue(false);
-      const result = createProjectConfigFolder('proj-1');
-      expect(result).toBe(true);
-      expect(mockMkdirSync).toHaveBeenCalledWith(
-        path.join(TEST_HOME, '.onezone', 'projects', 'proj-1', 'config'),
-        { recursive: true },
-      );
-    });
-  });
+
 
   describe('ensureWorkDirProjectMarker', () => {
     it('creates .gitkeep when missing', () => {
@@ -325,14 +319,17 @@ describe('project-paths', () => {
   });
 
   describe('setupClaudeConfig', () => {
-    it('sets up claude config with skills', () => {
-      mockExistsSync.mockImplementation((p: string) =>
-        typeof p === 'string' && p.includes('static')
-      );
-      mockReaddirSync.mockReturnValue(['skill-a', 'skill-b']);
+    it('copies skills into the workdir .claude/skills', () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReaddirSync.mockReturnValue(['onezone-runner']);
       const result = setupClaudeConfig('proj-1');
       expect(result).toBe(true);
-      expect(mockCpSync).toHaveBeenCalledTimes(2);
+      const workdir = path.join(TEST_HOME, '.onezone', 'projects', 'proj-1', 'workdir');
+      expect(mockCpSync).toHaveBeenCalledWith(
+        expect.stringContaining('onezone-runner'),
+        path.join(workdir, '.claude', 'skills', 'onezone-runner'),
+        { recursive: true },
+      );
     });
 
     it('warns when skills folder not found', () => {
@@ -356,15 +353,22 @@ describe('project-paths', () => {
   });
 
   describe('setupCopilotConfig', () => {
-    it('sets up copilot config with skills', () => {
-      mockExistsSync.mockImplementation((p: string) =>
-        typeof p === 'string' && p.includes('static')
-      );
-      mockReaddirSync.mockReturnValue(['skill-a']);
+    it('copies skills into the workdir .github/skills and .agents/skills', () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReaddirSync.mockReturnValue(['onezone-runner']);
       const result = setupCopilotConfig('proj-1');
       expect(result).toBe(true);
-      // Copies to both .github/skills and .agents/skills
-      expect(mockCpSync).toHaveBeenCalledTimes(2);
+      const workdir = path.join(TEST_HOME, '.onezone', 'projects', 'proj-1', 'workdir');
+      expect(mockCpSync).toHaveBeenCalledWith(
+        expect.stringContaining('onezone-runner'),
+        path.join(workdir, '.github', 'skills', 'onezone-runner'),
+        { recursive: true },
+      );
+      expect(mockCpSync).toHaveBeenCalledWith(
+        expect.stringContaining('onezone-runner'),
+        path.join(workdir, '.agents', 'skills', 'onezone-runner'),
+        { recursive: true },
+      );
     });
 
     it('returns false on error', () => {
@@ -377,14 +381,17 @@ describe('project-paths', () => {
   });
 
   describe('setupOpencodeConfig', () => {
-    it('sets up opencode config with skills', () => {
-      mockExistsSync.mockImplementation((p: string) =>
-        typeof p === 'string' && p.includes('static')
-      );
-      mockReaddirSync.mockReturnValue(['skill-a']);
+    it('copies skills into the workdir .opencode/skills', () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReaddirSync.mockReturnValue(['onezone-runner']);
       const result = setupOpencodeConfig('proj-1');
       expect(result).toBe(true);
-      expect(mockCpSync).toHaveBeenCalledTimes(1);
+      const workdir = path.join(TEST_HOME, '.onezone', 'projects', 'proj-1', 'workdir');
+      expect(mockCpSync).toHaveBeenCalledWith(
+        expect.stringContaining('onezone-runner'),
+        path.join(workdir, '.opencode', 'skills', 'onezone-runner'),
+        { recursive: true },
+      );
     });
 
     it('returns false on error', () => {
@@ -407,16 +414,7 @@ describe('project-paths', () => {
     });
   });
 
-  describe('createProjectConfigFolder error', () => {
-    it('returns false on mkdir error', () => {
-      mockExistsSync.mockReturnValue(false);
-      mockMkdirSync.mockImplementation(() => {
-        throw new Error('permission denied');
-      });
-      const result = createProjectConfigFolder('proj-1');
-      expect(result).toBe(false);
-    });
-  });
+
 
   describe('getAllInstalledSkills with github-copilot-cli and opencode', () => {
     it('returns skills for github-copilot-cli agent', () => {
@@ -433,6 +431,18 @@ describe('project-paths', () => {
       const result = getAllInstalledSkills('proj-1', AgentTag.Opencode);
       expect(mockReaddirSync).toHaveBeenCalledTimes(2);
       expect(result).toContain('oc-skill');
+    });
+  });
+
+  describe('setupRules', () => {
+    it('writes rules.md content to workdir CLAUDE.md and AGENTS.md', () => {
+      mockReadFileSync.mockReturnValue('# Rules');
+      mockExistsSync.mockReturnValue(true);
+      const result = setupRules('proj-1');
+      expect(result).toBe(true);
+      const workdir = path.join(TEST_HOME, '.onezone', 'projects', 'proj-1', 'workdir');
+      expect(mockWriteFileSync).toHaveBeenCalledWith(path.join(workdir, 'CLAUDE.md'), '# Rules', 'utf8');
+      expect(mockWriteFileSync).toHaveBeenCalledWith(path.join(workdir, 'AGENTS.md'), '# Rules', 'utf8');
     });
   });
 });

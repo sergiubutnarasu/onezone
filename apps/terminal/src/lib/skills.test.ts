@@ -10,17 +10,16 @@ vi.mock('./process-runner.js', () => ({
   terminateTree: (...args: unknown[]) => mockTerminateTree(...args),
 }));
 
-const mockGetProjectConfigFolder = vi.fn();
+const mockGetProjectWorkDir = vi.fn();
 const mockGetAllInstalledSkills = vi.fn();
 const mockRemoveSkill = vi.fn();
 const mockSkillExistsReturn = new Map<string, boolean>();
 
 vi.mock('./project-paths.js', () => ({
-  getProjectConfigFolder: (...args: unknown[]) => mockGetProjectConfigFolder(...args),
+  getProjectWorkDir: (...args: unknown[]) => mockGetProjectWorkDir(...args),
   getAllInstalledSkills: (...args: unknown[]) => mockGetAllInstalledSkills(...args),
   removeSkill: (...args: unknown[]) => mockRemoveSkill(...args),
   getProjectFolder: vi.fn(),
-  getProjectWorkDir: vi.fn(),
   createProjectFolder: vi.fn().mockReturnValue(true),
   createProjectConfigFolder: vi.fn().mockReturnValue(true),
   createProjectWorkDirFolder: vi.fn().mockReturnValue(true),
@@ -86,7 +85,7 @@ describe('skills', () => {
   describe('runSkillCommand', () => {
     it('does nothing when skill already exists', async () => {
       mockExistsSync.mockReturnValue(true);
-      mockGetProjectConfigFolder.mockReturnValue('/test/home/.onezone/projects/proj-1/config');
+      mockGetProjectWorkDir.mockReturnValue('/test/home/.onezone/projects/proj-1/workdir');
       const log = vi.fn();
       await runSkillCommand(
         {
@@ -103,7 +102,7 @@ describe('skills', () => {
 
     it('aborts immediately when signal is already aborted', async () => {
       mockExistsSync.mockReturnValue(false);
-      mockGetProjectConfigFolder.mockReturnValue('/test/home/.onezone/projects/proj-1/config');
+      mockGetProjectWorkDir.mockReturnValue('/test/home/.onezone/projects/proj-1/workdir');
       const log = vi.fn();
       const abortController = new AbortController();
       abortController.abort();
@@ -122,7 +121,7 @@ describe('skills', () => {
 
     it('installs skill when missing', async () => {
       mockExistsSync.mockReturnValue(false);
-      mockGetProjectConfigFolder.mockReturnValue('/test/home/.onezone/projects/proj-1/config');
+      mockGetProjectWorkDir.mockReturnValue('/test/home/.onezone/projects/proj-1/workdir');
       const eventHandlers: Record<string, Array<(...args: unknown[]) => void>> = {};
       mockRunProcess.mockImplementation(({ onExit }) => {
         const mockProc = {
@@ -155,7 +154,7 @@ describe('skills', () => {
 
     it('dedupes concurrent installs for same skill', async () => {
       mockExistsSync.mockReturnValue(false);
-      mockGetProjectConfigFolder.mockReturnValue('/test/home/.onezone/projects/proj-1/config');
+      mockGetProjectWorkDir.mockReturnValue('/test/home/.onezone/projects/proj-1/workdir');
       let resolveFirst: () => void;
       const firstPromise = new Promise<void>((resolve) => {
         resolveFirst = resolve;
@@ -197,7 +196,7 @@ describe('skills', () => {
 
     it('deduped install with aborted signal resolves immediately', async () => {
       mockExistsSync.mockReturnValue(false);
-      mockGetProjectConfigFolder.mockReturnValue('/test/home/.onezone/projects/proj-1/config');
+      mockGetProjectWorkDir.mockReturnValue('/test/home/.onezone/projects/proj-1/workdir');
       let resolveFirst: () => void;
       const firstPromise = new Promise<void>((resolve) => {
         resolveFirst = resolve;
@@ -243,7 +242,7 @@ describe('skills', () => {
 
     it('deduped install resolves when signal aborts mid-wait', async () => {
       mockExistsSync.mockReturnValue(false);
-      mockGetProjectConfigFolder.mockReturnValue('/test/home/.onezone/projects/proj-1/config');
+      mockGetProjectWorkDir.mockReturnValue('/test/home/.onezone/projects/proj-1/workdir');
       let resolveFirst: () => void;
       const firstPromise = new Promise<void>((resolve) => {
         resolveFirst = resolve;
@@ -290,7 +289,7 @@ describe('skills', () => {
 
     it('terminates process when signal aborts mid-run', async () => {
       mockExistsSync.mockReturnValue(false);
-      mockGetProjectConfigFolder.mockReturnValue('/test/home/.onezone/projects/proj-1/config');
+      mockGetProjectWorkDir.mockReturnValue('/test/home/.onezone/projects/proj-1/workdir');
       const abortController = new AbortController();
 
       let closeHandler: (() => void) | undefined;
@@ -329,7 +328,7 @@ describe('skills', () => {
 
     it('installs skill for github-copilot-cli agent', async () => {
       mockExistsSync.mockReturnValue(false);
-      mockGetProjectConfigFolder.mockReturnValue('/test/home/.onezone/projects/proj-1/config');
+      mockGetProjectWorkDir.mockReturnValue('/test/home/.onezone/projects/proj-1/workdir');
       const handlers: Record<string, Array<(...args: unknown[]) => void>> = {};
       mockRunProcess.mockImplementation(({ onExit }) => {
         setTimeout(() => {
@@ -360,7 +359,7 @@ describe('skills', () => {
 
     it('installs skill for opencode agent', async () => {
       mockExistsSync.mockReturnValue(false);
-      mockGetProjectConfigFolder.mockReturnValue('/test/home/.onezone/projects/proj-1/config');
+      mockGetProjectWorkDir.mockReturnValue('/test/home/.onezone/projects/proj-1/workdir');
       const handlers: Record<string, Array<(...args: unknown[]) => void>> = {};
       mockRunProcess.mockImplementation(({ onExit }) => {
         setTimeout(() => {
@@ -391,7 +390,7 @@ describe('skills', () => {
 
     it('logs exit code when command fails', async () => {
       mockExistsSync.mockReturnValue(false);
-      mockGetProjectConfigFolder.mockReturnValue('/test/home/.onezone/projects/proj-1/config');
+      mockGetProjectWorkDir.mockReturnValue('/test/home/.onezone/projects/proj-1/workdir');
       const handlers: Record<string, Array<(...args: unknown[]) => void>> = {};
       mockRunProcess.mockImplementation(({ onExit }) => {
         setTimeout(() => {
@@ -422,7 +421,7 @@ describe('skills', () => {
 
     it('logs error when runProcess throws', async () => {
       mockExistsSync.mockReturnValue(false);
-      mockGetProjectConfigFolder.mockReturnValue('/test/home/.onezone/projects/proj-1/config');
+      mockGetProjectWorkDir.mockReturnValue('/test/home/.onezone/projects/proj-1/workdir');
       mockRunProcess.mockImplementation(() => {
         throw new Error('spawn failed');
       });
@@ -439,12 +438,31 @@ describe('skills', () => {
       );
       expect(log).toHaveBeenCalledWith(expect.stringContaining('failed: spawn failed'));
     });
+
+    it('runs npx skills add with cwd = workdir', async () => {
+      mockGetProjectWorkDir.mockReturnValue('/test/home/.onezone/projects/proj-1/workdir');
+      mockExistsSync.mockReturnValue(false);
+      mockRunProcess.mockImplementation(({ onExit }) => {
+        setTimeout(() => onExit?.(0), 0);
+        return { pid: 123 };
+      });
+      await runSkillCommand(
+        { projectId: 'proj-1', source: 'vercel-labs/agent-skills', skillName: 'nextjs', agentCode: 'claude-code' },
+        () => {},
+      );
+      expect(mockRunProcess).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cmd: expect.stringContaining('npx --yes skills add'),
+          cwd: '/test/home/.onezone/projects/proj-1/workdir',
+        }),
+      );
+    });
   });
 
   describe('setupSkills', () => {
     it('installs uninstalled skills', async () => {
       mockGetEffectiveTaskAgentCode.mockReturnValue(AgentTag.ClaudeCode);
-      mockGetProjectConfigFolder.mockReturnValue('/test/home/.onezone/projects/proj-1/config');
+      mockGetProjectWorkDir.mockReturnValue('/test/home/.onezone/projects/proj-1/workdir');
       mockGetAllInstalledSkills.mockReturnValue([]);
       mockExistsSync.mockReturnValue(false);
       mockRunProcess.mockImplementation(({ onExit }) => {
@@ -461,7 +479,7 @@ describe('skills', () => {
 
     it('removes extra skills not in project config', async () => {
       mockGetEffectiveTaskAgentCode.mockReturnValue(AgentTag.ClaudeCode);
-      mockGetProjectConfigFolder.mockReturnValue('/test/home/.onezone/projects/proj-1/config');
+      mockGetProjectWorkDir.mockReturnValue('/test/home/.onezone/projects/proj-1/workdir');
       mockGetAllInstalledSkills.mockReturnValue(['unwanted-skill']);
       mockRemoveSkill.mockReturnValue(true);
       mockExistsSync.mockReturnValue(true);
@@ -496,7 +514,7 @@ describe('skills', () => {
 
     it('does nothing when all skills are already installed', async () => {
       mockGetEffectiveTaskAgentCode.mockReturnValue(AgentTag.ClaudeCode);
-      mockGetProjectConfigFolder.mockReturnValue('/test/home/.onezone/projects/proj-1/config');
+      mockGetProjectWorkDir.mockReturnValue('/test/home/.onezone/projects/proj-1/workdir');
       mockGetAllInstalledSkills.mockReturnValue(['skill-a', 'skill-b']);
       mockExistsSync.mockReturnValue(true);
 
@@ -509,7 +527,7 @@ describe('skills', () => {
 
     it('keeps onezone-prefixed skills even if not in config', async () => {
       mockGetEffectiveTaskAgentCode.mockReturnValue(AgentTag.ClaudeCode);
-      mockGetProjectConfigFolder.mockReturnValue('/test/home/.onezone/projects/proj-1/config');
+      mockGetProjectWorkDir.mockReturnValue('/test/home/.onezone/projects/proj-1/workdir');
       mockGetAllInstalledSkills.mockReturnValue(['onezone-runner']);
       mockExistsSync.mockReturnValue(true);
 
@@ -521,7 +539,7 @@ describe('skills', () => {
 
     it('aborts skill install mid-loop when signal aborts', async () => {
       mockGetEffectiveTaskAgentCode.mockReturnValue(AgentTag.ClaudeCode);
-      mockGetProjectConfigFolder.mockReturnValue('/test/home/.onezone/projects/proj-1/config');
+      mockGetProjectWorkDir.mockReturnValue('/test/home/.onezone/projects/proj-1/workdir');
       mockGetAllInstalledSkills.mockReturnValue([]);
       mockExistsSync.mockReturnValue(false);
 
@@ -538,7 +556,7 @@ describe('skills', () => {
 
     it('aborts after skill install loop when signal aborts', async () => {
       mockGetEffectiveTaskAgentCode.mockReturnValue(AgentTag.ClaudeCode);
-      mockGetProjectConfigFolder.mockReturnValue('/test/home/.onezone/projects/proj-1/config');
+      mockGetProjectWorkDir.mockReturnValue('/test/home/.onezone/projects/proj-1/workdir');
       mockGetAllInstalledSkills.mockReturnValue([]);
       mockExistsSync.mockReturnValue(false);
 

@@ -1,9 +1,8 @@
 #!/bin/sh
 set -e
 
-# Ensure RTK's Claude hook config exists in the persisted /home/agent/.claude volume.
+# Ensure Claude config directory exists in the persisted /home/agent/.claude volume.
 mkdir -p /home/agent/.claude
-rtk init -g --auto-patch
 
 # Ensure Copilot config directory exists in the persisted /home/agent/.copilot volume.
 mkdir -p /home/agent/.copilot

@@ -2,13 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AgentTag } from '@onezone/shared';
 
 const mockCreateProjectFolder = vi.fn();
-const mockCreateProjectConfigFolder = vi.fn();
 const mockCreateProjectWorkDirFolder = vi.fn();
 const mockEnsureWorkDirProjectMarker = vi.fn();
 const mockCloneProjectRepo = vi.fn();
 const mockSetupClaudeConfig = vi.fn();
 const mockSetupCopilotConfig = vi.fn();
 const mockSetupOpencodeConfig = vi.fn();
+const mockSetupRules = vi.fn();
 const mockGetProjectFolder = vi.fn();
 const mockGetProjectWorkDir = vi.fn();
 const mockGetEffectiveTaskAgentCode = vi.fn();
@@ -16,13 +16,13 @@ const mockSetupSkills = vi.fn();
 
 vi.doMock('./project-paths.js', () => ({
   createProjectFolder: mockCreateProjectFolder,
-  createProjectConfigFolder: mockCreateProjectConfigFolder,
   createProjectWorkDirFolder: mockCreateProjectWorkDirFolder,
   ensureWorkDirProjectMarker: mockEnsureWorkDirProjectMarker,
   cloneProjectRepo: mockCloneProjectRepo,
   setupClaudeConfig: mockSetupClaudeConfig,
   setupCopilotConfig: mockSetupCopilotConfig,
   setupOpencodeConfig: mockSetupOpencodeConfig,
+  setupRules: mockSetupRules,
   getProjectFolder: mockGetProjectFolder,
   getProjectWorkDir: mockGetProjectWorkDir,
 }));
@@ -40,12 +40,12 @@ describe('setupProject', () => {
     vi.resetModules();
     vi.clearAllMocks();
     mockCreateProjectFolder.mockReturnValue(true);
-    mockCreateProjectConfigFolder.mockReturnValue(true);
     mockCreateProjectWorkDirFolder.mockReturnValue(true);
     mockCloneProjectRepo.mockResolvedValue(true);
     mockSetupClaudeConfig.mockReturnValue(true);
     mockSetupCopilotConfig.mockReturnValue(true);
     mockSetupOpencodeConfig.mockReturnValue(true);
+    mockSetupRules.mockReturnValue(true);
     mockGetProjectFolder.mockReturnValue('/test/projects/proj-123');
     mockGetProjectWorkDir.mockReturnValue('/test/projects/proj-123/workdir');
     mockGetEffectiveTaskAgentCode.mockReturnValue(AgentTag.ClaudeCode);
@@ -103,13 +103,6 @@ describe('setupProject', () => {
     const result = await setupProject({ task: { project: { id: '123' }, id: 'task-1' } }, emit);
     expect(result).toBeNull();
     expect(emit).toHaveBeenCalledWith(expect.stringContaining('Failed to create project folder'));
-  });
-
-  it('returns null when config folder creation fails', async () => {
-    mockCreateProjectConfigFolder.mockReturnValue(false);
-    const { setupProject } = await import('./setup.js');
-    const result = await setupProject({ task: { project: { id: '123' }, id: 'task-1' } }, vi.fn());
-    expect(result).toBeNull();
   });
 
   it('returns null when workdir folder creation fails', async () => {
@@ -194,8 +187,14 @@ describe('setupProject', () => {
     const { setupProject } = await import('./setup.js');
     await setupProject({ task: { project: { id: '123' }, id: 'task-1' } }, emit);
     expect(emit).toHaveBeenCalledWith(expect.stringContaining('Project folder ready'));
-    expect(emit).toHaveBeenCalledWith(expect.stringContaining('Config folder ready'));
     expect(emit).toHaveBeenCalledWith(expect.stringContaining('Workdir ready'));
+  });
+
+  it('does not create a config folder', async () => {
+    const { setupProject } = await import('./setup.js');
+    const signal = new AbortController().signal;
+    const result = await setupProject({ task: { project: { id: '123' }, id: 'task-1' } }, undefined, signal);
+    expect(result).not.toBeNull();
   });
 
   it('returns null when aborted during skill setup', async () => {

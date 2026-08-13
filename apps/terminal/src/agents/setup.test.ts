@@ -1,64 +1,28 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { AgentTag } from '@onezone/shared';
-import type { TaskDetails } from '@onezone/shared';
-
-const mockSetupClaude = vi.fn();
-const mockSetupCopilot = vi.fn();
-const mockSetupOpencode = vi.fn();
-
-vi.mock('../agents/claude.js', () => ({
-  setup: (...args: unknown[]) => mockSetupClaude(...args),
-}));
-
-vi.mock('../agents/copilot.js', () => ({
-  setup: (...args: unknown[]) => mockSetupCopilot(...args),
-}));
-
-vi.mock('../agents/opencode.js', () => ({
-  setup: (...args: unknown[]) => mockSetupOpencode(...args),
-}));
-
 import { agentFactory, setupTerminalAgent } from './setup.js';
 
 describe('agents/setup', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   describe('agentFactory', () => {
-    it('returns Claude config for AgentTag.ClaudeCode', () => {
-      mockSetupClaude.mockReturnValue({ tag: AgentTag.ClaudeCode, run: vi.fn() });
-      const result = agentFactory({
-        projectId: 'proj-1',
-        agent: { id: 'agent-1', name: 'Claude', tag: AgentTag.ClaudeCode },
-        model: 'claude-model',
-      });
-      expect(result).toBeDefined();
-      expect(mockSetupClaude).toHaveBeenCalledWith({ projectId: 'proj-1', model: 'claude-model' });
+    it('returns a config for claude-code', () => {
+      const cfg = agentFactory({ projectId: 'p1', agent: { tag: AgentTag.ClaudeCode, id: 'a1', name: 'Claude' }, model: 'm' });
+      expect(cfg).not.toBeNull();
+      expect(cfg!.tag).toBe(AgentTag.ClaudeCode);
     });
-
-    it('returns Copilot config for AgentTag.GithubCopilotCLI', () => {
-      mockSetupCopilot.mockReturnValue({ tag: AgentTag.GithubCopilotCLI, run: vi.fn() });
-      const result = agentFactory({
-        projectId: 'proj-1',
-        agent: { id: 'agent-2', name: 'Copilot', tag: AgentTag.GithubCopilotCLI },
-        model: 'copilot-model',
-      });
-      expect(result).toBeDefined();
-      expect(mockSetupCopilot).toHaveBeenCalledWith({ projectId: 'proj-1', model: 'copilot-model' });
+    it('returns a config for github-copilot-cli', () => {
+      const cfg = agentFactory({ projectId: 'p1', agent: { tag: AgentTag.GithubCopilotCLI, id: 'a2', name: 'Copilot' }, model: 'm' });
+      expect(cfg).not.toBeNull();
+      expect(cfg!.tag).toBe(AgentTag.GithubCopilotCLI);
     });
-
-    it('returns Opencode config for AgentTag.Opencode', () => {
-      mockSetupOpencode.mockReturnValue({ tag: AgentTag.Opencode, run: vi.fn() });
-      const result = agentFactory({
-        projectId: 'proj-1',
-        agent: { id: 'agent-3', name: 'Opencode', tag: AgentTag.Opencode },
-        model: 'opencode-model',
-      });
-      expect(result).toBeDefined();
-      expect(mockSetupOpencode).toHaveBeenCalledWith({ projectId: 'proj-1', model: 'opencode-model' });
+    it('returns a config for opencode', () => {
+      const cfg = agentFactory({ projectId: 'p1', agent: { tag: AgentTag.Opencode, id: 'a3', name: 'Opencode' }, model: 'm' });
+      expect(cfg).not.toBeNull();
+      expect(cfg!.tag).toBe(AgentTag.Opencode);
     });
-
+    it('returns null for unknown tag', () => {
+      const cfg = agentFactory({ projectId: 'p1', agent: { tag: 'unknown' as AgentTag, id: 'a4', name: 'X' }, model: 'm' });
+      expect(cfg).toBeNull();
+    });
     it('returns null when agent is null', () => {
       const result = agentFactory({
         projectId: 'proj-1',
@@ -67,20 +31,10 @@ describe('agents/setup', () => {
       });
       expect(result).toBeNull();
     });
-
-    it('returns null for unknown agent tag', () => {
-      const result = agentFactory({
-        projectId: 'proj-1',
-        agent: { id: 'agent-4', name: 'Unknown', tag: 'unknown-tag' as AgentTag },
-        model: 'unknown-model',
-      });
-      expect(result).toBeNull();
-    });
   });
 
   describe('setupTerminalAgent', () => {
     it('returns config for valid task payload', () => {
-      mockSetupClaude.mockReturnValue({ tag: AgentTag.ClaudeCode, run: vi.fn() });
       const payload = {
         task: {
           id: 'task-1',
@@ -104,7 +58,7 @@ describe('agents/setup', () => {
             kanbanColumns: [],
           },
           column: null,
-        } satisfies TaskDetails,
+        },
       };
 
       const result = setupTerminalAgent(payload);
@@ -146,7 +100,6 @@ describe('agents/setup', () => {
     });
 
     it('returns null when effective model is not a string', () => {
-      mockSetupClaude.mockReturnValue({ tag: AgentTag.ClaudeCode, run: vi.fn() });
       const payload = {
         task: {
           id: 'task-1',
@@ -182,9 +135,9 @@ describe('agents/setup', () => {
           id: 'task-1',
           name: 'Test',
           columnId: null,
-          agentId: 'agent-1',
-          agent: { id: 'agent-1', name: 'Claude', tag: AgentTag.ClaudeCode },
-          model: 'claude-model',
+          agentId: 'agent-unknown',
+          agent: { id: 'agent-unknown', name: 'Unknown', tag: 'unknown' as AgentTag },
+          model: 'unknown-model',
           useTaskAgentAndModel: true,
           bypass: false,
           projectId: 'proj-1',
@@ -192,8 +145,8 @@ describe('agents/setup', () => {
             id: 'proj-1',
             name: 'Test Project',
             status: 'ready' as const,
-            defaultAgentId: 'agent-1',
-            defaultAgent: { id: 'agent-1', name: 'Claude', tag: AgentTag.ClaudeCode },
+            defaultAgentId: 'agent-unknown',
+            defaultAgent: { id: 'agent-unknown', name: 'Unknown', tag: 'unknown' as AgentTag },
             defaultModel: 'default-model',
             skills: [],
             createdAt: '2024-01-01T00:00:00Z',
@@ -203,8 +156,6 @@ describe('agents/setup', () => {
         },
       };
 
-      // Force agentFactory to return null by returning null from setupClaude
-      mockSetupClaude.mockReturnValue(null);
       expect(setupTerminalAgent(payload)).toBeNull();
     });
   });
